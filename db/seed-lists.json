@@ -1,0 +1,18 @@
+{
+  "_note": "Seed fixture for the Lists screen. `pre-intent` is the one real list (79 companies, the source spreadsheet). The others are illustrative placeholders so the Lists dropdown and VIEW ALL have something to render in dev — delete them before production seeding.",
+  "lists": [
+    {
+      "name": "Pre-Intent Leads",
+      "display_name": "Pre-Intent Leads — 2026-07-09",
+      "source_filename": "pre-intent.xlsx",
+      "company_count": 79,
+      "real": true,
+      "tier_breakdown": { "tier_1": 7, "tier_2": 23, "tier_3": 47, "defunct": 2 },
+      "note": "Original CTS Mobility target list. Tier 1: Erlanger Health, Fertitta Entertainment, Lowes Foods, Ascension Saint Thomas, Mutual of Omaha, ASML, Micro Center."
+    },
+    { "name": "Southeast Healthcare",   "display_name": "Southeast Healthcare — 2026-05-14",   "company_count": 42, "real": false },
+    { "name": "Retail Expansion Watch", "display_name": "Retail Expansion Watch — 2026-04-02", "company_count": 61, "real": false },
+    { "name": "Logistics & Fleet",      "display_name": "Logistics & Fleet — 2026-02-20",      "company_count": 35, "real": false },
+    { "name": "Q1 Conference Leads",    "display_name": "Q1 Conference Leads — 2026-01-16",    "company_count": 28, "real": false }
+  ]
+}

@@ -1,0 +1,75 @@
+# Render Blueprint — the primary deploy target for Company Assessment.
+# Creates a web service (Next.js UI + API), a background worker (research + scoring),
+# and managed Postgres. Point Render at this file via New -> Blueprint.
+#
+# The worker has NO function timeout, so lib/jobs/driver.ts runs a plain claim loop
+# (no cron, no bailout timer). See docs/08-HOSTING.md and docs/09-DEPLOY-RENDER.md.
+
+services:
+  # --- Next.js UI + API routes ---
+  - type: web
+    name: company-assessment-web
+    runtime: node
+    plan: starter                 # always-on; do NOT use free (it sleeps)
+    region: oregon                # pick the region closest to your users
+    branch: main
+    buildCommand: npm ci && npm run build
+    preDeployCommand: npm run db:migrate   # runs once per deploy, before traffic shifts
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true              # every push to main redeploys
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase: { name: company-assessment-db, property: connectionString }
+      - key: AUTH_SECRET
+        generateValue: true       # Render generates and stores this for you
+      - key: AUTH_URL
+        sync: false               # set to https://app.yourdomain.com after adding the domain
+      - key: ANTHROPIC_API_KEY
+        sync: false               # set in the dashboard; never committed to git
+      - key: SEARCH_PROVIDER
+        value: brave
+      - key: BRAVE_API_KEY
+        sync: false               # optional; free tier
+      - key: SEC_USER_AGENT
+        value: "CTS Mobility Company Assessment (ops@ctsmobility.com)"
+      - key: SEED_ADMIN_USER
+        sync: false               # set before first seed, then change the password in-app
+      - key: SEED_ADMIN_PASSWORD
+        sync: false
+
+  # --- Background worker: drains the jobs queue ---
+  - type: worker
+    name: company-assessment-worker
+    runtime: node
+    plan: starter                 # MUST be always-on -- a sleeping worker never runs analyses
+    region: oregon
+    branch: main
+    buildCommand: npm ci && npm run build
+    startCommand: npm run worker
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase: { name: company-assessment-db, property: connectionString }
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: SEARCH_PROVIDER
+        value: brave
+      - key: BRAVE_API_KEY
+        sync: false
+      - key: SEC_USER_AGENT
+        value: "CTS Mobility Company Assessment (ops@ctsmobility.com)"
+      - key: WORKER_CONCURRENCY
+        value: "4"                # companies processed in parallel per loop tick
+      - key: WORKER_POLL_MS
+        value: "5000"             # idle sleep between empty queue checks
+
+databases:
+  - name: company-assessment-db
+    plan: basic-256mb             # bump to a larger plan as lists accumulate
+    region: oregon
+    postgresMajorVersion: "16"

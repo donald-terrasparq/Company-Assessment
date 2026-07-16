@@ -57,6 +57,13 @@ that switches the source to the `all_prospects` view and adds a "List" column.
 ## 2. Company Detail — `/company/[resultId]`
 
 - Header: monogram, name, HQ, industry, size, website, tier badge, big score + band.
+  - The **domain is always shown next to the name** (linked, e.g. `erlanger.org`). If it came from
+    the uploaded list (`domain_source = 'upload'`) no badge is needed; if research resolved it
+    (`domain_source = 'lookup'`) show a small muted badge — `domain: looked up` — so the rep knows
+    it's our inference, not the customer's data. If no domain could be resolved, show `no domain
+    found` in muted text.
+  - If the result carries the `identity_unconfirmed` caveat, an amber row in **Coverage & caveats**
+    explains that the signals may belong to a similarly-named company.
 - **Why now** hero (dark card): the trigger sentence, the dollar figure if any, category tags.
 - **Score anatomy**: Fit sub-bars (industry/size/multi-location/geography) and Trigger with the
   arithmetic shown — `base 48 × recency 1.0 × confidence 0.88 ≈ 42`. Show the real numbers.

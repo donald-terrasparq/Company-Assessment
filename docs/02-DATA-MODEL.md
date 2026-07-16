@@ -55,6 +55,12 @@ Guard: a bad URL in the source file (typos are common — `mcirocenter.com`) sho
 Store the raw string in `website`, set `domain` to `NULL` if it doesn't parse, and fall back to
 name-based dedupe. Surface these on the Lists screen as "3 rows had unparseable URLs."
 
+**`companies.domain_source` records provenance.** `'upload'` when the domain came from the mapped
+website column; `'lookup'` when research stage 1 (`lib/research/identify.ts`) resolved it because the
+list didn't provide one. The company detail page shows the domain with a badge for which it was, so a
+rep knows whether the domain is the customer's own data or our inference. `NULL` means no domain yet
+(not uploaded, and lookup hasn't run or couldn't resolve it).
+
 ## View All
 
 `all_prospects` unions the latest complete run of every non-deleted list, dedupes on

@@ -1,5 +1,24 @@
 # 06 — Prompts
 
+## Stage 1 — identity resolution (`lib/research/identify.ts`)
+
+Runs **only** when `companies.domain IS NULL` (no website uploaded, or it didn't parse). One or two
+searches — `"{name}" official website` plus `"{name}" {hq_or_industry_hint}` if the raw row has one —
+then a small, cheap model call over the hits:
+
+```
+Which of these results is the official website of the company named "{name}"?
+Return JSON: { "domain": string | null, "evidence_url": string | null }
+- domain must be the bare registrable domain of the OFFICIAL site (no scheme, no www, no path).
+- evidence_url must be one of the provided result URLs.
+- If none of the results is clearly this company's official site, return domain: null.
+  Never construct a domain from the company name.
+```
+
+Zod-parse, normalize via `lib/normalize/domain.ts`, write back `companies.domain` with
+`domain_source = 'lookup'`. `null` is a valid answer — research then proceeds on name alone and the
+extraction is more likely to flag `identity_unconfirmed`.
+
 ## Query set per company (`lib/research/gather.ts`)
 
 Build from the company name + domain. Default 8 searches (Settings-tunable, 4–12).
@@ -64,15 +83,20 @@ Return ONLY valid JSON matching the schema. No markdown fences, no preamble.
 
 ```
 Company: {name}
-Website: {website}
+Website: {domain or "unknown"}   ({domain_source: "provided by the customer list" | "resolved by prior research" | "not found"})
 Today's date: {YYYY-MM-DD}
+
+Identity check: before extracting signals, confirm the sources below are about THIS company —
+the name and (if present) the domain must match. If you cannot confirm it (ambiguous name, sources
+about a similarly-named company), include "identity_unconfirmed" in caveats and only extract
+signals you are confident belong to this exact company.
 
 Allowed signal types (use these exact keys):
 {taxonomy keys + one-line descriptions from docs/03-SIGNAL-MODEL.md}
 
 Allowed caveats:
 defunct, enterprise_procurement, foreign_hq, overseas_growth, holding_company,
-franchise_model, single_site, public_procurement
+franchise_model, single_site, public_procurement, identity_unconfirmed
 
 Sources:
 {numbered list of {url, title, published_date, snippet}}

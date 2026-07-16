@@ -41,6 +41,13 @@ a surprise bill. `settings.allow_open_registration` exists but ships `false`.)
 - Preserve unmapped columns in `companies.raw_row` (jsonb).
 
 ### Research & scoring
+- **Stage 1 — identity.** Research starts by pinning down *which company this is*. If the row has no
+  uploaded website, resolve the company's official domain from public sources first
+  (`lib/research/identify.ts`), normalize it, and write it back to `companies.domain` with
+  `domain_source = 'lookup'` (uploaded websites store `domain_source = 'upload'`). Signal research
+  then reconfirms that the sources found actually match this name + domain; if identity can't be
+  confirmed, the result carries an `identity_unconfirmed` caveat rather than silently scoring the
+  wrong company.
 - One background job per company, drained by the Render worker. Retries up to 3 times with backoff.
 - Free-tier search providers in Phase 1 (see `docs/01-ARCHITECTURE.md`).
 - Extract signals as structured JSON; score them with deterministic local code.
@@ -56,6 +63,8 @@ a surprise bill. `settings.allow_open_registration` exists but ships `false`.)
 - **Lists** — every list with name, date, count, status, run cost, actions (view / re-run / delete).
 - **View All** — union of the latest run of every list, deduped by website, ranked by `total_score`.
 - **Company detail** — score anatomy, signal timeline, press, recommended play, contacts, caveats.
+  The header always shows the company name **and its domain** — whether it came from the lead list
+  or from the stage-1 lookup — with a small badge indicating which (`uploaded` / `looked up`).
 - **Signals** — the signal library with plain-English descriptions and editable weights.
 - **Settings** — account, users, model, search provider, budget, retention, Apollo (Phase 2).
 

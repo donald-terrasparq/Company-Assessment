@@ -42,7 +42,9 @@ acceptance criteria pass. Tell the user when a phase is done and wait for a look
 - **2.2** Name step. `display_name = "{name} — {YYYY-MM-DD}"`, computed server-side in UTC-local.
 - **2.3** Column mapping: `company_name` required, `website` optional; remaining columns → `raw_row`.
 - **2.4** `POST /api/lists` — store raw file (Render disk / S3), insert `lists` + `companies`, normalize `domain`
-  (`lib/normalize/domain.ts`), dedupe within list, count unparseable URLs.
+  (`lib/normalize/domain.ts`), dedupe within list, count unparseable URLs. Rows whose website column
+  was mapped and parsed store `domain_source = 'upload'`; rows without a website leave `domain` and
+  `domain_source` NULL — research stage 1 (ticket 3.1b) fills them in.
 - **2.4b** **Enforce the 100-company cap** at all three layers: client parse (block Continue),
   `POST /api/lists` (422 with a message naming the actual count), and the DB `CHECK`. Surface the cap
   in the modal header, the dropzone copy, and a live `87 / 100` counter. Never truncate silently.
@@ -61,8 +63,17 @@ they store with `domain = NULL` and surface a warning chip. Re-uploading dedupes
 
 - **3.1** `lib/search/provider.ts` interface + `brave.ts`, `google_cse.ts`, `sec_edgar.ts`,
   `anthropic.ts`. Each reports `costPerSearchUsd` and logs to `api_usage`.
+- **3.1b** `lib/research/identify.ts` — **stage 1 of every company's research.** If
+  `companies.domain IS NULL`, resolve the official domain: 1–2 provider searches
+  (`"{name}" official website`, `"{name}" {hq_hint}`), then a small model call that picks the
+  official domain from the hits (zod-validated `{ domain: string | null, evidence_url: string | null }`).
+  Normalize with `lib/normalize/domain.ts` and write back `companies.domain` +
+  `domain_source = 'lookup'`. Unresolvable → leave NULL and continue on name alone. Never guess a
+  domain from the company name string.
 - **3.2** `lib/research/gather.ts` — build the query set for one company (see `docs/06-PROMPTS.md`),
-  run searches, dedupe hits by URL, return ≤20 hits with snippets.
+  run searches, dedupe hits by URL, return ≤20 hits with snippets. Anchor queries on the domain when
+  one exists (uploaded or looked up). Extraction (3.3) reconfirms identity: if the sources don't
+  plausibly match the name + domain, it sets the `identity_unconfirmed` caveat (caps at Tier 2).
 - **3.3** `lib/anthropic/extract.ts` — one Claude call returning `SignalExtraction` JSON. Zod schema.
   On parse failure, retry once with the validation error appended to the prompt; then fail the job.
 - **3.4** `lib/scoring/score.ts` — **pure function** `(extraction, weights) => Scores`. No I/O, no API.
@@ -76,8 +87,10 @@ they store with `domain = NULL` and surface a warning chip. Re-uploading dedupes
 - **3.7** `POST /api/runs/:id/rescore` — re-run 3.4 over stored signals. Zero API calls.
 
 ✅ Run the 79-company list end to end. Every `company_results` row has ≥1 `signals` row with a
-resolvable `source_url`. Killing the worker mid-run and letting cron resume loses nothing. Two
-concurrent workers never double-process a job.
+resolvable `source_url`. Companies uploaded without a website finish the run with either a resolved
+domain (`domain_source = 'lookup'`) or an explicit NULL — never a domain guessed from the name.
+Killing the worker mid-run and letting cron resume loses nothing. Two concurrent workers never
+double-process a job.
 
 **Tests (this is where they matter):**
 - `score.test.ts` — golden fixtures. Feed the Erlanger signal set, assert `total = 69`,
@@ -96,7 +109,9 @@ concurrent workers never double-process a job.
 - **4.3** List selector dropdown, populated from `lists.display_name`, with **VIEW ALL** pinned on top
   (queries `all_prospects`, adds the List column).
 - **4.4** Company detail: hero, expanded anatomy with visible arithmetic, category bars, signal
-  timeline, press cards, recommended play, contacts (unverified badge), caveats panel.
+  timeline, press cards, recommended play, contacts (unverified badge), caveats panel. Header shows
+  the company name **and domain** with a `domain: looked up` badge when `domain_source = 'lookup'`
+  (see `docs/04-UI-SPEC.md` §2), and the caveats panel explains `identity_unconfirmed` when set.
 - **4.5** CSV export honoring active filters.
 
 ✅ Side-by-side with `design/company_assessment_app.html`, the Prospects table and Company Detail match the

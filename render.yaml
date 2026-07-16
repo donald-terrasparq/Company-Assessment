@@ -13,7 +13,7 @@ services:
     plan: starter                 # always-on; do NOT use free (it sleeps)
     region: oregon                # pick the region closest to your users
     branch: main
-    buildCommand: npm ci && npm run build
+    buildCommand: npm ci --include=dev && npm run build   # --include=dev: NODE_ENV=production would otherwise skip devDeps (tsc, tailwind, tsx)
     preDeployCommand: npm run db:migrate   # runs once per deploy, before traffic shifts
     startCommand: npm start
     healthCheckPath: /api/health
@@ -47,7 +47,7 @@ services:
     plan: starter                 # MUST be always-on -- a sleeping worker never runs analyses
     region: oregon
     branch: main
-    buildCommand: npm ci && npm run build
+    buildCommand: npm ci --include=dev && npm run build   # --include=dev: NODE_ENV=production would otherwise skip devDeps (tsc, tailwind, tsx)
     startCommand: npm run worker
     autoDeploy: true
     envVars:

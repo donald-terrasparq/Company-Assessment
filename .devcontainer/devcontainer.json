@@ -1,0 +1,22 @@
+{
+  "name": "Company Assessment",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:22",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "forwardPorts": [3000],
+  "portsAttributes": { "3000": { "label": "Company Assessment web", "onAutoForward": "openPreview" } },
+  "postCreateCommand": "npm install && npm install -g @anthropic-ai/claude-code",
+  "customizations": {
+    "vscode": {
+      "extensions": ["bradlc.vscode-tailwindcss", "esbenp.prettier-vscode", "anthropic.claude-code"]
+    }
+  },
+  "secrets": {
+    "ANTHROPIC_API_KEY": { "description": "Server-side only. Never expose to the browser." },
+    "DATABASE_URL": { "description": "Neon DEV branch — never production." },
+    "BRAVE_API_KEY": { "description": "Free-tier search provider (optional)." },
+    "AUTH_SECRET": { "description": "openssl rand -base64 32" }
+  },
+  "remoteEnv": { "NODE_ENV": "development" }
+}

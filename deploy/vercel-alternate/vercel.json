@@ -1,0 +1,6 @@
+{
+  "crons": [
+    { "path": "/api/cron/worker",    "schedule": "* * * * *" },
+    { "path": "/api/cron/retention", "schedule": "0 4 * * 0" }
+  ]
+}

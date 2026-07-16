@@ -1,0 +1,20 @@
+{
+  "name": "company-assessment",
+  "version": "0.1.0",
+  "private": true,
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "worker": "tsx src/worker/index.ts",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "db:seed": "tsx scripts/seed.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "next lint",
+    "test": "vitest run"
+  },
+  "//": "Dependency versions are intentionally omitted — Phase 0 (docs/05-BUILD-PLAN.md) runs create-next-app and installs current versions. This file documents the SCRIPTS Render and Claude Code rely on: `build`, `start` (company-assessment-web) and `worker` (company-assessment-worker), plus `db:migrate` (preDeployCommand) and `db:seed`.",
+  "dependencies": {},
+  "devDependencies": {}
+}

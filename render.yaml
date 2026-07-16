@@ -21,6 +21,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false"    # npm must install devDependencies at build time (tsc, tailwind, tsx)
       - key: DATABASE_URL
         fromDatabase: { name: company-assessment-db, property: connectionString }
       - key: AUTH_SECRET
@@ -53,6 +55,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false"    # npm must install devDependencies at build time (tsc, tailwind, tsx)
       - key: DATABASE_URL
         fromDatabase: { name: company-assessment-db, property: connectionString }
       - key: ANTHROPIC_API_KEY

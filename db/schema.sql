@@ -28,6 +28,18 @@ CREATE TABLE settings (
   updated_at               TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- one-time invite codes (Settings → Users → Invite user); 7-day expiry
+CREATE TABLE invites (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code        TEXT UNIQUE NOT NULL,
+  role        TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('admin','member')),
+  created_by  UUID REFERENCES users(id) ON DELETE SET NULL,
+  expires_at  TIMESTAMPTZ NOT NULL,
+  used_by     UUID REFERENCES users(id) ON DELETE SET NULL,
+  used_at     TIMESTAMPTZ,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- editable weighting profiles; `weights` shape documented in docs/03-SIGNAL-MODEL.md
 CREATE TABLE signal_profiles (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),

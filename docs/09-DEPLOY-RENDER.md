@@ -211,6 +211,12 @@ Every logged-in user can trigger runs that spend **your** Anthropic credits.
 
 ## Gotchas
 
+- **`Cannot find module 'typescript'` (or tailwind/tsx) during build** — the build installed without
+  devDependencies. `NODE_ENV=production` makes npm omit them. The blueprint guards this twice:
+  `buildCommand` uses `npm ci --include=dev`, and `NPM_CONFIG_PRODUCTION=false` is set on both
+  services. If a service was created from an older render.yaml, either add
+  `NPM_CONFIG_PRODUCTION=false` in its dashboard Environment tab (instant, triggers a redeploy) or
+  run a Blueprint **Manual Sync** so the service picks up the current build command.
 - **Never put the worker on the free plan.** Free services sleep when idle; a sleeping worker leaves
   runs stuck in `queued` forever. Starter (always-on) is the floor for `company-assessment-worker`.
 - **Env-var changes require a redeploy** — Render doesn't hot-reload them.

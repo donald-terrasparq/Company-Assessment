@@ -58,11 +58,17 @@ Runs are bounded at **100 companies** (`docs/00-PRD.md`) → ~15–25 minutes an
 ```
 job claimed
    ↓
+lib/research/identify.ts   → STAGE 1, runs only if companies.domain IS NULL: resolve the official
+   ↓                          domain from 1–2 searches + a small model call, zod-parse, write back
+   ↓                          companies.domain with domain_source='lookup'. Unresolvable → domain
+   ↓                          stays NULL and research proceeds on name alone.
 lib/research/gather.ts     → run k searches (provider-pluggable), collect URLs + snippets
    ↓
 lib/anthropic/extract.ts   → Claude call: "given these sources, return SignalExtraction JSON"
    ↓                          (tools: web_search if provider=anthropic; else pre-fetched context)
 zod parse → reject malformed → retry once with the validation error appended
+   ↓                          extraction also reconfirms identity: sources that don't plausibly
+   ↓                          match the name + domain ⇒ caveat `identity_unconfirmed`
    ↓
 lib/scoring/score.ts       → PURE FUNCTION: (signals, weights) => scores
    ↓                          LLM never does arithmetic. Deterministic + reproducible.

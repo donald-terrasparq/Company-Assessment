@@ -59,6 +59,9 @@ CREATE TABLE companies (
   name         TEXT NOT NULL,
   website      TEXT,
   domain       TEXT,                             -- normalized: lowercase, no scheme/www
+  -- where the domain came from: mapped from the uploaded file, or resolved by
+  -- research stage 1 (lib/research/identify.ts) when the list had no website
+  domain_source TEXT CHECK (domain_source IN ('upload','lookup')),
   raw_row      JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );

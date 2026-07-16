@@ -28,6 +28,7 @@ export async function runRenderWorker(signal?: AbortSignal): Promise<void> {
     // TODO: const jobs = await claimJobs(CONCURRENCY);  // FOR UPDATE SKIP LOCKED
     const jobs: Array<{ id: string; runId: string; companyId: string }> = [];
     if (jobs.length === 0) {
+      console.log("worker: polling for jobs — queue empty");
       await sleep(POLL_MS);
       continue;
     }

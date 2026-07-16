@@ -134,6 +134,7 @@ These don't subtract points; they tell a rep what they're walking into. Two of t
 | `franchise_model` | no | Franchisees buy their own connectivity — sell to the franchisee, not the brand. |
 | `single_site` | no | One location; FWA upside is limited to failover. |
 | `public_procurement` | no | RFP process; longer cycle, confirm the buying path. |
+| `identity_unconfirmed` | → max Tier 2 | Research could not confirm the sources match this exact company (ambiguous name, no domain to anchor on). The signals may belong to a similarly-named company — verify identity before outreach. |
 | `defunct` | → `defunct` | Company no longer exists independently. |
 
 ## The weights object

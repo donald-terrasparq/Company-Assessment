@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens — extracted from design/company_assessment_app.html (:root block)
+   plus the Starlink/BYOD category colors from docs/04-UI-SPEC.md.
+   The -soft tints for Starlink/BYOD follow the same treatment as FWA/Mobility. */
+:root {
+  --ink: #0f1b2d;
+  --ink-2: #182838;
+  --steel: #3a5273;
+  --slate: #5b6675;
+  --muted: #93a0b4;
+  --paper: #f4f6f9;
+  --card: #ffffff;
+  --line: #e6e9ef;
+  --line-2: #eef1f5;
+
+  --t1: #0e8f6e;
+  --t1-soft: #e4f4ee;
+  --t2: #c0870f;
+  --t3: #8a94a6;
+
+  --fwa: #2563c9;
+  --fwa-soft: #e7eefb;
+  --starlink: #0ea5a4;
+  --starlink-soft: #e2f5f5;
+  --mob: #7a3ff2;
+  --mob-soft: #eee8fe;
+  --byod: #e0682b;
+  --byod-soft: #fcede4;
+
+  --spark: #ff6b4a;
+  --spark-soft: #ffe9e3;
+
+  --shadow: 0 1px 2px rgba(15, 27, 45, 0.04), 0 4px 16px rgba(15, 27, 45, 0.06);
+  --shadow-lg: 0 8px 40px rgba(15, 27, 45, 0.12);
+  --r: 14px;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--ink);
+  color: #fff;
+}
+
+/* All numerics (scores, dates, points) are JetBrains Mono with tabular figures. */
+.mono {
+  font-family: var(--font-mono), monospace;
+  font-feature-settings: "tnum";
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

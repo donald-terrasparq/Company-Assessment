@@ -13,7 +13,7 @@ const NAV = [
 ] as const;
 
 /** The 74px ink rail from the prototype: brand tile, four nav icons, avatar. */
-export function Rail() {
+export function Rail({ initials }: { initials: string }) {
   const pathname = usePathname();
 
   return (
@@ -56,8 +56,11 @@ export function Rail() {
 
       <div className="flex-1" />
 
-      <div className="grid h-[38px] w-[38px] place-items-center rounded-full bg-[#2b3f56] font-disp text-[13px] font-semibold text-[#ccffee]">
-        CM
+      <div
+        title="Signed in — manage in Settings"
+        className="grid h-[38px] w-[38px] place-items-center rounded-full bg-[#2b3f56] font-disp text-[13px] font-semibold text-[#ccffee]"
+      >
+        {initials}
       </div>
     </nav>
   );

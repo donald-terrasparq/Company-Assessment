@@ -16,11 +16,15 @@ export function loadEnvLocal(): void {
     if (eq === -1) continue;
     const key = trimmed.slice(0, eq).trim();
     let value = trimmed.slice(eq + 1).trim();
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
+    const quote = value[0];
+    if (quote === '"' || quote === "'") {
+      // quoted value — ends at the matching quote; anything after (inline comment) is dropped
+      const closing = value.indexOf(quote, 1);
+      value = closing === -1 ? value.slice(1) : value.slice(1, closing);
+    } else {
+      // unquoted value — strip an inline " #comment"
+      const hash = value.search(/\s+#/);
+      if (hash !== -1) value = value.slice(0, hash).trim();
     }
     if (!(key in process.env)) process.env[key] = value;
   }

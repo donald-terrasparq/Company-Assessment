@@ -14,7 +14,7 @@ export interface ClaimedJob {
 
 const MAX_ATTEMPTS = 3;
 /** A claimed job whose worker died is reclaimable after this long. */
-const STALE_CLAIM_MINUTES = 10;
+const STALE_CLAIM_MINUTES = 5;
 
 /**
  * Claim up to `limit` jobs with FOR UPDATE SKIP LOCKED — two workers can never

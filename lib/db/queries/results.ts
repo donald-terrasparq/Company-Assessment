@@ -18,6 +18,7 @@ export interface ResultMeta {
   hq: string | null;
   sizeLabel: string | null;
   employeeEstimate: number | null;
+  annualRevenueUsd: number | null;
   locationCount: number | null;
   whyNow: string | null;
   recommendedPlay: string | null; // newline-separated steps
@@ -61,6 +62,7 @@ export async function upsertCompanyResult(input: {
       hq: meta.hq,
       sizeLabel: meta.sizeLabel,
       employeeEstimate: meta.employeeEstimate,
+      annualRevenueUsd: meta.annualRevenueUsd,
       locationCount: meta.locationCount,
       whyNow: meta.whyNow,
       recommendedPlay: meta.recommendedPlay,

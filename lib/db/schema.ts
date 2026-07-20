@@ -4,6 +4,7 @@
  * land (Phase 1: users, invites, settings, signal_profiles).
  */
 import {
+  bigint,
   pgTable,
   uuid,
   text,
@@ -141,6 +142,7 @@ export const companyResults = pgTable("company_results", {
   hq: text("hq"),
   sizeLabel: text("size_label"),
   employeeEstimate: integer("employee_estimate"),
+  annualRevenueUsd: bigint("annual_revenue_usd", { mode: "number" }),
   locationCount: integer("location_count"),
   whyNow: text("why_now"),
   recommendedPlay: text("recommended_play"),

@@ -147,6 +147,7 @@ CREATE TABLE company_results (
   hq                TEXT,
   size_label        TEXT,
   employee_estimate INT,
+  annual_revenue_usd BIGINT,               -- most recent full-year revenue (USD)
   location_count    INT,
 
   why_now           TEXT,        -- one-sentence trigger summary

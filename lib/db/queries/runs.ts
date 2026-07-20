@@ -64,6 +64,7 @@ export interface RunProgress {
   phase: "first_pass" | "second_pass";
   elapsedSeconds: number | null;
   estRemainingSeconds: number | null;
+  failedCompanies: Array<{ name: string; error: string | null }>;
 }
 
 export async function getRunProgress(runId: string): Promise<RunProgress | null> {
@@ -85,6 +86,20 @@ export async function getRunProgress(runId: string): Promise<RunProgress | null>
   const failed = by.failed ?? 0;
   const pending = (by.pending ?? 0) + (by.claimed ?? 0);
 
+  let failedCompanies: RunProgress["failedCompanies"] = [];
+  if (failed > 0) {
+    const failedRows = await db.execute(sql`
+      SELECT c.name, j.last_error FROM jobs j
+      JOIN companies c ON c.id = j.company_id
+      WHERE j.run_id = ${runId} AND j.status = 'failed'
+      ORDER BY c.name
+    `);
+    failedCompanies = (failedRows.rows as Record<string, unknown>[]).map((r) => ({
+      name: r.name as string,
+      error: ((r.last_error as string) ?? null)?.slice(0, 200) ?? null,
+    }));
+  }
+
   const elapsedSeconds = run.startedAt
     ? Math.max(1, Math.round((Date.now() - run.startedAt.getTime()) / 1000))
     : null;
@@ -102,6 +117,7 @@ export async function getRunProgress(runId: string): Promise<RunProgress | null>
       active && elapsedSeconds !== null
         ? estimateRemainingSeconds(elapsedSeconds, done + failed, pending)
         : null,
+    failedCompanies,
   };
 }
 

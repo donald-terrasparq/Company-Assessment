@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Play } from "lucide-react";
+import { Play, RotateCcw } from "lucide-react";
 import { fmtDuration } from "@/lib/utils";
 
 interface Progress {
@@ -14,11 +14,12 @@ interface Progress {
   phase?: "first_pass" | "second_pass";
   elapsedSeconds?: number | null;
   estRemainingSeconds?: number | null;
+  failedCompanies?: Array<{ name: string; error: string | null }>;
 }
 
 const ACTIVE = new Set(["queued", "running"]);
 
-/** Run button + live progress (polls /api/runs/:id/progress every 3s). */
+/** Run button + live progress with elapsed/ETA, plus retry for failed companies. */
 export function RunControls({
   listId,
   latestRunId,
@@ -40,32 +41,44 @@ export function RunControls({
     timer.current = null;
   }, []);
 
+  const fetchProgress = useCallback(async (id: string): Promise<Progress | null> => {
+    try {
+      const res = await fetch(`/api/runs/${id}/progress`);
+      if (!res.ok) return null;
+      return (await res.json()) as Progress;
+    } catch {
+      return null;
+    }
+  }, []);
+
   const poll = useCallback(
     (id: string) => {
       stopPolling();
       timer.current = setInterval(async () => {
-        try {
-          const res = await fetch(`/api/runs/${id}/progress`);
-          if (!res.ok) return;
-          const p = (await res.json()) as Progress;
-          setProgress(p);
-          setStatus(p.status);
-          if (!ACTIVE.has(p.status)) {
-            stopPolling();
-            router.refresh();
-          }
-        } catch {
-          // transient poll failures are fine
+        const p = await fetchProgress(id);
+        if (!p) return;
+        setProgress(p);
+        setStatus(p.status);
+        if (!ACTIVE.has(p.status)) {
+          stopPolling();
+          router.refresh();
         }
       }, 3000);
     },
-    [router, stopPolling],
+    [router, stopPolling, fetchProgress],
   );
 
   useEffect(() => {
-    if (runId && status && ACTIVE.has(status)) poll(runId);
+    if (!runId || !status) return stopPolling;
+    if (ACTIVE.has(status)) {
+      poll(runId);
+    } else if (!progress) {
+      // completed run: fetch once so failed companies are visible + retriable
+      fetchProgress(runId).then((p) => p && setProgress(p));
+    }
     return stopPolling;
-  }, [runId, status, poll, stopPolling]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runId, status]);
 
   async function startRun() {
     setError(null);
@@ -83,6 +96,17 @@ export function RunControls({
     setStatus("queued");
     setProgress(null);
     poll(body.run_id);
+  }
+
+  async function retryFailed() {
+    if (!runId) return;
+    setError(null);
+    const res = await fetch(`/api/runs/${runId}/retry-failed`, { method: "POST" });
+    if (res.ok) {
+      setStatus("running");
+      setProgress(null);
+      poll(runId);
+    }
   }
 
   if (status && ACTIVE.has(status)) {
@@ -111,16 +135,35 @@ export function RunControls({
     );
   }
 
+  const failedCount = progress?.failed ?? 0;
+  const failedTitle =
+    progress?.failedCompanies
+      ?.map((f) => `${f.name}: ${f.error ?? "unknown error"}`)
+      .join("\n") ?? "";
+
   return (
     <div className="flex flex-col items-start gap-1">
-      <button
-        type="button"
-        onClick={startRun}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-card px-2.5 py-1 text-[11.5px] font-medium text-slate transition-colors hover:border-[#cdd4de] hover:text-ink"
-      >
-        <Play size={12} aria-hidden />
-        {status ? "Re-run" : "Run analysis"}
-      </button>
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={startRun}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-card px-2.5 py-1 text-[11.5px] font-medium text-slate transition-colors hover:border-[#cdd4de] hover:text-ink"
+        >
+          <Play size={12} aria-hidden />
+          {status ? "Re-run" : "Run analysis"}
+        </button>
+        {failedCount > 0 && (
+          <button
+            type="button"
+            onClick={retryFailed}
+            title={failedTitle}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-[#FBF0DA] px-2.5 py-1 text-[11.5px] font-semibold text-tier2 transition-colors hover:border-[#cdd4de]"
+          >
+            <RotateCcw size={12} aria-hidden />
+            Retry {failedCount} failed
+          </button>
+        )}
+      </div>
       {status === "halted_budget" && (
         <span className="text-[10.5px] font-semibold text-tier2">halted: budget cap</span>
       )}

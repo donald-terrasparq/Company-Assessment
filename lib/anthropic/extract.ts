@@ -123,7 +123,9 @@ ${sourcesBlock}
 Return JSON:
 {
   "industry": string, "hq": string, "size_label": string,
-  "employee_estimate": number | null, "location_count": number | null,
+  "employee_estimate": number | null,          // most recent headcount you can support
+  "annual_revenue_usd": number | null,         // most recent FULL-YEAR revenue in USD (e.g. 33700000000); prefer the Reference data / filings; null if unknown
+  "location_count": number | null,
   "fit": { "industry": 0-10, "size": 0-8, "multi_location": 0-7, "geography": 0-5, "rationale": string },
   "signals": [{
     "event_type": string, "categories": ["FWA"|"STARLINK"|"MOBILITY"|"BYOD"],
@@ -139,10 +141,11 @@ Return JSON:
                  "linkedin_url": string | null, "source_url": string }]
 }
 
-recommended_play: 3-5 SHORT numbered steps. Each step = a bold imperative lead-in
-sentence, then ONE supporting sentence. Example step: "Lead with FWA for the
-buildout. Temporary connectivity during construction, plus permanent in-building
-coverage for the new space."
+recommended_play: an ARRAY of 3-5 SHORT steps — one array element per step, each
+"Imperative lead-in sentence. One supporting sentence." PLAIN TEXT ONLY: no
+markdown, no ** bolding, no numbering, no bullets. Example element: "Lead with
+FWA for the buildout. Temporary connectivity during construction, plus permanent
+in-building coverage for the new space."
 
 coverage: 2-4 observations a sales rep needs before dialing — tone "good" for
 strengths (regional decision-making, strong Verizon-footprint geography,
@@ -164,23 +167,36 @@ to network/carrier/device ownership.`;
 }
 
 /**
- * Normalize recommended_play to concise steps. Arrays pass through; a single
- * long paragraph (older prompt shape) is split into sentences and grouped into
- * lead-in + support pairs so the UI can always render numbered plays.
+ * Normalize recommended_play to concise steps. Handles arrays, newline-joined
+ * text, markdown bolding (**…**) the model sometimes emits despite
+ * instructions, and legacy single paragraphs (split into lead-in + support
+ * sentence pairs). The UI always gets clean, plain-text numbered plays.
  */
 export function normalizePlaySteps(play: string | string[]): string[] {
-  if (Array.isArray(play)) {
-    return play.map((s) => s.trim()).filter(Boolean).slice(0, 5);
+  const clean = (s: string) =>
+    s
+      .replace(/\*\*/g, "") // markdown bold
+      .replace(/^[-•*]\s*/, "") // bullet markers
+      .replace(/^\d+[.)]\s*/, "") // "1." / "1)" numbering
+      .trim();
+
+  let parts = (Array.isArray(play) ? play : (play ?? "").split(/\n+/))
+    .map(clean)
+    .filter(Boolean);
+
+  if (parts.length === 1) {
+    // one long paragraph — split into sentences, pair lead-in + support.
+    // A bolded lead-in ("**Do X.** Because…") also lands here once ** is
+    // stripped, so the pairing reconstructs the intended steps.
+    const sentences = parts[0].split(/(?<=[.!?])\s+(?=[A-Z0-9"'*])/).filter(Boolean);
+    if (sentences.length > 1) {
+      parts = [];
+      for (let i = 0; i < sentences.length; i += 2) {
+        parts.push([sentences[i], sentences[i + 1]].filter(Boolean).join(" "));
+      }
+    }
   }
-  const text = play.trim();
-  if (!text) return [];
-  const sentences = text.split(/(?<=[.!?])\s+(?=[A-Z0-9"'])/).filter(Boolean);
-  if (sentences.length <= 1) return [text];
-  const steps: string[] = [];
-  for (let i = 0; i < sentences.length && steps.length < 5; i += 2) {
-    steps.push([sentences[i], sentences[i + 1]].filter(Boolean).join(" "));
-  }
-  return steps;
+  return parts.slice(0, 5);
 }
 
 function extractJsonText(content: Array<{ type: string; text?: string }>): string {

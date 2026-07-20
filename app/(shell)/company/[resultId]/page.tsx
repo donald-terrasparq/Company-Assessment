@@ -33,6 +33,13 @@ const CONF_PILL: Record<string, string> = {
 
 const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
+/** "$33.7B" / "$450M" / "$2.1M" — compact revenue display. */
+function fmtRevenue(usd: number): string {
+  if (usd >= 1e9) return `$${(usd / 1e9).toFixed(1)}B`;
+  if (usd >= 1e6) return `$${(usd / 1e6).toFixed(0)}M`;
+  return `$${Math.round(usd).toLocaleString()}`;
+}
+
 /** Prototype-style timeline date: "2026 · MAY". */
 function timelineDate(eventDate: string | null, isForward: boolean): string {
   if (!eventDate) return isForward ? "announced · forward" : "undated";
@@ -145,6 +152,28 @@ export default async function CompanyDetailPage({
               <>
                 <span className="h-[3px] w-[3px] rounded-full bg-[#c3cbd6]" />
                 <span>{result.sizeLabel}</span>
+              </>
+            )}
+            {result.employeeEstimate != null && (
+              <>
+                <span className="h-[3px] w-[3px] rounded-full bg-[#c3cbd6]" />
+                <span className="mono text-[12px]">
+                  ~{result.employeeEstimate.toLocaleString()} employees
+                </span>
+              </>
+            )}
+            {result.annualRevenueUsd != null && (
+              <>
+                <span className="h-[3px] w-[3px] rounded-full bg-[#c3cbd6]" />
+                <span className="mono text-[12px]" title="Most recent full-year revenue (filings / public reporting)">
+                  {fmtRevenue(result.annualRevenueUsd)} revenue
+                </span>
+              </>
+            )}
+            {result.locationCount != null && (
+              <>
+                <span className="h-[3px] w-[3px] rounded-full bg-[#c3cbd6]" />
+                <span className="mono text-[12px]">{result.locationCount} locations</span>
               </>
             )}
             <span className="h-[3px] w-[3px] rounded-full bg-[#c3cbd6]" />

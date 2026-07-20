@@ -41,6 +41,7 @@ export const SignalExtractionSchema = z.object({
   hq: z.string().nullable().catch(null),
   size_label: z.string().nullable().catch(null),
   employee_estimate: z.number().int().nullable().catch(null),
+  annual_revenue_usd: z.number().nullable().catch(null),
   location_count: z.number().int().nullable().catch(null),
   fit: z.object({
     industry: z.number(),

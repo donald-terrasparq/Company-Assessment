@@ -178,6 +178,14 @@ export default async function CompanyDetailPage({
             >
               {tier.label}
             </span>
+            {result.modelUsed === "claude-opus-4-8" && (
+              <span
+                title={`Re-analyzed with the high-accuracy model${((result.escalationReasons as string[]) ?? []).length > 0 ? ` — triggers: ${((result.escalationReasons as string[]) ?? []).join(", ").replaceAll("_", " ")}` : ""}`}
+                className="rounded-[7px] bg-mobility-soft px-2 py-1 font-disp text-[10.5px] font-bold tracking-[.04em] text-mobility"
+              >
+                HIGH-ACCURACY
+              </span>
+            )}
           </div>
           <div className="mt-1 text-[11.5px] text-muted">from {list.displayName}</div>
         </div>

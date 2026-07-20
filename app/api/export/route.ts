@@ -1,10 +1,11 @@
 import { auth } from "@/auth";
-import { allProspects, prospectsForList } from "@/lib/db/queries/prospects";
+import { allProspects, prospectsForList, prospectsForLists } from "@/lib/db/queries/prospects";
 import { applyFilters, prospectsToCsv } from "@/lib/export/csv";
 
 /**
- * GET /api/export?list=<id|all>&tiers=..&categories=..&fresh=1&hide_caveats=1
- * Server-generated CSV honoring the active filters (ticket 4.5).
+ * GET /api/export?list=<id|all|sel:id1,id2>&tiers=..&categories=..&fresh=1&hide_caveats=1
+ * Server-generated CSV honoring the active filters (ticket 4.5) and the
+ * single / VIEW ALL / VIEW SELECTED modes.
  */
 export async function GET(request: Request): Promise<Response> {
   const session = await auth();
@@ -14,8 +15,11 @@ export async function GET(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const listParam = url.searchParams.get("list") ?? "all";
 
-  const rows =
-    listParam === "all" ? await allProspects() : await prospectsForList(listParam);
+  const rows = listParam.startsWith("sel:")
+    ? await prospectsForLists(listParam.slice(4).split(",").filter(Boolean))
+    : listParam === "all"
+      ? await allProspects()
+      : await prospectsForList(listParam);
 
   const filtered = applyFilters(rows, {
     tiers: url.searchParams.get("tiers")?.split(",").filter(Boolean) ?? [],

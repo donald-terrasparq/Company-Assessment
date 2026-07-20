@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Play } from "lucide-react";
+import { fmtDuration } from "@/lib/utils";
 
 interface Progress {
   status: string;
@@ -10,6 +11,9 @@ interface Progress {
   done: number;
   failed: number;
   pending: number;
+  phase?: "first_pass" | "second_pass";
+  elapsedSeconds?: number | null;
+  estRemainingSeconds?: number | null;
 }
 
 const ACTIVE = new Set(["queued", "running"]);
@@ -86,14 +90,23 @@ export function RunControls({
     const total = progress?.total ?? 0;
     const pct = total > 0 ? Math.round((done / total) * 100) : 0;
     return (
-      <div className="min-w-[150px]">
+      <div className="min-w-[190px]">
         <div className="mb-1 h-2 overflow-hidden rounded-full bg-line-2">
           <div className="h-full rounded-full bg-spark transition-all" style={{ width: `${pct}%` }} />
         </div>
         <div className="mono text-[10.5px] text-muted">
-          {total > 0 ? `${done} of ${total} companies analyzed` : "starting…"}
+          {total > 0 ? `${done} of ${total} analyzed` : "starting…"}
           {progress && progress.failed > 0 ? ` · ${progress.failed} failed` : ""}
+          {progress?.phase === "second_pass" ? " · 2nd pass (high accuracy)" : ""}
         </div>
+        {progress?.elapsedSeconds ? (
+          <div className="mono text-[10.5px] text-muted">
+            {fmtDuration(progress.elapsedSeconds)} elapsed
+            {progress.estRemainingSeconds != null
+              ? ` · ~${fmtDuration(progress.estRemainingSeconds)} left`
+              : ""}
+          </div>
+        ) : null}
       </div>
     );
   }

@@ -7,7 +7,6 @@
  * the file honors them.
  */
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, ChevronDown, ChevronRight, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -311,31 +310,113 @@ export function ProspectsView({
   );
 }
 
-/** List selector (ticket 4.3): every list by display_name, VIEW ALL pinned on top. */
+/**
+ * List selector (ticket 4.3 + VIEW SELECTED): single list, VIEW ALL, or a
+ * checkbox multi-select that combines chosen lists into one dynamically
+ * ranked board.
+ */
 export function ListSelector({
   lists,
   value,
+  selectedIds,
 }: {
   lists: Array<{ id: string; displayName: string }>;
-  value: string;
+  value: string; // list id | 'all' | 'selected'
+  selectedIds: string[];
 }) {
   const router = useRouter();
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [picked, setPicked] = useState<Set<string>>(new Set(selectedIds));
+
+  function onSelectChange(v: string) {
+    if (v === "selected") {
+      setPickerOpen(true);
+      return;
+    }
+    setPickerOpen(false);
+    router.push(`/prospects?list=${v}`);
+  }
+
+  function applyPicked() {
+    if (picked.size === 0) return;
+    setPickerOpen(false);
+    router.push(`/prospects?lists=${[...picked].join(",")}`);
+  }
+
   return (
     <div className="relative">
-      <select
-        value={value}
-        onChange={(e) => router.push(`/prospects?list=${e.target.value}`)}
-        className="appearance-none rounded-[10px] border border-line bg-card py-2 pl-3 pr-8 font-disp text-[13.5px] font-semibold text-ink outline-none focus:border-steel"
-        aria-label="Select list"
-      >
-        <option value="all">VIEW ALL — every list</option>
-        {lists.map((l) => (
-          <option key={l.id} value={l.id}>
-            {l.displayName}
-          </option>
-        ))}
-      </select>
-      <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted" aria-hidden />
+      <div className="flex items-center gap-2">
+        <div className="relative">
+          <select
+            value={value}
+            onChange={(e) => onSelectChange(e.target.value)}
+            className="appearance-none rounded-[10px] border border-line bg-card py-2 pl-3 pr-8 font-disp text-[13.5px] font-semibold text-ink outline-none focus:border-steel"
+            aria-label="Select list"
+          >
+            <option value="all">VIEW ALL — every list</option>
+            <option value="selected">
+              VIEW SELECTED{selectedIds.length > 0 ? ` — ${selectedIds.length} lists` : "…"}
+            </option>
+            {lists.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.displayName}
+              </option>
+            ))}
+          </select>
+          <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted" aria-hidden />
+        </div>
+        {value === "selected" && !pickerOpen && (
+          <button
+            type="button"
+            onClick={() => setPickerOpen(true)}
+            className="rounded-[10px] border border-line bg-card px-3 py-2 text-[12.5px] font-medium text-slate hover:border-[#cdd4de] hover:text-ink"
+          >
+            Edit selection
+          </button>
+        )}
+      </div>
+
+      {pickerOpen && (
+        <div className="absolute left-0 top-[calc(100%+6px)] z-30 w-[320px] rounded-card border border-line bg-card p-4 shadow-lg">
+          <p className="mb-2.5 text-[10.5px] font-bold uppercase tracking-[.1em] text-muted">
+            Combine lists — ranked by score
+          </p>
+          <div className="mb-3 flex max-h-[240px] flex-col gap-1.5 overflow-auto">
+            {lists.map((l) => (
+              <label key={l.id} className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px] text-ink hover:bg-[#FAFBFC]">
+                <input
+                  type="checkbox"
+                  checked={picked.has(l.id)}
+                  onChange={(e) => {
+                    const next = new Set(picked);
+                    if (e.target.checked) next.add(l.id);
+                    else next.delete(l.id);
+                    setPicked(next);
+                  }}
+                />
+                <span className="truncate">{l.displayName}</span>
+              </label>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setPickerOpen(false)}
+              className="rounded-[10px] border border-line bg-card px-3 py-1.5 text-[12.5px] font-medium text-slate hover:text-ink"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={picked.size === 0}
+              onClick={applyPicked}
+              className="rounded-[10px] border border-ink bg-ink px-3 py-1.5 text-[12.5px] font-medium text-white hover:bg-[#1b2d43] disabled:opacity-50"
+            >
+              View {picked.size} list{picked.size === 1 ? "" : "s"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

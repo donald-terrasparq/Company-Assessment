@@ -1,5 +1,10 @@
 /** Run cost estimator (docs/07-COSTS.md) — shown on the upload confirm step (admin only). */
-import { estimateTokenCostUsd, WEB_SEARCH_COST_PER_SEARCH_USD } from "@/lib/anthropic/models";
+import {
+  BALANCED_MODEL,
+  HIGH_ACCURACY_MODEL,
+  estimateTokenCostUsd,
+  WEB_SEARCH_COST_PER_SEARCH_USD,
+} from "@/lib/anthropic/models";
 import { SEARCHES_PER_COMPANY } from "@/lib/research/gather";
 
 /** Bulky search snippets in, structured JSON out — docs/07 averages. */
@@ -21,6 +26,8 @@ export interface RunEstimate {
   searches: number;
   searchCostUsd: number;
   tokenCostUsd: number;
+  escalated: number;
+  escalationCostUsd: number;
   totalUsd: number;
   minutes: number;
 }
@@ -29,12 +36,38 @@ export function estimateRun(
   companies: number,
   model: string,
   searchProvider: string,
+  escalationPct = 0,
 ): RunEstimate {
   const searches = companies * SEARCHES_PER_COMPANY;
   const searchCostUsd = searches * (PROVIDER_SEARCH_COST[searchProvider] ?? 0);
   const tokenCostUsd =
     companies * estimateTokenCostUsd(model, AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS);
-  const totalUsd = Math.ceil((searchCostUsd + tokenCostUsd) * 100) / 100; // round up
-  const minutes = Math.max(1, Math.ceil((companies * AVG_SECONDS_PER_COMPANY) / CONCURRENCY / 60));
-  return { companies, searches, searchCostUsd, tokenCostUsd, totalUsd, minutes };
+
+  // two-pass: escalated companies re-run research + extraction on the
+  // high-accuracy model (only applies when the base model is the balanced one)
+  const escalated =
+    model === BALANCED_MODEL && escalationPct > 0
+      ? Math.ceil((escalationPct / 100) * companies)
+      : 0;
+  const escalationCostUsd =
+    escalated *
+    (estimateTokenCostUsd(HIGH_ACCURACY_MODEL, AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS) +
+      SEARCHES_PER_COMPANY * (PROVIDER_SEARCH_COST[searchProvider] ?? 0));
+
+  const totalUsd =
+    Math.ceil((searchCostUsd + tokenCostUsd + escalationCostUsd) * 100) / 100; // round up
+  const minutes = Math.max(
+    1,
+    Math.ceil(((companies + escalated) * AVG_SECONDS_PER_COMPANY) / CONCURRENCY / 60),
+  );
+  return {
+    companies,
+    searches,
+    searchCostUsd,
+    tokenCostUsd,
+    escalated,
+    escalationCostUsd,
+    totalUsd,
+    minutes,
+  };
 }

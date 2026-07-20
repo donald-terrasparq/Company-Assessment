@@ -63,6 +63,14 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
     const weights = profileRows[0]?.weights as WeightProfile | undefined;
     if (!weights) throw new Error("signal profile not found");
 
+    // two-pass mode: pass-2 jobs carry a high-accuracy model override
+    const model = job.modelOverride ?? run.model;
+    const passLabel = job.pass === 2 ? " [pass 2 · high accuracy]" : "";
+    const t0 = Date.now();
+    const stageTimes: string[] = [];
+    const mark = (stage: string, since: number) =>
+      stageTimes.push(`${stage} ${((Date.now() - since) / 1000).toFixed(1)}s`);
+
     const provider = resolveSearchProvider(run.searchProvider);
     const useWebSearchTool = provider === null;
 
@@ -78,12 +86,14 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
                 "",
             ) || null
           : null;
+      const tIdentify = Date.now();
       const resolved = await resolveDomain({
         companyName: company.name,
         hqHint,
-        model: run.model,
+        model,
         provider,
       });
+      mark("identify", tIdentify);
       if (resolved.usage.inputTokens > 0) {
         await logUsage({
           runId: run.id,
@@ -92,7 +102,7 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
           inputTokens: resolved.usage.inputTokens,
           outputTokens: resolved.usage.outputTokens,
           costUsd: estimateTokenCostUsd(
-            run.model,
+            model,
             resolved.usage.inputTokens,
             resolved.usage.outputTokens,
           ),
@@ -116,7 +126,9 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
 
     // ---- stage 1b: free enrichment (registries, news, job boards, contracts) ----
     // runs for every provider path; all $0, every connector failure-tolerant
+    const tEnrich = Date.now();
     const enrichment = await enrichCompany(company.name, domain, now);
+    mark("enrich", tEnrich);
     if (!domain && enrichment.officialDomain) {
       // registry-sourced official website — better than nothing, flagged as lookup
       domain = enrichment.officialDomain;
@@ -127,7 +139,9 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
     // ---- stage 2: gather sources (skipped when the anthropic tool searches) ----
     let sources: Awaited<ReturnType<typeof gather>>["hits"] = [];
     if (provider) {
+      const tGather = Date.now();
       const gathered = await gather({ companyName: company.name, provider, now });
+      mark(`gather(${gathered.searches}q)`, tGather);
       sources = gathered.hits;
       if (gathered.searches > 0 || gathered.secSearches > 0) {
         await logUsage({
@@ -158,17 +172,19 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
     }
 
     // ---- stage 3: extraction (zod-validated, retry once inside) ----
+    const tExtract = Date.now();
     const { extraction, usage } = await extractSignals({
       companyName: company.name,
       domain,
       domainSource,
-      model: run.model,
+      model,
       weights,
       sources,
       facts: enrichment.facts,
       useWebSearchTool,
       now,
     });
+    mark("extract", tExtract);
     await logUsage({
       runId: run.id,
       companyId: company.id,
@@ -177,7 +193,7 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
       outputTokens: usage.outputTokens,
       searches: usage.webSearches,
       costUsd:
-        estimateTokenCostUsd(run.model, usage.inputTokens, usage.outputTokens) +
+        estimateTokenCostUsd(model, usage.inputTokens, usage.outputTokens) +
         usage.webSearches * WEB_SEARCH_COST_PER_SEARCH_USD,
     });
 
@@ -207,6 +223,8 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
         recommendedPlay: normalizePlaySteps(extraction.recommended_play).join("\n") || null,
         caveats: extraction.caveats,
         coverageNotes: extraction.coverage,
+        modelUsed: model,
+        escalationReasons: job.escalationReasons,
       },
       contacts: extraction.contacts.map((c) => ({
         name: c.name,
@@ -217,6 +235,9 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
     });
 
     await markJobDone(job.id);
+    console.log(
+      `worker: ${company.name}${passLabel} done in ${((Date.now() - t0) / 1000).toFixed(1)}s — ${stageTimes.join(", ")}`,
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`worker: job ${job.id} failed (attempt ${job.attempts + 1}): ${message}`);

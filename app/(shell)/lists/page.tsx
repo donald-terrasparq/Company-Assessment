@@ -16,11 +16,16 @@ export default async function ListsPage({
     auth(),
   ]);
   // the cost estimator is admin-only (Phase 6)
-  let estimator: { model: string; searchProvider: string } | null = null;
+  let estimator: { model: string; searchProvider: string; escalationPct: number } | null =
+    null;
   if (session?.user.role === "admin") {
     const settings = await getSettings();
     if (settings) {
-      estimator = { model: settings.model, searchProvider: settings.searchProvider };
+      estimator = {
+        model: settings.model,
+        searchProvider: settings.searchProvider,
+        escalationPct: settings.escalationPct,
+      };
     }
   }
 

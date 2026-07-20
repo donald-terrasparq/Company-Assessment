@@ -24,6 +24,7 @@ CREATE TABLE settings (
   monthly_budget_usd       NUMERIC(10,2) NOT NULL DEFAULT 100.00,
   allow_open_registration  BOOLEAN NOT NULL DEFAULT FALSE,
   retention_days           INT NOT NULL DEFAULT 365,
+  escalation_pct           INT NOT NULL DEFAULT 20 CHECK (escalation_pct IN (0,20,40,60,80,100)),
   apollo_enabled           BOOLEAN NOT NULL DEFAULT FALSE,
   updated_at               TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -106,6 +107,9 @@ CREATE TABLE jobs (
   company_id  UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   status      TEXT NOT NULL DEFAULT 'pending'
               CHECK (status IN ('pending','claimed','done','failed')),
+  pass        INT NOT NULL DEFAULT 1,               -- 1 = balanced, 2 = escalated high-accuracy
+  model_override     TEXT,                          -- overrides runs.model for pass 2
+  escalation_reasons JSONB NOT NULL DEFAULT '[]',
   attempts    INT NOT NULL DEFAULT 0,
   last_error  TEXT,
   locked_at   TIMESTAMPTZ,
@@ -151,6 +155,8 @@ CREATE TABLE company_results (
   coverage_notes    JSONB NOT NULL DEFAULT '[]'::jsonb,   -- [{"tone":"good"|"warn","note":"…"}]
   recency_label     TEXT,
   confidence        NUMERIC(3,2),
+  model_used        TEXT,                           -- which model produced this result
+  escalation_reasons JSONB NOT NULL DEFAULT '[]',   -- why pass 2 re-analyzed it
 
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (run_id, company_id)          -- makes retries an upsert, not a duplicate

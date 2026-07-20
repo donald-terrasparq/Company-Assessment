@@ -32,6 +32,7 @@ export async function updateSettings(patch: {
   searchProvider?: string;
   monthlyBudgetUsd?: string;
   retentionDays?: number;
+  escalationPct?: number;
 }): Promise<void> {
   await db
     .update(settings)

@@ -4,18 +4,25 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-const PHASE_6_TABS = ["Analysis", "Data sources", "Budget", "Retention"];
-
+/** Settings navigation — admin-only tabs are simply absent for members. */
 export function SettingsTabs({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
 
   const tabs = [
     { href: "/settings", label: "Account" },
-    ...(isAdmin ? [{ href: "/settings/users", label: "Users" }] : []),
+    ...(isAdmin
+      ? [
+          { href: "/settings/users", label: "Users" },
+          { href: "/settings/analysis", label: "Analysis" },
+          { href: "/settings/data-sources", label: "Data sources" },
+          { href: "/settings/budget", label: "Budget" },
+          { href: "/settings/retention", label: "Retention" },
+        ]
+      : []),
   ];
 
   return (
-    <div className="mb-[22px] flex w-max gap-1.5 rounded-xl border border-line bg-card p-[5px] shadow-card">
+    <div className="mb-[22px] flex w-max max-w-full flex-wrap gap-1.5 rounded-xl border border-line bg-card p-[5px] shadow-card">
       {tabs.map(({ href, label }) => {
         const active = pathname === href;
         return (
@@ -31,15 +38,6 @@ export function SettingsTabs({ isAdmin }: { isAdmin: boolean }) {
           </Link>
         );
       })}
-      {PHASE_6_TABS.map((label) => (
-        <span
-          key={label}
-          title="Built in Phase 6"
-          className="cursor-not-allowed rounded-lg px-4 py-2 font-disp text-[13px] font-medium text-muted/60"
-        >
-          {label}
-        </span>
-      ))}
     </div>
   );
 }

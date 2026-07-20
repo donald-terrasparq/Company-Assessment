@@ -7,8 +7,8 @@ import { secEdgarProvider } from "@/lib/search/sec_edgar";
 import type { SearchHit, SearchProvider } from "@/lib/search/provider";
 
 export const MAX_HITS = 20;
-/** Settings-tunable 4–12 in Phase 6; constant until that ticket lands. */
-export const SEARCHES_PER_COMPANY = 8;
+/** Settings-tunable 4–12 in a later ticket; constant for now. */
+export const SEARCHES_PER_COMPANY = 10;
 const MAX_HIT_AGE_DAYS = 548; // ~18 months
 
 export function buildQuerySet(companyName: string, year: number): string[] {
@@ -16,6 +16,10 @@ export function buildQuerySet(companyName: string, year: number): string[] {
   return [
     `"${n}" new facility OR headquarters OR expansion ${year}`,
     `"${n}" new store OR branch OR location opening ${year}`,
+    // footprint queries — how many sites the company actually has. Without
+    // these, chains read as single-site (the Micro Center failure mode).
+    `"${n}" number of stores OR locations OR branches`,
+    `"${n}" "locations" about company overview`,
     `"${n}" hiring OR jobs OR "new employees" ${year}`,
     `"${n}" acquisition OR merger OR funding ${year}`,
     `"${n}" CIO OR CTO OR "VP of IT" OR "head of infrastructure"`,

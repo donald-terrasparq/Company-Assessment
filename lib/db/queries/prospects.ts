@@ -68,7 +68,8 @@ export async function prospectsForList(listId: string): Promise<ProspectRow[]> {
            cr.mobility_score, cr.byod_score, cr.primary_category, cr.why_now,
            cr.recency_label, cr.caveats
     FROM company_results cr
-    JOIN (SELECT id FROM runs WHERE list_id = ${listId} ORDER BY created_at DESC LIMIT 1) latest
+    JOIN (SELECT id FROM runs WHERE list_id = ${listId} AND deleted_at IS NULL
+          ORDER BY created_at DESC LIMIT 1) latest
       ON latest.id = cr.run_id
     JOIN companies c ON c.id = cr.company_id
     JOIN lists l ON l.id = c.list_id

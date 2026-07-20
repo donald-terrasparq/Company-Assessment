@@ -20,3 +20,11 @@ export async function createDefaultProfile(weights: unknown): Promise<SignalProf
     .returning();
   return rows[0];
 }
+
+/** Overwrite the default profile's weights (Signals tab → Save). */
+export async function updateDefaultProfile(name: string, weights: unknown): Promise<void> {
+  await db
+    .update(signalProfiles)
+    .set({ name, weights })
+    .where(eq(signalProfiles.isDefault, true));
+}

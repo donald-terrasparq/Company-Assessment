@@ -9,6 +9,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UploadCloud, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { estimateRun } from "@/lib/costs/estimate";
 
 const MAX_ROWS = 100;
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -63,7 +64,14 @@ async function parseUpload(file: File): Promise<ParsedFile> {
 const inputCls =
   "rounded-[10px] border border-line bg-card px-3 py-2.5 text-[14px] text-ink outline-none focus:border-steel w-full";
 
-export function UploadModal({ initialOpen }: { initialOpen: boolean }) {
+export function UploadModal({
+  initialOpen,
+  estimator,
+}: {
+  initialOpen: boolean;
+  /** admin-only (Phase 6): model + provider for the run cost estimate; null hides it */
+  estimator: { model: string; searchProvider: string } | null;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(initialOpen);
   const [step, setStep] = useState<Step>("drop");
@@ -334,6 +342,22 @@ export function UploadModal({ initialOpen }: { initialOpen: boolean }) {
               Unmapped columns are preserved with each company. Duplicates are removed on
               website domain, then on name.
             </p>
+            {estimator &&
+              (() => {
+                const est = estimateRun(count, estimator.model, estimator.searchProvider);
+                return (
+                  <p className="mono rounded-[10px] border border-line-2 bg-[#FBFCFD] px-3 py-2 text-[11.5px] text-slate">
+                    Analyzing {est.companies} companies ≈{" "}
+                    <b className="text-ink">${est.totalUsd.toFixed(2)}</b> · ~{est.minutes} min
+                    <span className="text-muted">
+                      {" "}
+                      ({est.searches} searches
+                      {est.searchCostUsd > 0 ? ` $${est.searchCostUsd.toFixed(2)}` : " free tier"} +
+                      tokens ${est.tokenCostUsd.toFixed(2)})
+                    </span>
+                  </p>
+                );
+              })()}
             {error && (
               <p className="rounded-[10px] bg-spark-soft px-3 py-2 text-[12.5px] font-medium text-spark">
                 {error}

@@ -62,7 +62,9 @@ export async function listListsWithLatestRun(): Promise<ListWithLatestRun[]> {
            r.created_at AS latest_run_created_at
     FROM lists l
     LEFT JOIN LATERAL (
-      SELECT * FROM runs WHERE runs.list_id = l.id ORDER BY created_at DESC LIMIT 1
+      SELECT * FROM runs
+      WHERE runs.list_id = l.id AND runs.deleted_at IS NULL
+      ORDER BY created_at DESC LIMIT 1
     ) r ON TRUE
     WHERE l.deleted_at IS NULL
     ORDER BY l.created_at DESC
@@ -127,7 +129,7 @@ export async function latestRunForList(listId: string) {
   const rows = await db
     .select()
     .from(runs)
-    .where(eq(runs.listId, listId))
+    .where(and(eq(runs.listId, listId), isNull(runs.deletedAt)))
     .orderBy(desc(runs.createdAt))
     .limit(1);
   return rows[0];

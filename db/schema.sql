@@ -95,7 +95,8 @@ CREATE TABLE runs (
   finished_at        TIMESTAMPTZ,
   triggered_by       UUID REFERENCES users(id) ON DELETE SET NULL,
   cost_usd           NUMERIC(10,4) NOT NULL DEFAULT 0,
-  created_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at         TIMESTAMPTZ                     -- retention soft delete
 );
 CREATE INDEX runs_list_idx ON runs(list_id, created_at DESC);
 
@@ -211,11 +212,11 @@ CREATE INDEX api_usage_month_idx ON api_usage(created_at);
 
 -- ─────────────────────────── views ───────────────────────────
 
--- latest run per list
+-- latest run per list (retention-soft-deleted runs excluded)
 CREATE VIEW latest_runs AS
 SELECT DISTINCT ON (list_id) *
 FROM runs
-WHERE status = 'complete'
+WHERE status = 'complete' AND deleted_at IS NULL
 ORDER BY list_id, created_at DESC;
 
 -- VIEW ALL: every company from every list's latest run, deduped by domain, best score wins

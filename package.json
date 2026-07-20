@@ -12,6 +12,8 @@
     "worker": "tsx src/worker/index.ts",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx scripts/seed.ts",
+    "db:wipe": "tsx scripts/wipe-data.ts",
+    "db:reset-admin": "tsx scripts/reset-admin-password.ts",
     "typecheck": "tsc --noEmit",
     "lint": "next lint",
     "test": "vitest run"

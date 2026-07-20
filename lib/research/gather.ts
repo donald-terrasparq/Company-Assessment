@@ -8,7 +8,7 @@ import type { SearchHit, SearchProvider } from "@/lib/search/provider";
 
 export const MAX_HITS = 20;
 /** Settings-tunable 4–12 in a later ticket; constant for now. */
-export const SEARCHES_PER_COMPANY = 10;
+export const SEARCHES_PER_COMPANY = 12;
 const MAX_HIT_AGE_DAYS = 548; // ~18 months
 
 export function buildQuerySet(companyName: string, year: number): string[] {
@@ -23,6 +23,10 @@ export function buildQuerySet(companyName: string, year: number): string[] {
     `"${n}" hiring OR jobs OR "new employees" ${year}`,
     `"${n}" acquisition OR merger OR funding ${year}`,
     `"${n}" CIO OR CTO OR "VP of IT" OR "head of infrastructure"`,
+    // public LinkedIn listings via the search index (SERP snippets only —
+    // never crawling linkedin.com; hard rule 2). Wireless buyers sit in IT.
+    `site:linkedin.com/in "${n}" CIO OR CTO OR "VP IT" OR "IT Director" OR "Director of Information Technology"`,
+    `site:linkedin.com/in "${n}" "IT Infrastructure" OR "network" OR "telecom" OR "telecommunications" manager OR director`,
     `"${n}" outage OR downtime OR "business continuity"`,
     `"${n}" remote work OR BYOD OR field technicians OR warehouse`,
     `site:sec.gov "${n}"`,

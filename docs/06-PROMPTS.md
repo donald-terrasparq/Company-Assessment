@@ -37,7 +37,33 @@ Always include the current year — the model's queries otherwise skew stale.
 10. site:sec.gov "{name}"                       ← free, high-confidence
 ```
 
+Plus two public-LinkedIn queries via the search index (SERP snippets only — the app never
+crawls linkedin.com; hard rule 2). Wireless buying sits with IT, so they target the IT org:
+
+```
+site:linkedin.com/in "{name}" CIO OR CTO OR "VP IT" OR "IT Director" OR "Director of Information Technology"
+site:linkedin.com/in "{name}" "IT Infrastructure" OR "network" OR "telecom" OR "telecommunications" manager OR director
+```
+
 Plus, always and free: SEC EDGAR full-text search on the legal entity name.
+
+## Free enrichment layer (`lib/research/enrich.ts`)
+
+Alongside search, every company gets a $0 enrichment pass — each connector independent,
+time-bounded (8s), and failure-tolerant:
+
+| Source | Contributes |
+|---|---|
+| SEC EDGAR XBRL company facts (data.sec.gov) | Employee count + revenue from filings (public cos) |
+| Wikidata | Employees, founding year, **official website** (catches uploaded-domain typos) |
+| GDELT DOC 2.0 | Recent news articles (citable sources) |
+| Google News RSS | Recent headlines (citable sources; unofficial, fragile-tolerant) |
+| Greenhouse / Lever public boards | Live job-posting counts (citable hiring evidence) |
+| USAspending.gov | Federal contract awards (citable; disable with `ENRICH_USASPENDING=0`) |
+
+Registry facts go into the prompt as a "Reference data" block — context for fit/size/
+footprint/identity, **not** signal evidence. News/jobs/awards join the Sources list and are
+citable. A Wikidata official website also fills a missing domain (`domain_source='lookup'`).
 
 Drop hits older than 18 months before sending to the model — they cost tokens and score ~0.1 anyway.
 

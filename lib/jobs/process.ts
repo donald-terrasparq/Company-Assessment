@@ -14,6 +14,7 @@ import { logUsage, monthToDateCostUsd } from "@/lib/db/queries/usage";
 import { db } from "@/lib/db/client";
 import { signalProfiles } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { enrichCompany } from "@/lib/research/enrich";
 import { gather } from "@/lib/research/gather";
 import { resolveDomain } from "@/lib/research/identify";
 import { resolveSearchProvider } from "@/lib/search";
@@ -113,6 +114,16 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
       }
     }
 
+    // ---- stage 1b: free enrichment (registries, news, job boards, contracts) ----
+    // runs for every provider path; all $0, every connector failure-tolerant
+    const enrichment = await enrichCompany(company.name, domain, now);
+    if (!domain && enrichment.officialDomain) {
+      // registry-sourced official website — better than nothing, flagged as lookup
+      domain = enrichment.officialDomain;
+      domainSource = "lookup";
+      await setCompanyDomain(company.id, enrichment.officialDomain, "lookup");
+    }
+
     // ---- stage 2: gather sources (skipped when the anthropic tool searches) ----
     let sources: Awaited<ReturnType<typeof gather>>["hits"] = [];
     if (provider) {
@@ -138,6 +149,14 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
       }
     }
 
+    // enrichment hits are citable sources too (news, job boards, award records)
+    if (provider) {
+      const seen = new Set(sources.map((s) => s.url));
+      for (const hit of enrichment.hits) {
+        if (!seen.has(hit.url)) sources.push(hit);
+      }
+    }
+
     // ---- stage 3: extraction (zod-validated, retry once inside) ----
     const { extraction, usage } = await extractSignals({
       companyName: company.name,
@@ -146,6 +165,7 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
       model: run.model,
       weights,
       sources,
+      facts: enrichment.facts,
       useWebSearchTool,
       now,
     });

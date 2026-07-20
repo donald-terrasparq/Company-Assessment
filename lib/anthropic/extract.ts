@@ -74,6 +74,7 @@ function buildUserMessage(input: {
   today: string;
   weights: WeightProfile;
   sources: SearchHit[];
+  facts: string[];
   useWebSearchTool: boolean;
 }): string {
   const provenance =
@@ -91,9 +92,19 @@ function buildUserMessage(input: {
         )
         .join("\n");
 
+  const factsBlock =
+    input.facts.length > 0
+      ? `\nReference data (from official registries — SEC, Wikidata, live job boards,
+USAspending). Use it to ground fit scoring, size, footprint/location_count, and
+identity (e.g. the official website reveals uploaded-domain typos). It is
+CONTEXT, not evidence: signals must still cite a source_url from Sources.
+${input.facts.map((f) => `- ${f}`).join("\n")}\n`
+      : "";
+
   return `Company: ${input.companyName}
 Website: ${input.domain ?? "unknown"}   (${provenance})
 Today's date: ${input.today}
+${factsBlock}
 
 Identity check: before extracting signals, confirm the sources below are about THIS company —
 the name and (if present) the domain must match. If you cannot confirm it (ambiguous name, sources
@@ -138,10 +149,18 @@ strengths (regional decision-making, strong Verizon-footprint geography,
 clean buying path), tone "warn" for risks (RFP process, national contract,
 integration freeze). Base them on the sources; do not speculate beyond them.
 
-contacts: aim for up to 4 people covering DIFFERENT buying roles (IT/network
-leadership, facilities/real estate, telecom/procurement, operations) — but only
-people actually named in the sources with a source_url. Fewer real people beat
-four invented ones; an empty list is valid.`;
+contacts: aim for up to 4 people, PRIORITIZING THE IT ORGANIZATION — wireless
+and carrier decisions almost always sit with IT. Preference order:
+  1. CIO / CTO / VP of IT (owns IT & connectivity strategy)
+  2. VP/Director of IT Infrastructure or Networking (primary FWA technical buyer)
+  3. Network / Telecom / Unified Comms manager (owns carrier & mobility contracts)
+  4. Facilities / Real Estate leadership (owns buildouts — earliest connectivity requirements)
+Public LinkedIn listings that appear in the Sources (linkedin.com/in results
+from the search index) are valid contact sources — use the person's name and
+title from the result, set linkedin_url to the profile URL, and cite the
+search-result URL as source_url. Only people actually named in the sources;
+fewer real people beat four invented ones. role_rationale must tie the person
+to network/carrier/device ownership.`;
 }
 
 /**
@@ -213,6 +232,7 @@ export async function extractSignals(input: {
   model: string;
   weights: WeightProfile;
   sources: SearchHit[];
+  facts?: string[];
   useWebSearchTool: boolean;
   maxWebSearches?: number;
   now: Date;
@@ -220,6 +240,7 @@ export async function extractSignals(input: {
   const client = getAnthropicClient();
   const userMessage = buildUserMessage({
     ...input,
+    facts: input.facts ?? [],
     today: input.now.toISOString().slice(0, 10),
   });
 

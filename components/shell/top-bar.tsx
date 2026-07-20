@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search, SlidersHorizontal, Upload, Bell } from "lucide-react";
 
@@ -39,14 +40,14 @@ export function TopBar() {
         Filter
       </button>
 
-      <button
-        type="button"
+      <Link
+        href="/lists?upload=1"
         title="Max 100 companies per list"
         className="inline-flex items-center gap-[7px] rounded-[10px] border border-ink bg-ink px-[15px] py-[9px] text-[13px] font-medium text-white transition-colors hover:bg-[#1b2d43]"
       >
         <Upload size={15} aria-hidden />
         Upload list
-      </button>
+      </Link>
 
       <button
         type="button"

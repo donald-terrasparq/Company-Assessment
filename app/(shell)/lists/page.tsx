@@ -1,4 +1,6 @@
+import { auth } from "@/auth";
 import { listListsWithLatestRun } from "@/lib/db/queries/lists";
+import { getSettings } from "@/lib/db/queries/settings";
 import { UploadModal } from "@/components/lists/upload-modal";
 import { RunControls } from "@/components/lists/run-controls";
 import { DeleteListButton } from "@/components/lists/delete-list-button";
@@ -8,7 +10,19 @@ export default async function ListsPage({
 }: {
   searchParams: Promise<{ upload?: string }>;
 }) {
-  const [{ upload }, lists] = await Promise.all([searchParams, listListsWithLatestRun()]);
+  const [{ upload }, lists, session] = await Promise.all([
+    searchParams,
+    listListsWithLatestRun(),
+    auth(),
+  ]);
+  // the cost estimator is admin-only (Phase 6)
+  let estimator: { model: string; searchProvider: string } | null = null;
+  if (session?.user.role === "admin") {
+    const settings = await getSettings();
+    if (settings) {
+      estimator = { model: settings.model, searchProvider: settings.searchProvider };
+    }
+  }
 
   return (
     <div>
@@ -18,7 +32,7 @@ export default async function ListsPage({
           {lists.length} list{lists.length === 1 ? "" : "s"} · max 100 companies each
         </span>
         <span className="flex-1" />
-        <UploadModal initialOpen={upload === "1"} />
+        <UploadModal initialOpen={upload === "1"} estimator={estimator} />
       </div>
 
       {lists.length === 0 ? (

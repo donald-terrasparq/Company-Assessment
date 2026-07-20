@@ -98,6 +98,7 @@ export const runs = pgTable("runs", {
   triggeredBy: uuid("triggered_by"),
   costUsd: numeric("cost_usd", { precision: 10, scale: 4 }).notNull().default("0"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 export const jobs = pgTable("jobs", {

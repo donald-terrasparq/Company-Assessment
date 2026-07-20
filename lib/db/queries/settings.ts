@@ -25,3 +25,16 @@ export async function setAllowOpenRegistration(value: boolean): Promise<void> {
     .set({ allowOpenRegistration: value, updatedAt: new Date() })
     .where(eq(settings.id, 1));
 }
+
+/** Admin settings patch (Analysis / Data sources / Budget / Retention tabs). */
+export async function updateSettings(patch: {
+  model?: string;
+  searchProvider?: string;
+  monthlyBudgetUsd?: string;
+  retentionDays?: number;
+}): Promise<void> {
+  await db
+    .update(settings)
+    .set({ ...patch, updatedAt: new Date() })
+    .where(eq(settings.id, 1));
+}

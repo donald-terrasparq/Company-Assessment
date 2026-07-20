@@ -21,18 +21,20 @@ extraction is more likely to flag `identity_unconfirmed`.
 
 ## Query set per company (`lib/research/gather.ts`)
 
-Build from the company name + domain. Default 8 searches (Settings-tunable, 4–12).
+Build from the company name + domain. Default 10 searches (Settings-tunable, 4–12).
 Always include the current year — the model's queries otherwise skew stale.
 
 ```
-1. "{name}" new facility OR headquarters OR expansion {year}
-2. "{name}" new store OR branch OR location opening {year}
-3. "{name}" hiring OR jobs OR "new employees" {year}
-4. "{name}" acquisition OR merger OR funding {year}
-5. "{name}" CIO OR CTO OR "VP of IT" OR "head of infrastructure"
-6. "{name}" outage OR downtime OR "business continuity"
-7. "{name}" remote work OR BYOD OR field technicians OR warehouse
-8. site:sec.gov "{name}"                       ← free, high-confidence
+ 1. "{name}" new facility OR headquarters OR expansion {year}
+ 2. "{name}" new store OR branch OR location opening {year}
+ 3. "{name}" number of stores OR locations OR branches   ← footprint; prevents chains reading as single-site
+ 4. "{name}" "locations" about company overview          ← footprint
+ 5. "{name}" hiring OR jobs OR "new employees" {year}
+ 6. "{name}" acquisition OR merger OR funding {year}
+ 7. "{name}" CIO OR CTO OR "VP of IT" OR "head of infrastructure"
+ 8. "{name}" outage OR downtime OR "business continuity"
+ 9. "{name}" remote work OR BYOD OR field technicians OR warehouse
+10. site:sec.gov "{name}"                       ← free, high-confidence
 ```
 
 Plus, always and free: SEC EDGAR full-text search on the legal entity name.

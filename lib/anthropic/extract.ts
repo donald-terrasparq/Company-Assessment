@@ -43,6 +43,17 @@ Rules:
 - If you find no qualifying signals, return an empty signals array. That is a valid, useful answer.
   An empty array is far better than a fabricated one.
 - Prefer forward-looking events (announced, under construction, opening next year) — mark is_forward.
+- Extract EACH distinct dated event as its OWN signal. Three separately-reported store openings
+  are three signals, not one. More granular, sourced signals beat one merged summary.
+- Always try to establish the company's physical FOOTPRINT from the sources (store, branch, site,
+  or office count). Set location_count when a source states or clearly implies it.
+- NEVER assume a company is single-site from absence of information. Only flag the single_site
+  caveat when sources explicitly confirm exactly one location. A retail or restaurant chain,
+  hospital system, or multi-branch company is never single_site.
+- The uploaded Website may contain a typo (e.g. "mcirocenter.com" for Micro Center). If sources
+  clearly identify this company's real official site under a slightly different domain, treat the
+  company as confirmed and extract normally. Reserve identity_unconfirmed for sources that may be
+  about a genuinely DIFFERENT company.
 - Classify source_class honestly: primary = company PR, SEC filing, permit, government announcement.
   secondary = business journal, trade press, wire. weak = blog, aggregator, job-board inference.
 - Flag caveats when they apply. They protect the sales rep from wasting a week.

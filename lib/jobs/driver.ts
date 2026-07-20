@@ -10,11 +10,27 @@
  * standalone worker process.
  */
 import { claimJobs, processCompany } from "./process";
+import { runRetentionSweep } from "./retention";
 
 const CONCURRENCY = Number(process.env.WORKER_CONCURRENCY ?? 4);
 const POLL_MS = Number(process.env.WORKER_POLL_MS ?? 5000);
+const RETENTION_SWEEP_MS = 24 * 60 * 60 * 1000; // daily
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+let lastSweepAt = 0;
+async function maybeSweepRetention(): Promise<void> {
+  if (Date.now() - lastSweepAt < RETENTION_SWEEP_MS) return;
+  lastSweepAt = Date.now();
+  try {
+    const { runsDeleted, signalsDropped } = await runRetentionSweep();
+    console.log(
+      `worker: retention sweep — ${runsDeleted} run(s) soft-deleted, ${signalsDropped} signal(s) dropped`,
+    );
+  } catch (err) {
+    console.error("worker: retention sweep failed:", err);
+  }
+}
 
 /**
  * Render worker (default). Runs forever via `npm run worker` (Render service
@@ -23,6 +39,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export async function runRenderWorker(signal?: AbortSignal): Promise<void> {
   console.log(`worker: starting · concurrency=${CONCURRENCY} · poll=${POLL_MS}ms`);
   while (!signal?.aborted) {
+    await maybeSweepRetention();
     let jobs;
     try {
       jobs = await claimJobs(CONCURRENCY);

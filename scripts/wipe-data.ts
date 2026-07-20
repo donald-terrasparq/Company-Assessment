@@ -15,11 +15,19 @@ async function main() {
     console.error("db:wipe: DATABASE_URL is not set.");
     process.exit(1);
   }
-  if (!process.argv.includes("--yes")) {
+  // npm swallows flags unless invoked as `npm run db:wipe -- --yes`, so also
+  // accept a bare "yes" argument and a WIPE_CONFIRM=yes env var.
+  const confirmed =
+    process.argv.some((a) => a === "--yes" || a.toLowerCase() === "yes") ||
+    process.env.WIPE_CONFIRM?.toLowerCase() === "yes";
+  if (!confirmed) {
     console.error(
-      "db:wipe: refusing to run without --yes.\n" +
+      "db:wipe: refusing to run without confirmation.\n" +
         "This erases ALL lists, companies, runs, results, signals, contacts and spend records\n" +
-        "(users, settings and signal weights are kept). Run: npm run db:wipe -- --yes",
+        "(users, settings and signal weights are kept).\n" +
+        "Run:  npm run db:wipe -- --yes     (note the bare -- before --yes)\n" +
+        "or:   npm run db:wipe yes\n" +
+        "or:   WIPE_CONFIRM=yes npm run db:wipe",
     );
     process.exit(1);
   }

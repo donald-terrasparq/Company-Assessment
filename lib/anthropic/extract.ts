@@ -111,10 +111,46 @@ Return JSON:
   }],
   "caveats": [string],
   "why_now": string,
-  "recommended_play": string,
+  "recommended_play": [string],
+  "coverage": [{ "tone": "good"|"warn", "note": string }],
   "contacts": [{ "name": string, "title": string, "role_rationale": string,
                  "linkedin_url": string | null, "source_url": string }]
-}`;
+}
+
+recommended_play: 3-5 SHORT numbered steps. Each step = a bold imperative lead-in
+sentence, then ONE supporting sentence. Example step: "Lead with FWA for the
+buildout. Temporary connectivity during construction, plus permanent in-building
+coverage for the new space."
+
+coverage: 2-4 observations a sales rep needs before dialing — tone "good" for
+strengths (regional decision-making, strong Verizon-footprint geography,
+clean buying path), tone "warn" for risks (RFP process, national contract,
+integration freeze). Base them on the sources; do not speculate beyond them.
+
+contacts: aim for up to 4 people covering DIFFERENT buying roles (IT/network
+leadership, facilities/real estate, telecom/procurement, operations) — but only
+people actually named in the sources with a source_url. Fewer real people beat
+four invented ones; an empty list is valid.`;
+}
+
+/**
+ * Normalize recommended_play to concise steps. Arrays pass through; a single
+ * long paragraph (older prompt shape) is split into sentences and grouped into
+ * lead-in + support pairs so the UI can always render numbered plays.
+ */
+export function normalizePlaySteps(play: string | string[]): string[] {
+  if (Array.isArray(play)) {
+    return play.map((s) => s.trim()).filter(Boolean).slice(0, 5);
+  }
+  const text = play.trim();
+  if (!text) return [];
+  const sentences = text.split(/(?<=[.!?])\s+(?=[A-Z0-9"'])/).filter(Boolean);
+  if (sentences.length <= 1) return [text];
+  const steps: string[] = [];
+  for (let i = 0; i < sentences.length && steps.length < 5; i += 2) {
+    steps.push([sentences[i], sentences[i + 1]].filter(Boolean).join(" "));
+  }
+  return steps;
 }
 
 function extractJsonText(content: Array<{ type: string; text?: string }>): string {

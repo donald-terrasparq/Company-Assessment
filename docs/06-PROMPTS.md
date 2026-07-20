@@ -125,8 +125,9 @@ Return JSON:
   }],
   "caveats": [string],
   "why_now": string,               // one sentence, or "" if no signals
-  "recommended_play": string,      // 2-4 sentences, tied to the top signals
-  "contacts": [{
+  "recommended_play": [string],    // 3-5 concise steps: bold imperative lead-in + one support sentence
+  "coverage": [{ "tone": "good"|"warn", "note": string }],  // 2-4 sellability observations from the sources
+  "contacts": [{                   // up to 4, covering different buying roles; only people named in sources
     "name": string,
     "title": string,
     "role_rationale": string,

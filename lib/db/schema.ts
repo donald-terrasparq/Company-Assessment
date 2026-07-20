@@ -140,6 +140,7 @@ export const companyResults = pgTable("company_results", {
   whyNow: text("why_now"),
   recommendedPlay: text("recommended_play"),
   caveats: jsonb("caveats").notNull().default([]),
+  coverageNotes: jsonb("coverage_notes").notNull().default([]),
   recencyLabel: text("recency_label"),
   confidence: numeric("confidence", { precision: 3, scale: 2 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

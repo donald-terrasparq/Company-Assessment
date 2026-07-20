@@ -4,7 +4,7 @@
  * lives in driver.ts.
  */
 import { estimateTokenCostUsd, WEB_SEARCH_COST_PER_SEARCH_USD } from "@/lib/anthropic/models";
-import { extractSignals } from "@/lib/anthropic/extract";
+import { extractSignals, normalizePlaySteps } from "@/lib/anthropic/extract";
 import { findCompanyById, setCompanyDomain } from "@/lib/db/queries/lists";
 import { claimJobs, markJobDone, markJobFailed, releaseJob, type ClaimedJob } from "@/lib/db/queries/jobs";
 import { getSettings } from "@/lib/db/queries/settings";
@@ -184,8 +184,9 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
         employeeEstimate: extraction.employee_estimate,
         locationCount: extraction.location_count,
         whyNow: extraction.why_now || null,
-        recommendedPlay: extraction.recommended_play || null,
+        recommendedPlay: normalizePlaySteps(extraction.recommended_play).join("\n") || null,
         caveats: extraction.caveats,
+        coverageNotes: extraction.coverage,
       },
       contacts: extraction.contacts.map((c) => ({
         name: c.name,

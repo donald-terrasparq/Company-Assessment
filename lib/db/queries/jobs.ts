@@ -7,6 +7,9 @@ export interface ClaimedJob {
   runId: string;
   companyId: string;
   attempts: number;
+  pass: number;
+  modelOverride: string | null;
+  escalationReasons: string[];
 }
 
 const MAX_ATTEMPTS = 3;
@@ -38,13 +41,17 @@ export async function claimJobs(limit: number): Promise<ClaimedJob[]> {
     SET status = 'claimed', locked_at = now(), updated_at = now()
     FROM claimable
     WHERE jobs.id = claimable.id
-    RETURNING jobs.id, jobs.run_id, jobs.company_id, jobs.attempts
+    RETURNING jobs.id, jobs.run_id, jobs.company_id, jobs.attempts,
+              jobs.pass, jobs.model_override, jobs.escalation_reasons
   `);
   const claimed = (result.rows as Record<string, unknown>[]).map((r) => ({
     id: r.id as string,
     runId: r.run_id as string,
     companyId: r.company_id as string,
     attempts: Number(r.attempts),
+    pass: Number(r.pass ?? 1),
+    modelOverride: (r.model_override as string) ?? null,
+    escalationReasons: (r.escalation_reasons as string[]) ?? [],
   }));
   if (claimed.length > 0) {
     const runIds = [...new Set(claimed.map((j) => j.runId))];

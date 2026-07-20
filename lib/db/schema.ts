@@ -46,6 +46,7 @@ export const settings = pgTable("settings", {
     .default("100.00"),
   allowOpenRegistration: boolean("allow_open_registration").notNull().default(false),
   retentionDays: integer("retention_days").notNull().default(365),
+  escalationPct: integer("escalation_pct").notNull().default(20),
   apolloEnabled: boolean("apollo_enabled").notNull().default(false),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -108,6 +109,9 @@ export const jobs = pgTable("jobs", {
   status: text("status", { enum: ["pending", "claimed", "done", "failed"] })
     .notNull()
     .default("pending"),
+  pass: integer("pass").notNull().default(1),
+  modelOverride: text("model_override"),
+  escalationReasons: jsonb("escalation_reasons").notNull().default([]),
   attempts: integer("attempts").notNull().default(0),
   lastError: text("last_error"),
   lockedAt: timestamp("locked_at", { withTimezone: true }),
@@ -144,6 +148,8 @@ export const companyResults = pgTable("company_results", {
   coverageNotes: jsonb("coverage_notes").notNull().default([]),
   recencyLabel: text("recency_label"),
   confidence: numeric("confidence", { precision: 3, scale: 2 }),
+  modelUsed: text("model_used"),
+  escalationReasons: jsonb("escalation_reasons").notNull().default([]),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -18,6 +18,7 @@ export const secEdgarProvider: SearchProvider = {
           process.env.SEC_USER_AGENT ?? "Company Assessment research (contact: ops@example.com)",
         Accept: "application/json",
       },
+      signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) throw new Error(`sec_edgar search failed: ${res.status}`);
     const body = (await res.json()) as {

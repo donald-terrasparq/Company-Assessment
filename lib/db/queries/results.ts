@@ -23,6 +23,8 @@ export interface ResultMeta {
   recommendedPlay: string | null; // newline-separated steps
   caveats: string[];
   coverageNotes: Array<{ tone: "good" | "warn"; note: string }>;
+  modelUsed: string;
+  escalationReasons: string[];
 }
 
 /**
@@ -64,6 +66,8 @@ export async function upsertCompanyResult(input: {
       recommendedPlay: meta.recommendedPlay,
       caveats: meta.caveats,
       coverageNotes: meta.coverageNotes,
+      modelUsed: meta.modelUsed,
+      escalationReasons: meta.escalationReasons,
       recencyLabel: scores.recency_label,
       confidence: scores.confidence === null ? null : scores.confidence.toFixed(2),
     };

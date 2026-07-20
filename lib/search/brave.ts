@@ -13,6 +13,7 @@ export const braveProvider: SearchProvider = {
     url.searchParams.set("count", String(opts?.limit ?? 5));
     const res = await fetch(url, {
       headers: { "X-Subscription-Token": key, Accept: "application/json" },
+      signal: AbortSignal.timeout(10_000), // a hung query must never stall a company
     });
     if (!res.ok) throw new Error(`brave search failed: ${res.status}`);
     const body = (await res.json()) as {

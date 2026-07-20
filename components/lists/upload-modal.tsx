@@ -70,7 +70,7 @@ export function UploadModal({
 }: {
   initialOpen: boolean;
   /** admin-only (Phase 6): model + provider for the run cost estimate; null hides it */
-  estimator: { model: string; searchProvider: string } | null;
+  estimator: { model: string; searchProvider: string; escalationPct: number } | null;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(initialOpen);
@@ -344,7 +344,12 @@ export function UploadModal({
             </p>
             {estimator &&
               (() => {
-                const est = estimateRun(count, estimator.model, estimator.searchProvider);
+                const est = estimateRun(
+                  count,
+                  estimator.model,
+                  estimator.searchProvider,
+                  estimator.escalationPct,
+                );
                 return (
                   <p className="mono rounded-[10px] border border-line-2 bg-[#FBFCFD] px-3 py-2 text-[11.5px] text-slate">
                     Analyzing {est.companies} companies ≈{" "}
@@ -353,7 +358,10 @@ export function UploadModal({
                       {" "}
                       ({est.searches} searches
                       {est.searchCostUsd > 0 ? ` $${est.searchCostUsd.toFixed(2)}` : " free tier"} +
-                      tokens ${est.tokenCostUsd.toFixed(2)})
+                      tokens ${est.tokenCostUsd.toFixed(2)}
+                      {est.escalated > 0
+                        ? ` + ~${est.escalated} high-accuracy 2nd-pass $${est.escalationCostUsd.toFixed(2)}`
+                        : ""})
                     </span>
                   </p>
                 );

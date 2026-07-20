@@ -19,6 +19,14 @@ export async function updateModelAction(formData: FormData): Promise<void> {
   revalidatePath("/settings/analysis");
 }
 
+export async function updateEscalationAction(formData: FormData): Promise<void> {
+  if (!(await requireAdmin())) return;
+  const parsed = z.coerce.number().safeParse(formData.get("pct"));
+  if (!parsed.success || ![0, 20, 40, 60, 80, 100].includes(parsed.data)) return;
+  await updateSettings({ escalationPct: parsed.data });
+  revalidatePath("/settings/analysis");
+}
+
 export async function updateProviderAction(formData: FormData): Promise<void> {
   if (!(await requireAdmin())) return;
   const provider = z

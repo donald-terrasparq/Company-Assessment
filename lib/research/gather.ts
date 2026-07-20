@@ -50,22 +50,31 @@ export async function gather(input: {
   let searches = 0;
   let secSearches = 0;
 
-  for (const q of queries) {
-    try {
-      all.push(...(await input.provider.search(q, { limit: 5 })));
-      searches++;
-    } catch {
-      // one failed query shouldn't sink the company; proceed with what we have
+  // Bounded parallelism: 3 queries in flight (Brave paid tier allows up to 20
+  // rps; serial execution made a 12-query gather take 12s+ — or forever when
+  // a query hung, which is why every provider fetch now has a 10s timeout).
+  const CONCURRENT = 3;
+  const queue = [...queries];
+  const runWorker = async () => {
+    for (let q = queue.shift(); q !== undefined; q = queue.shift()) {
+      try {
+        all.push(...(await input.provider.search(q, { limit: 5 })));
+        searches++;
+      } catch {
+        // one failed query shouldn't sink the company; proceed with what we have
+      }
     }
-  }
-
-  // always and free: SEC EDGAR full-text search on the entity name
-  try {
-    all.push(...(await secEdgarProvider.search(input.companyName, { limit: 5 })));
-    secSearches = 1;
-  } catch {
-    // EDGAR hiccups are non-fatal
-  }
+  };
+  const secLookup = (async () => {
+    // always and free: SEC EDGAR full-text search on the entity name
+    try {
+      all.push(...(await secEdgarProvider.search(input.companyName, { limit: 5 })));
+      secSearches = 1;
+    } catch {
+      // EDGAR hiccups are non-fatal
+    }
+  })();
+  await Promise.all([...Array.from({ length: CONCURRENT }, runWorker), secLookup]);
 
   const cutoff = input.now.getTime() - MAX_HIT_AGE_DAYS * 24 * 60 * 60 * 1000;
   const seen = new Set<string>();

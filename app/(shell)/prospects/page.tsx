@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   allProspects,
   prospectsForList,
+  prospectsForLists,
   type ProspectRow,
 } from "@/lib/db/queries/prospects";
 import { latestRunForList, listListsWithLatestRun } from "@/lib/db/queries/lists";
@@ -11,9 +12,9 @@ import { RefreshWhileRunning } from "@/components/prospects/refresh-while-runnin
 export default async function ProspectsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ list?: string }>;
+  searchParams: Promise<{ list?: string; lists?: string }>;
 }) {
-  const [{ list: listParamRaw }, lists] = await Promise.all([
+  const [{ list: listParamRaw, lists: listsParamRaw }, lists] = await Promise.all([
     searchParams,
     listListsWithLatestRun(),
   ]);
@@ -38,14 +39,23 @@ export default async function ProspectsPage({
     );
   }
 
+  const knownIds = new Set(lists.map((l) => l.id));
+  // three modes: VIEW SELECTED (?lists=a,b) > VIEW ALL (?list=all) > single list
+  const selectedIds = (listsParamRaw ?? "")
+    .split(",")
+    .filter((id) => knownIds.has(id));
+  const isSelected = selectedIds.length > 0;
   const listParam = listParamRaw ?? lists[0].id;
-  const isAll = listParam === "all";
-  const selectedList = isAll ? null : (lists.find((l) => l.id === listParam) ?? lists[0]);
+  const isAll = !isSelected && listParam === "all";
+  const selectedList =
+    isAll || isSelected ? null : (lists.find((l) => l.id === listParam) ?? lists[0]);
 
   let rows: ProspectRow[];
   let activeRunId: string | null = null;
   let runStatus: string | null = null;
-  if (isAll) {
+  if (isSelected) {
+    rows = await prospectsForLists(selectedIds);
+  } else if (isAll) {
     rows = await allProspects();
   } else {
     rows = await prospectsForList(selectedList!.id);
@@ -58,21 +68,25 @@ export default async function ProspectsPage({
     }
   }
 
+  const selectorValue = isSelected ? "selected" : isAll ? "all" : selectedList!.id;
+  const exportParam = isSelected ? `sel:${selectedIds.join(",")}` : isAll ? "all" : selectedList!.id;
+  const showListColumn = isAll || isSelected;
+
   return (
     <div>
-      {activeRunId && <RefreshWhileRunning runId={activeRunId} />}
       <div className="mb-5 flex flex-wrap items-center gap-3">
         <h1 className="font-disp text-[20px] font-bold text-ink">Prospects</h1>
         <ListSelector
           lists={lists.map((l) => ({ id: l.id, displayName: l.displayName }))}
-          value={isAll ? "all" : selectedList!.id}
+          value={selectorValue}
+          selectedIds={selectedIds}
         />
-        {activeRunId && (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-spark-soft px-3 py-1 text-[11.5px] font-bold text-spark">
-            <span className="h-[6px] w-[6px] animate-spark-pulse rounded-full bg-spark" />
-            analyzing — rows stream in as companies finish
+        {isSelected && (
+          <span className="mono text-[11.5px] text-muted">
+            {selectedIds.length} lists combined · ranked by score · deduped by domain
           </span>
         )}
+        {activeRunId && <RefreshWhileRunning runId={activeRunId} />}
         {runStatus === "halted_budget" && (
           <span className="rounded-full bg-[#FBF0DA] px-3 py-1 text-[11.5px] font-bold text-tier2">
             run halted at budget cap
@@ -88,8 +102,8 @@ export default async function ProspectsPage({
           <p className="mb-4 max-w-[46ch] text-[13px] text-slate">
             {activeRunId
               ? "The first companies will appear here within a minute or two."
-              : isAll
-                ? "No completed runs across your lists yet — run an analysis from the Lists screen."
+              : isAll || isSelected
+                ? "No completed runs across the chosen lists yet — run an analysis from the Lists screen."
                 : "This list hasn't been analyzed yet. Start a run from the Lists screen."}
           </p>
           {!activeRunId && (
@@ -102,7 +116,7 @@ export default async function ProspectsPage({
           )}
         </section>
       ) : (
-        <ProspectsView rows={rows} listParam={isAll ? "all" : selectedList!.id} showListColumn={isAll} />
+        <ProspectsView rows={rows} listParam={exportParam} showListColumn={showListColumn} />
       )}
     </div>
   );

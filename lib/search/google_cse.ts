@@ -14,7 +14,7 @@ export const googleCseProvider: SearchProvider = {
     url.searchParams.set("cx", cx);
     url.searchParams.set("q", query);
     url.searchParams.set("num", String(Math.min(opts?.limit ?? 5, 10)));
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
     if (!res.ok) throw new Error(`google_cse search failed: ${res.status}`);
     const body = (await res.json()) as {
       items?: Array<{ link: string; title: string; snippet?: string }>;

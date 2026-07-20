@@ -31,7 +31,9 @@ export async function updateProviderAction(formData: FormData): Promise<void> {
 
 export async function updateBudgetAction(formData: FormData): Promise<void> {
   if (!(await requireAdmin())) return;
-  const parsed = z.coerce.number().min(1).max(100000).safeParse(formData.get("budget"));
+  // preset chip (if one was clicked) wins over the custom input
+  const raw = formData.get("preset") ?? formData.get("budget");
+  const parsed = z.coerce.number().min(1).max(100000).safeParse(raw);
   if (!parsed.success) return;
   await updateSettings({ monthlyBudgetUsd: parsed.data.toFixed(2) });
   revalidatePath("/settings/budget");

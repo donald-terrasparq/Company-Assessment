@@ -82,24 +82,44 @@ export default async function BudgetSettingsPage() {
           <span>Monthly budget cap</span>
           <span className="h-px flex-1 bg-line-2" />
         </p>
-        <form action={updateBudgetAction} className="flex items-end gap-3">
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[12px] font-medium text-slate">Cap (USD / month)</span>
-            <input
-              name="budget"
-              type="number"
-              min={1}
-              step={1}
-              defaultValue={cap}
-              className="mono w-[140px] rounded-[10px] border border-line bg-card px-3 py-2 text-[14px] text-ink outline-none focus:border-steel"
-            />
-          </label>
-          <button
-            type="submit"
-            className="rounded-[10px] border border-ink bg-ink px-4 py-2 text-[13px] font-medium text-white hover:bg-[#1b2d43]"
-          >
-            Save
-          </button>
+        <form action={updateBudgetAction} className="flex flex-col gap-3">
+          <div className="flex flex-wrap gap-2">
+            {[25, 50, 100, 250, 500, 750, 1000, 1250, 1500, 1750, 2000].map((amount) => (
+              <button
+                key={amount}
+                type="submit"
+                name="preset"
+                value={amount}
+                className={cn(
+                  "mono rounded-[20px] border px-4 py-1.5 text-[13px] font-bold transition-colors",
+                  cap === amount
+                    ? "border-ink bg-ink text-white"
+                    : "border-line bg-card text-slate hover:border-[#cdd4de] hover:text-ink",
+                )}
+              >
+                ${amount}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-end gap-3">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-[12px] font-medium text-slate">Custom cap (USD / month)</span>
+              <input
+                name="budget"
+                type="number"
+                min={1}
+                step={1}
+                defaultValue={cap}
+                className="mono w-[140px] rounded-[10px] border border-line bg-card px-3 py-2 text-[14px] text-ink outline-none focus:border-steel"
+              />
+            </label>
+            <button
+              type="submit"
+              className="rounded-[10px] border border-ink bg-ink px-4 py-2 text-[13px] font-medium text-white hover:bg-[#1b2d43]"
+            >
+              Save custom
+            </button>
+          </div>
         </form>
         <p className="mt-3 max-w-[58ch] text-[11.5px] leading-[1.5] text-muted">
           Halt-at-cap is always on and enforced server-side: the cap is checked before every

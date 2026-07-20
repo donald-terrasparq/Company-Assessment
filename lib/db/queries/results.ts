@@ -20,8 +20,9 @@ export interface ResultMeta {
   employeeEstimate: number | null;
   locationCount: number | null;
   whyNow: string | null;
-  recommendedPlay: string | null;
+  recommendedPlay: string | null; // newline-separated steps
   caveats: string[];
+  coverageNotes: Array<{ tone: "good" | "warn"; note: string }>;
 }
 
 /**
@@ -62,6 +63,7 @@ export async function upsertCompanyResult(input: {
       whyNow: meta.whyNow,
       recommendedPlay: meta.recommendedPlay,
       caveats: meta.caveats,
+      coverageNotes: meta.coverageNotes,
       recencyLabel: scores.recency_label,
       confidence: scores.confidence === null ? null : scores.confidence.toFixed(2),
     };

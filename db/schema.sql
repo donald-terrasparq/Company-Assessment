@@ -145,8 +145,9 @@ CREATE TABLE company_results (
   location_count    INT,
 
   why_now           TEXT,        -- one-sentence trigger summary
-  recommended_play  TEXT,        -- paraphrased, model-generated
+  recommended_play  TEXT,        -- paraphrased, model-generated; newline-separated steps
   caveats           JSONB NOT NULL DEFAULT '[]'::jsonb,   -- ["enterprise_procurement", ...]
+  coverage_notes    JSONB NOT NULL DEFAULT '[]'::jsonb,   -- [{"tone":"good"|"warn","note":"…"}]
   recency_label     TEXT,
   confidence        NUMERIC(3,2),
 

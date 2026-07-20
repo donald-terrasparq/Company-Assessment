@@ -29,6 +29,13 @@ export const ExtractedContactSchema = z.object({
   source_url: z.string().url().nullable().catch(null),
 });
 
+/** Coverage & caveats panel rows — good/warn observations about sellability. */
+export const CoverageNoteSchema = z.object({
+  tone: z.enum(["good", "warn"]).catch("warn"),
+  note: z.string().min(1).max(300),
+});
+export type CoverageNote = z.infer<typeof CoverageNoteSchema>;
+
 export const SignalExtractionSchema = z.object({
   industry: z.string().nullable().catch(null),
   hq: z.string().nullable().catch(null),
@@ -45,8 +52,10 @@ export const SignalExtractionSchema = z.object({
   signals: z.array(ExtractedSignalSchema),
   caveats: z.array(z.string()).catch([]),
   why_now: z.string().catch(""),
-  recommended_play: z.string().catch(""),
-  contacts: z.array(ExtractedContactSchema).catch([]),
+  // 3–5 concise steps; older responses may return one string — both accepted
+  recommended_play: z.union([z.array(z.string()), z.string()]).catch(""),
+  coverage: z.array(CoverageNoteSchema).max(4).catch([]),
+  contacts: z.array(ExtractedContactSchema).max(4).catch([]),
 });
 
 export type SignalExtraction = z.infer<typeof SignalExtractionSchema>;

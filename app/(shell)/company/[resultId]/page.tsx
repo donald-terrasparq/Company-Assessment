@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Check, AlertTriangle } from "lucide-react";
 import { getResultDetail } from "@/lib/db/queries/prospects";
+import { normalizePlaySteps } from "@/lib/anthropic/extract";
 import { CAVEAT_COPY } from "@/lib/scoring/caveats";
 import { monogramFor } from "@/components/prospects/monogram";
 import { ScoreAnatomyBar, isFreshLabel } from "@/components/prospects/score-anatomy";
@@ -14,11 +15,14 @@ const TIER_LABEL: Record<string, { label: string; band: string; cls: string }> =
   defunct: { label: "DEFUNCT", band: "no longer independent", cls: "bg-[#8A94A6]" },
 };
 
-const CAT_META: Record<string, { label: string; bar: string; mini: string }> = {
-  FWA: { label: "FWA", bar: "bg-fwa", mini: "bg-fwa-soft text-fwa" },
-  STARLINK: { label: "Starlink", bar: "bg-starlink", mini: "bg-starlink-soft text-starlink" },
-  MOBILITY: { label: "Mobility", bar: "bg-mobility", mini: "bg-mobility-soft text-mobility" },
-  BYOD: { label: "BYOD", bar: "bg-byod", mini: "bg-byod-soft text-byod" },
+const CAT_META: Record<
+  string,
+  { label: string; bar: string; mini: string; dot: string; descriptor: string; border: string }
+> = {
+  FWA: { label: "FWA", bar: "bg-fwa", mini: "bg-fwa-soft text-fwa", dot: "bg-fwa", descriptor: "facilities", border: "border-fwa" },
+  STARLINK: { label: "Starlink", bar: "bg-starlink", mini: "bg-starlink-soft text-starlink", dot: "bg-starlink", descriptor: "continuity", border: "border-starlink" },
+  MOBILITY: { label: "Mobility", bar: "bg-mobility", mini: "bg-mobility-soft text-mobility", dot: "bg-mobility", descriptor: "workforce", border: "border-mobility" },
+  BYOD: { label: "BYOD", bar: "bg-byod", mini: "bg-byod-soft text-byod", dot: "bg-byod", descriptor: "distributed work", border: "border-byod" },
 };
 
 const CONF_PILL: Record<string, string> = {
@@ -27,11 +31,39 @@ const CONF_PILL: Record<string, string> = {
   weak: "bg-line-2 text-slate",
 };
 
-function Eyebrow({ children, right }: { children: React.ReactNode; right?: string }) {
+const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+
+/** Prototype-style timeline date: "2026 · MAY". */
+function timelineDate(eventDate: string | null, isForward: boolean): string {
+  if (!eventDate) return isForward ? "announced · forward" : "undated";
+  const [y, m] = eventDate.split("-");
+  const label = `${y} · ${MONTHS[Number(m) - 1] ?? m}`;
+  return isForward ? `${label} · forward` : label;
+}
+
+function sourceInitials(name: string): string {
+  const words = name.split(/\s+/).filter(Boolean);
+  return ((words[0]?.[0] ?? "") + (words[1]?.[0] ?? words[0]?.[1] ?? "")).toUpperCase();
+}
+
+function Eyebrow({
+  children,
+  right,
+  dark,
+}: {
+  children: React.ReactNode;
+  right?: string;
+  dark?: boolean;
+}) {
   return (
-    <p className="mb-3.5 flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[.1em] text-muted">
+    <p
+      className={cn(
+        "mb-3.5 flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[.1em]",
+        dark ? "text-[#8fa0b6]" : "text-muted",
+      )}
+    >
       <span>{children}</span>
-      <span className="h-px flex-1 bg-line-2" />
+      <span className={cn("h-px flex-1", dark ? "bg-white/10" : "bg-line-2")} />
       {right && <span className="mono normal-case tracking-normal">{right}</span>}
     </p>
   );
@@ -51,12 +83,19 @@ export default async function CompanyDetailPage({
   const tier = TIER_LABEL[result.tier] ?? TIER_LABEL.tier_3;
   const fresh = isFreshLabel(result.recencyLabel);
   const caveats = (result.caveats as string[]) ?? [];
+  const coverageNotes =
+    (result.coverageNotes as Array<{ tone: "good" | "warn"; note: string }>) ?? [];
   const categories = [
     { key: "FWA", score: result.fwaScore },
     { key: "STARLINK", score: result.starlinkScore },
     { key: "MOBILITY", score: result.mobilityScore },
     { key: "BYOD", score: result.byodScore },
   ];
+  // hero tags: the top two categories, like the prototype's "FWA · facilities / Mobility · workforce"
+  const heroCategories = [...categories]
+    .sort((a, b) => b.score - a.score)
+    .filter((c) => c.score > result.fitScore)
+    .slice(0, 2);
   const strongest = [...signals].sort(
     (a, b) => Number(b.pointsAwarded) - Number(a.pointsAwarded),
   )[0];
@@ -66,10 +105,11 @@ export default async function CompanyDetailPage({
     { label: "Multi-location", value: result.fitMultilocation, max: 7 },
     { label: "Geography / coverage", value: result.fitGeography, max: 5 },
   ];
-  const playSteps = (result.recommendedPlay ?? "")
-    .split(/\n+|(?<=\.)\s{2,}/)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
+  const playSteps = normalizePlaySteps(result.recommendedPlay ?? "");
+  // press & sources: one card per unique source article
+  const pressCards = signals.filter(
+    (s, i) => signals.findIndex((x) => x.sourceUrl === s.sourceUrl) === i,
+  );
 
   return (
     <div>
@@ -157,28 +197,32 @@ export default async function CompanyDetailPage({
         {/* LEFT */}
         <div className="flex flex-col gap-5">
           {/* why now hero */}
-          <section className="rounded-card border-none bg-gradient-to-br from-[#132132] to-ink p-5 text-white shadow-card">
-            <p className="mb-3.5 flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[.1em] text-[#8fa0b6]">
-              <span>Why now</span>
-              <span className="h-px flex-1 bg-white/10" />
-            </p>
-            <p className="mb-2.5 font-disp text-[19px] font-semibold leading-[1.3]">
+          <section className="rounded-card border-none bg-gradient-to-br from-[#132132] to-ink p-5 shadow-card">
+            <Eyebrow dark>Why now</Eyebrow>
+            <p className="mb-2 font-disp text-[20px] font-semibold leading-[1.3] text-white">
               {result.whyNow || "No current trigger identified."}
             </p>
+            {strongest && (
+              <p className="max-w-[60ch] text-[13.5px] leading-[1.5] text-[#b8c4d4]">
+                Strongest evidence: {strongest.title.toLowerCase().startsWith("the") ? "" : "the "}
+                {strongest.title.charAt(0).toLowerCase() + strongest.title.slice(1)}
+                {strongest.sourceName ? ` (${strongest.sourceName})` : ""}.
+              </p>
+            )}
             <div className="mt-4 flex flex-wrap gap-2">
-              {result.primaryCategory && (
-                <span className="rounded-[20px] border border-white/15 px-2.5 py-1 text-[11px] font-semibold text-[#dbe4ee]">
-                  {CAT_META[result.primaryCategory]?.label ?? result.primaryCategory} · primary
+              {heroCategories.map((c) => (
+                <span
+                  key={c.key}
+                  className="inline-flex items-center gap-1.5 rounded-[20px] border border-white/15 px-2.5 py-1 text-[11px] font-semibold text-[#dbe4ee]"
+                >
+                  <span className={cn("h-1.5 w-1.5 rounded-full", CAT_META[c.key].dot)} />
+                  {CAT_META[c.key].label} · {CAT_META[c.key].descriptor}
                 </span>
-              )}
-              {result.recencyLabel && (
-                <span className="rounded-[20px] border border-white/15 px-2.5 py-1 text-[11px] font-semibold text-[#dbe4ee]">
-                  Recency: {result.recencyLabel}
-                </span>
-              )}
-              {result.confidence && (
-                <span className="rounded-[20px] border border-white/15 px-2.5 py-1 text-[11px] font-semibold text-[#dbe4ee]">
-                  Confidence ×{Number(result.confidence).toFixed(2)}
+              ))}
+              {strongest && (
+                <span className="inline-flex items-center gap-1.5 rounded-[20px] border border-white/15 px-2.5 py-1 text-[11px] font-semibold text-[#dbe4ee]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-spark" />
+                  Recency ×{Number(strongest.recencyMultiplier).toFixed(1)}
                 </span>
               )}
             </div>
@@ -286,7 +330,7 @@ export default async function CompanyDetailPage({
             ))}
           </section>
 
-          {/* signal timeline */}
+          {/* signal timeline — concise: date, event, source, confidence, categories */}
           <section className="rounded-card border border-line bg-card p-5 shadow-card">
             <Eyebrow right={`${signals.length} event${signals.length === 1 ? "" : "s"}`}>
               Signal timeline
@@ -302,15 +346,15 @@ export default async function CompanyDetailPage({
                     <span
                       className={cn(
                         "absolute -left-6 top-0.5 h-3.5 w-3.5 rounded-full border-[2.5px] bg-white",
-                        s.categories.includes("FWA") ? "border-fwa" : s.categories.includes("MOBILITY") ? "border-mobility" : s.categories.includes("STARLINK") ? "border-starlink" : "border-byod",
+                        s.categories.length > 1
+                          ? "border-spark"
+                          : (CAT_META[s.categories[0]]?.border ?? "border-tier3"),
                       )}
                     />
                     <div className="mono mb-0.5 text-[11px] text-muted">
-                      {s.eventDate ?? "undated"}
-                      {s.isForward && " · forward-looking"}
+                      {timelineDate(s.eventDate, s.isForward)}
                     </div>
                     <div className="text-[13.5px] font-medium leading-[1.4] text-ink">{s.title}</div>
-                    <p className="mt-0.5 text-[12.5px] leading-[1.45] text-slate">{s.summary}</p>
                     <div className="mt-1.5 flex flex-wrap items-center gap-2">
                       <a
                         href={s.sourceUrl}
@@ -318,7 +362,7 @@ export default async function CompanyDetailPage({
                         rel="noopener noreferrer"
                         className="rounded-md border border-line bg-[#FBFCFD] px-2 py-0.5 text-[10.5px] text-slate hover:border-[#cdd4de] hover:text-fwa"
                       >
-                        {s.sourceName ?? new URL(s.sourceUrl).hostname} ↗
+                        {s.sourceName ?? new URL(s.sourceUrl).hostname}
                       </a>
                       {s.sourceClass && (
                         <span className={cn("rounded-[5px] px-1.5 py-0.5 text-[10px] font-bold", CONF_PILL[s.sourceClass])}>
@@ -330,7 +374,7 @@ export default async function CompanyDetailPage({
                       </span>
                       {s.categories.map((c) => (
                         <span key={c} className={cn("rounded-[5px] px-1.5 py-0.5 text-[9.5px] font-bold", CAT_META[c]?.mini)}>
-                          {c}
+                          {c === "STARLINK" ? "STAR" : c === "MOBILITY" ? "MOB" : c}
                         </span>
                       ))}
                     </div>
@@ -339,23 +383,72 @@ export default async function CompanyDetailPage({
               </div>
             )}
           </section>
+
+          {/* press & sources — paraphrased summaries with links, below the timeline */}
+          {pressCards.length > 0 && (
+            <section className="rounded-card border border-line bg-card p-5 shadow-card">
+              <Eyebrow>Press &amp; sources</Eyebrow>
+              <div className="flex flex-col gap-3">
+                {pressCards.map((s) => {
+                  const sourceName = s.sourceName ?? new URL(s.sourceUrl).hostname;
+                  const thumb = monogramFor(sourceName);
+                  return (
+                    <a
+                      key={s.id}
+                      href={s.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex gap-3.5 rounded-[11px] border border-line-2 p-3.5 transition-colors hover:border-[#cdd4de] hover:bg-[#FAFBFC]"
+                    >
+                      <span
+                        className="grid h-[46px] w-[46px] flex-shrink-0 place-items-center rounded-[10px] font-disp text-[15px] font-bold text-white"
+                        style={{ background: thumb.gradient }}
+                      >
+                        {sourceInitials(sourceName)}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="mb-1 block font-disp text-[14px] font-semibold leading-[1.35] text-ink">
+                          {s.title}
+                        </span>
+                        <span className="mb-1.5 block text-[12px] leading-[1.45] text-slate">
+                          {s.summary}
+                        </span>
+                        <span className="mono flex gap-2.5 text-[11px] text-muted">
+                          <span>{sourceName}</span>
+                          <span>{timelineDate(s.eventDate, s.isForward)}</span>
+                        </span>
+                      </span>
+                    </a>
+                  );
+                })}
+              </div>
+            </section>
+          )}
         </div>
 
         {/* RIGHT */}
         <div className="flex flex-col gap-5">
-          {/* recommended play */}
+          {/* recommended play — concise numbered steps with bold lead-ins */}
           <section className="rounded-card border border-line bg-card p-5 shadow-card">
             <Eyebrow>Recommended play</Eyebrow>
             {playSteps.length > 0 ? (
               <ul className="flex flex-col gap-3">
-                {playSteps.map((step, i) => (
-                  <li key={i} className="flex gap-2.5 text-[13px] leading-[1.45] text-slate">
-                    <span className="mono grid h-[22px] w-[22px] flex-shrink-0 place-items-center rounded-[7px] bg-ink text-[11px] font-bold text-white">
-                      {i + 1}
-                    </span>
-                    <span>{step}</span>
-                  </li>
-                ))}
+                {playSteps.map((step, i) => {
+                  const dot = step.indexOf(". ");
+                  const lead = dot === -1 ? step : step.slice(0, dot + 1);
+                  const rest = dot === -1 ? "" : step.slice(dot + 2);
+                  return (
+                    <li key={i} className="flex gap-2.5 text-[13px] leading-[1.45] text-slate">
+                      <span className="mono grid h-[22px] w-[22px] flex-shrink-0 place-items-center rounded-[7px] bg-ink text-[11px] font-bold text-white">
+                        {i + 1}
+                      </span>
+                      <span>
+                        <b className="font-semibold text-ink">{lead}</b>
+                        {rest && ` ${rest}`}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
               <p className="text-[13px] text-muted">No play generated for this company.</p>
@@ -370,52 +463,61 @@ export default async function CompanyDetailPage({
                 No contacts surfaced from public sources for this company.
               </p>
             ) : (
-              contacts.map((c) => (
-                <div key={c.id} className="flex gap-3 border-b border-line-2 py-3 first:pt-0 last:border-none last:pb-0">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 font-disp text-[13.5px] font-semibold text-ink">
-                      {c.name}
-                      {!c.verified && (
-                        <span className="rounded-md bg-[#FBF0DA] px-1.5 py-0.5 text-[10px] font-semibold text-tier2">
-                          unverified
-                        </span>
+              contacts.map((c) => {
+                const avatar = monogramFor(c.name);
+                return (
+                  <div key={c.id} className="flex gap-3 border-b border-line-2 py-3 first:pt-0 last:border-none last:pb-0">
+                    <span
+                      className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-full font-disp text-[14px] font-semibold text-white"
+                      style={{ background: avatar.gradient }}
+                    >
+                      {sourceInitials(c.name)}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 font-disp text-[13.5px] font-semibold text-ink">
+                        {c.name}
+                        {!c.verified && (
+                          <span className="rounded-md bg-[#FBF0DA] px-1.5 py-0.5 text-[10px] font-semibold text-tier2">
+                            unverified
+                          </span>
+                        )}
+                      </div>
+                      {c.title && <div className="mt-0.5 text-[12px] text-slate">{c.title}</div>}
+                      {c.roleRationale && (
+                        <div className="mt-1 text-[11.5px] leading-[1.4] text-muted">{c.roleRationale}</div>
                       )}
+                      <button
+                        type="button"
+                        disabled
+                        title="Contact enrichment via Apollo.io arrives in Phase 2"
+                        className="mt-1.5 cursor-not-allowed rounded-lg border border-line bg-line-2 px-2 py-0.5 text-[10.5px] font-medium text-muted"
+                      >
+                        Reveal email — Apollo · Phase 2
+                      </button>
                     </div>
-                    {c.title && <div className="mt-0.5 text-[12px] text-slate">{c.title}</div>}
-                    {c.roleRationale && (
-                      <div className="mt-1 text-[11.5px] leading-[1.4] text-muted">{c.roleRationale}</div>
+                    {c.linkedinUrl && (
+                      <a
+                        href={c.linkedinUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="grid h-[26px] w-[26px] flex-shrink-0 place-items-center rounded-[7px] bg-[#EAF1FB] font-disp text-[12px] font-bold text-fwa"
+                      >
+                        in
+                      </a>
                     )}
-                    <button
-                      type="button"
-                      disabled
-                      title="Contact enrichment via Apollo.io arrives in Phase 2"
-                      className="mt-1.5 cursor-not-allowed rounded-lg border border-line bg-line-2 px-2 py-0.5 text-[10.5px] font-medium text-muted"
-                    >
-                      Reveal email — Apollo · Phase 2
-                    </button>
                   </div>
-                  {c.linkedinUrl && (
-                    <a
-                      href={c.linkedinUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="grid h-[26px] w-[26px] flex-shrink-0 place-items-center rounded-[7px] bg-[#EAF1FB] font-disp text-[12px] font-bold text-fwa"
-                    >
-                      in
-                    </a>
-                  )}
-                </div>
-              ))
+                );
+              })
             )}
             <p className="mt-3 text-[10.5px] leading-[1.4] text-muted">
               Contacts found via public search — verify names and roles before outreach.
             </p>
           </section>
 
-          {/* coverage & caveats */}
+          {/* coverage & caveats — good + warn rows */}
           <section className="rounded-card border border-line bg-card p-5 shadow-card">
             <Eyebrow>Coverage &amp; caveats</Eyebrow>
-            {caveats.length === 0 ? (
+            {coverageNotes.length === 0 && caveats.length === 0 && (
               <div className="flex gap-2.5 text-[12.5px] leading-[1.4] text-slate">
                 <span className="grid h-6 w-6 flex-shrink-0 place-items-center rounded-[7px] bg-tier1-soft text-tier1">
                   <Check size={13} aria-hidden />
@@ -425,25 +527,41 @@ export default async function CompanyDetailPage({
                   identity, or viability caveats were flagged for this company.
                 </span>
               </div>
-            ) : (
-              caveats.map((key) => {
-                const copy = CAVEAT_COPY[key];
-                return (
-                  <div key={key} className="mb-3 flex gap-2.5 text-[12.5px] leading-[1.4] text-slate last:mb-0">
-                    <span className="grid h-6 w-6 flex-shrink-0 place-items-center rounded-[7px] bg-[#FBF0DA] text-tier2">
-                      <AlertTriangle size={13} aria-hidden />
-                    </span>
-                    <span>
-                      <b className="font-semibold text-ink">{copy?.label ?? key}.</b>{" "}
-                      {copy?.detail}
-                      {copy?.capsTier && (
-                        <span className="text-tier2"> Caps this company at Tier 2.</span>
-                      )}
-                    </span>
-                  </div>
-                );
-              })
             )}
+            {coverageNotes.map((note, i) => (
+              <div key={i} className="mb-3 flex gap-2.5 text-[12.5px] leading-[1.4] text-slate last:mb-0">
+                <span
+                  className={cn(
+                    "grid h-6 w-6 flex-shrink-0 place-items-center rounded-[7px]",
+                    note.tone === "good" ? "bg-tier1-soft text-tier1" : "bg-[#FBF0DA] text-tier2",
+                  )}
+                >
+                  {note.tone === "good" ? (
+                    <Check size={13} aria-hidden />
+                  ) : (
+                    <AlertTriangle size={13} aria-hidden />
+                  )}
+                </span>
+                <span>{note.note}</span>
+              </div>
+            ))}
+            {caveats.map((key) => {
+              const copy = CAVEAT_COPY[key];
+              return (
+                <div key={key} className="mb-3 flex gap-2.5 text-[12.5px] leading-[1.4] text-slate last:mb-0">
+                  <span className="grid h-6 w-6 flex-shrink-0 place-items-center rounded-[7px] bg-[#FBF0DA] text-tier2">
+                    <AlertTriangle size={13} aria-hidden />
+                  </span>
+                  <span>
+                    <b className="font-semibold text-ink">{copy?.label ?? key}.</b>{" "}
+                    {copy?.detail}
+                    {copy?.capsTier && (
+                      <span className="text-tier2"> Caps this company at Tier 2.</span>
+                    )}
+                  </span>
+                </div>
+              );
+            })}
           </section>
         </div>
       </div>

@@ -68,7 +68,9 @@ services:
       - key: SEC_USER_AGENT
         value: "CTS Mobility Company Assessment (ops@ctsmobility.com)"
       - key: WORKER_CONCURRENCY
-        value: "4"                # companies processed in parallel per loop tick
+        value: "2"                # parallel companies; 2 keeps a 512MB Starter instance inside memory
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=400"   # GC below the 512MB kill line instead of OOMing
       - key: WORKER_POLL_MS
         value: "5000"             # idle sleep between empty queue checks
 

@@ -17,6 +17,7 @@ import { eq } from "drizzle-orm";
 import { enrichCompany } from "@/lib/research/enrich";
 import { gather } from "@/lib/research/gather";
 import { resolveDomain } from "@/lib/research/identify";
+import { shouldCorrectDomain } from "@/lib/normalize/domain";
 import { resolveSearchProvider } from "@/lib/search";
 import { scoreCompany } from "@/lib/scoring/score";
 import type { WeightProfile } from "@/lib/scoring/default-weights";
@@ -129,11 +130,25 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
     const tEnrich = Date.now();
     const enrichment = await enrichCompany(company.name, domain, now);
     mark("enrich", tEnrich);
-    if (!domain && enrichment.officialDomain) {
-      // registry-sourced official website — better than nothing, flagged as lookup
-      domain = enrichment.officialDomain;
-      domainSource = "lookup";
-      await setCompanyDomain(company.id, enrichment.officialDomain, "lookup");
+    if (enrichment.officialDomain) {
+      if (!domain) {
+        // registry-sourced official website — better than nothing, flagged as lookup
+        domain = enrichment.officialDomain;
+        domainSource = "lookup";
+        await setCompanyDomain(company.id, enrichment.officialDomain, "lookup");
+      } else if (
+        domain !== enrichment.officialDomain &&
+        shouldCorrectDomain(company.name, domain, enrichment.officialDomain)
+      ) {
+        // uploaded domain looks like a typo of the registry's official site
+        // (mcirocenter.com → microcenter.com) — correct it, flagged as lookup
+        console.log(
+          `worker: ${company.name} — correcting uploaded domain ${domain} → ${enrichment.officialDomain}`,
+        );
+        domain = enrichment.officialDomain;
+        domainSource = "lookup";
+        await setCompanyDomain(company.id, enrichment.officialDomain, "lookup");
+      }
     }
 
     // ---- stage 2: gather sources (skipped when the anthropic tool searches) ----
@@ -218,6 +233,7 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
         hq: extraction.hq,
         sizeLabel: extraction.size_label,
         employeeEstimate: extraction.employee_estimate,
+        annualRevenueUsd: extraction.annual_revenue_usd,
         locationCount: extraction.location_count,
         whyNow: extraction.why_now || null,
         recommendedPlay: normalizePlaySteps(extraction.recommended_play).join("\n") || null,

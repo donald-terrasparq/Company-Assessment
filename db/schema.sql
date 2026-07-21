@@ -164,6 +164,7 @@ CREATE TABLE company_results (
   coverage_notes    JSONB NOT NULL DEFAULT '[]'::jsonb,   -- [{"tone":"good"|"warn","note":"…"}]
   recency_label     TEXT,
   confidence        NUMERIC(3,2),
+  contact_filters   JSONB,                 -- 0011: filters that produced the shown contacts
   model_used        TEXT,                           -- which model produced this result
   escalation_reasons JSONB NOT NULL DEFAULT '[]',   -- why pass 2 re-analyzed it
 

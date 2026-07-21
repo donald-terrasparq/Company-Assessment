@@ -23,7 +23,9 @@ export function Rail({ initials }: { initials: string }) {
   return (
     <nav className="sticky top-0 flex h-screen w-[74px] flex-shrink-0 flex-col items-center gap-1.5 bg-ink py-[18px] text-white">
       {NAV.map(({ href, label, icon: Icon }) => {
-        const active = pathname.startsWith(href);
+        const active =
+          pathname.startsWith(href) ||
+          (href === "/prospects" && pathname.startsWith("/company"));
         return (
           <Link
             key={href}

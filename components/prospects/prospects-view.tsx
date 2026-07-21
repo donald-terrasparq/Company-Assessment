@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { applyFilters, type ProspectFilters } from "@/lib/export/csv";
 import type { ProspectRow } from "@/lib/db/queries/prospects";
 import { CAVEAT_COPY } from "@/lib/scoring/caveats";
-import { monogramFor } from "./monogram";
+import { SegmentBadge } from "./segment-badge";
 import { ScoreAnatomyBar, isFreshLabel } from "./score-anatomy";
 
 const TIER_META: Record<
@@ -217,7 +217,6 @@ export function ProspectsView({
           </thead>
           <tbody>
             {filtered.map((r, i) => {
-              const mono = monogramFor(r.companyName);
               const fresh = isFreshLabel(r.recencyLabel);
               // company sub-line capped at 80 chars so long HQ/size details
               // can't stretch the column and squeeze Why now
@@ -241,12 +240,11 @@ export function ProspectsView({
                   </td>
                   <td className="max-w-[280px] px-3 py-4">
                     <div className="flex items-center gap-3">
-                      <div
-                        className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-[11px] font-disp text-[15px] font-bold text-white"
-                        style={{ background: mono.gradient }}
-                      >
-                        {mono.letter}
-                      </div>
+                      <SegmentBadge
+                        employees={r.employeeEstimate}
+                        annualRevenueUsd={r.annualRevenueUsd}
+                        sizeLabel={r.sizeLabel}
+                      />
                       <div className="min-w-0">
                         <div className="truncate font-disp text-[14px] font-semibold text-ink">
                           {r.companyName}

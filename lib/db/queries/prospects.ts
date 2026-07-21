@@ -16,6 +16,8 @@ export interface ProspectRow {
   industry: string | null;
   hq: string | null;
   sizeLabel: string | null;
+  employeeEstimate: number | null;
+  annualRevenueUsd: number | null;
   fitScore: number;
   triggerScore: number;
   totalScore: number;
@@ -43,6 +45,8 @@ function mapRow(r: Record<string, unknown>): ProspectRow {
     industry: (r.industry as string) ?? null,
     hq: (r.hq as string) ?? null,
     sizeLabel: (r.size_label as string) ?? null,
+    employeeEstimate: r.employee_estimate == null ? null : Number(r.employee_estimate),
+    annualRevenueUsd: r.annual_revenue_usd == null ? null : Number(r.annual_revenue_usd),
     fitScore: Number(r.fit_score),
     triggerScore: Number(r.trigger_score),
     totalScore: Number(r.total_score),
@@ -63,7 +67,8 @@ export async function prospectsForList(listId: string): Promise<ProspectRow[]> {
   const result = await db.execute(sql`
     SELECT cr.id AS result_id, cr.company_id, c.name AS company_name, c.website,
            c.domain, c.domain_source, l.id AS list_id, l.display_name AS list_name,
-           cr.industry, cr.hq, cr.size_label, cr.fit_score, cr.trigger_score,
+           cr.industry, cr.hq, cr.size_label, cr.employee_estimate,
+           cr.annual_revenue_usd, cr.fit_score, cr.trigger_score,
            cr.total_score, cr.tier, cr.fwa_score, cr.starlink_score,
            cr.mobility_score, cr.byod_score, cr.primary_category, cr.why_now,
            cr.recency_label, cr.caveats
@@ -97,7 +102,8 @@ export async function prospectsForLists(listIds: string[]): Promise<ProspectRow[
     SELECT DISTINCT ON (COALESCE(c.domain, lower(c.name)))
            cr.id AS result_id, cr.company_id, c.name AS company_name, c.website,
            c.domain, c.domain_source, l.id AS list_id, l.display_name AS list_name,
-           cr.industry, cr.hq, cr.size_label, cr.fit_score, cr.trigger_score,
+           cr.industry, cr.hq, cr.size_label, cr.employee_estimate,
+           cr.annual_revenue_usd, cr.fit_score, cr.trigger_score,
            cr.total_score, cr.tier, cr.fwa_score, cr.starlink_score,
            cr.mobility_score, cr.byod_score, cr.primary_category, cr.why_now,
            cr.recency_label, cr.caveats
@@ -118,7 +124,8 @@ export async function allProspects(): Promise<ProspectRow[]> {
   const result = await db.execute(sql`
     SELECT ap.id AS result_id, ap.company_id, ap.company_name, ap.website, ap.domain,
            c.domain_source, ap.list_id, ap.list_name, ap.industry, ap.hq,
-           ap.size_label, ap.fit_score, ap.trigger_score, ap.total_score, ap.tier,
+           ap.size_label, ap.employee_estimate, ap.annual_revenue_usd,
+           ap.fit_score, ap.trigger_score, ap.total_score, ap.tier,
            ap.fwa_score, ap.starlink_score, ap.mobility_score, ap.byod_score,
            ap.primary_category, ap.why_now, ap.recency_label, ap.caveats
     FROM all_prospects ap

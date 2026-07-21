@@ -5,6 +5,8 @@ import { getResultDetail } from "@/lib/db/queries/prospects";
 import { normalizePlaySteps } from "@/lib/anthropic/extract";
 import { CAVEAT_COPY } from "@/lib/scoring/caveats";
 import { monogramFor } from "@/components/prospects/monogram";
+import { SegmentBadge } from "@/components/prospects/segment-badge";
+import { classifySegment, SEGMENT_META } from "@/lib/scoring/segment";
 import { DraftEmailModal } from "@/components/company/draft-email-modal";
 import { ScoreAnatomyBar, isFreshLabel } from "@/components/prospects/score-anatomy";
 import { cn } from "@/lib/utils";
@@ -87,8 +89,13 @@ export default async function CompanyDetailPage({
   if (!detail) notFound();
   const { result, company, list, signals, contacts } = detail;
 
-  const mono = monogramFor(company.name);
   const tier = TIER_LABEL[result.tier] ?? TIER_LABEL.tier_3;
+  const segment = classifySegment({
+    employees: result.employeeEstimate,
+    annualRevenueUsd: result.annualRevenueUsd,
+    sizeLabel: result.sizeLabel,
+  });
+  const segmentMeta = segment ? SEGMENT_META[segment] : null;
   const fresh = isFreshLabel(result.recencyLabel);
   const caveats = (result.caveats as string[]) ?? [];
   const coverageNotes =
@@ -131,17 +138,26 @@ export default async function CompanyDetailPage({
 
       {/* header */}
       <div className="mb-5 flex flex-wrap items-start gap-4">
-        <div
-          className="grid h-[60px] w-[60px] place-items-center rounded-[15px] font-disp text-[22px] font-bold text-white"
-          style={{ background: mono.gradient }}
-        >
-          {mono.letter}
-        </div>
+        <SegmentBadge
+          employees={result.employeeEstimate}
+          annualRevenueUsd={result.annualRevenueUsd}
+          sizeLabel={result.sizeLabel}
+          size="lg"
+        />
         <div className="min-w-0 flex-1">
           <h1 className="mb-1.5 font-disp text-[26px] font-bold tracking-[-.01em] text-ink">
             {company.name}
           </h1>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-slate">
+            {segmentMeta && (
+              <span
+                title={segmentMeta.hint}
+                className="rounded-[7px] px-2 py-0.5 text-[11px] font-bold"
+                style={{ background: segmentMeta.soft, color: segmentMeta.text }}
+              >
+                {segmentMeta.label}
+              </span>
+            )}
             {result.hq && <span>{result.hq}</span>}
             {result.industry && (
               <>
@@ -149,7 +165,7 @@ export default async function CompanyDetailPage({
                 <span>{result.industry}</span>
               </>
             )}
-            {result.sizeLabel && (
+            {result.sizeLabel && result.employeeEstimate == null && (
               <>
                 <span className="h-[3px] w-[3px] rounded-full bg-[#c3cbd6]" />
                 <span>{result.sizeLabel}</span>

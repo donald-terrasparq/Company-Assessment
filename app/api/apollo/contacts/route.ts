@@ -1,9 +1,14 @@
 import { z } from "zod";
 import { auth } from "@/auth";
 import { apolloErrorMessage, isApolloConfigured } from "@/lib/apollo/client";
-import { searchBestContacts } from "@/lib/apollo/contacts";
+import { searchBestContacts, searchBestContactsRelaxed } from "@/lib/apollo/contacts";
 import { parseContactPrefs } from "@/lib/apollo/prefs";
-import { addApolloContacts, countApolloContacts, replaceApolloContacts } from "@/lib/db/queries/contacts";
+import {
+  addApolloContacts,
+  countApolloContacts,
+  replaceApolloContacts,
+  setResultContactFilters,
+} from "@/lib/db/queries/contacts";
 import { getResultDetail } from "@/lib/db/queries/prospects";
 import { getSettings } from "@/lib/db/queries/settings";
 import { logUsage } from "@/lib/db/queries/usage";
@@ -57,22 +62,44 @@ export async function POST(request: Request): Promise<Response> {
     : defaults;
 
   try {
-    // load-more appends the next window of the ranked matches; the offset is
-    // however many Apollo contacts this result already shows
-    const offset = parsed.data.load_more ? await countApolloContacts(detail.result.id) : 0;
-    const { candidates, totalMatching } = await searchBestContacts({
+    if (parsed.data.load_more) {
+      // append the next window of the ranked matches for the CURRENT filters
+      const offset = await countApolloContacts(detail.result.id);
+      const { candidates, totalMatching } = await searchBestContacts({
+        domain: detail.company.domain,
+        revenueUsd: detail.result.annualRevenueUsd,
+        employees: detail.result.employeeEstimate,
+        prefs,
+        offset,
+      });
+      const added = await addApolloContacts(detail.result.id, candidates);
+      await logUsage({
+        runId: detail.result.runId,
+        companyId: detail.company.id,
+        provider: "apollo",
+        searches: 1,
+        costUsd: 0,
+      });
+      return Response.json({
+        found: totalMatching,
+        added,
+        has_more: offset + candidates.length < totalMatching,
+      });
+    }
+
+    // fresh search — AUTO-RELAXES (department → titles → lower seniorities)
+    // until at least a couple of contacts match; the filters that actually
+    // produced the result are persisted so the panel reflects them
+    const result = await searchBestContactsRelaxed({
       domain: detail.company.domain,
       revenueUsd: detail.result.annualRevenueUsd,
       employees: detail.result.employeeEstimate,
       prefs,
-      offset,
     });
-    // filter changes REPLACE what's on the card (keeping enriched and
-    // research-found contacts); load-more and the default search only add
-    const added =
-      parsed.data.overrides && !parsed.data.load_more
-        ? await replaceApolloContacts(detail.result.id, candidates)
-        : await addApolloContacts(detail.result.id, candidates);
+    const added = parsed.data.overrides
+      ? await replaceApolloContacts(detail.result.id, result.candidates)
+      : await addApolloContacts(detail.result.id, result.candidates);
+    await setResultContactFilters(detail.result.id, result.appliedPrefs);
     await logUsage({
       runId: detail.result.runId,
       companyId: detail.company.id,
@@ -81,9 +108,12 @@ export async function POST(request: Request): Promise<Response> {
       costUsd: 0, // people search consumes no export credits
     });
     return Response.json({
-      found: totalMatching,
+      found: result.totalMatching,
       added,
-      has_more: offset + candidates.length < totalMatching,
+      has_more: result.candidates.length < result.totalMatching,
+      relaxed: result.relaxed,
+      relax_note: result.relaxNote,
+      applied_filters: result.appliedPrefs,
     });
   } catch (err) {
     console.error("apollo contacts:", err);

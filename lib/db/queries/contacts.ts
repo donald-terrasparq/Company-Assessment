@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "../client";
-import { contacts } from "../schema";
+import { companyResults, contacts } from "../schema";
 import type { ApolloCandidate } from "@/lib/apollo/contacts";
 
 export async function getContactById(id: string) {
@@ -88,6 +88,17 @@ export async function replaceApolloContacts(
     await db.delete(contacts).where(eq(contacts.id, c.id));
   }
   return addApolloContacts(companyResultId, candidates);
+}
+
+/** Record which filters produced the contacts now shown on this result. */
+export async function setResultContactFilters(
+  companyResultId: string,
+  filters: unknown,
+): Promise<void> {
+  await db
+    .update(companyResults)
+    .set({ contactFilters: filters })
+    .where(eq(companyResults.id, companyResultId));
 }
 
 /** How many Apollo-sourced contacts a result already shows — load-more's offset. */

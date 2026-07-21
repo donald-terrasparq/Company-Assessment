@@ -28,6 +28,7 @@ export const SENIORITY_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "manager", label: "Senior Manager / Manager" },
   { value: "senior", label: "Senior IC" },
   { value: "owner", label: "Owner / Founder" },
+  { value: "entry", label: "Entry level" },
 ];
 
 /**
@@ -58,10 +59,13 @@ export function parseContactPrefs(raw: unknown): ContactPrefs {
     .map((t) => t.trim())
     .filter((t) => t.length > 0 && t.length <= 60)
     .slice(0, 12);
+  // an explicitly-provided empty titles array means "no title filter"
+  // (auto-relaxation uses this); fallback only when the field is absent
+  const titlesProvided = Array.isArray(obj.titles);
   return {
     seniorities: seniorities.length > 0 ? seniorities : DEFAULT_CONTACT_PREFS.seniorities,
     departments, // empty = no department filter, that's a valid choice
-    titles: titles.length > 0 ? titles : DEFAULT_CONTACT_PREFS.titles,
+    titles: titlesProvided ? titles : DEFAULT_CONTACT_PREFS.titles,
   };
 }
 

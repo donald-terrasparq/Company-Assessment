@@ -551,7 +551,9 @@ export default async function CompanyDetailPage({
           <ContactsCard
             resultId={result.id}
             apolloReady={apolloReady}
-            defaults={parseContactPrefs(settings?.contactDefaults)}
+            defaults={parseContactPrefs(
+              (result.contactFilters as unknown) ?? settings?.contactDefaults,
+            )}
             contacts={contacts.map((c) => ({
               id: c.id,
               name: c.name,

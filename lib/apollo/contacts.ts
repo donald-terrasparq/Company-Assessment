@@ -10,6 +10,7 @@
  */
 import { apolloPost } from "./client";
 import { buildSearchFilters, DEFAULT_CONTACT_PREFS, type ContactPrefs } from "./prefs";
+import { MIN_CONTACT_TARGET, relaxationLadder } from "./relax";
 import { companyBand, isAllowedContact, rankContacts } from "./targeting";
 
 export interface ApolloCandidate {
@@ -62,10 +63,10 @@ export async function searchBestContacts(input: {
     // q_organization_domains alongside this one is a 422
     q_organization_domains_list: [input.domain],
     person_seniorities: filters.seniorities,
-    person_titles: filters.titles,
     page: 1,
     per_page: 100, // one big page; we rank and window locally
   };
+  if (filters.titles.length > 0) body.person_titles = filters.titles;
   if (filters.apolloDepartments.length > 0) {
     body.person_department_or_subdepartments = filters.apolloDepartments;
   }
@@ -96,6 +97,42 @@ export async function searchBestContacts(input: {
     candidates: ranked.slice(offset, offset + limit),
     totalMatching: ranked.length,
   };
+}
+
+export interface RelaxedSearchResult extends ContactSearchResult {
+  appliedPrefs: ContactPrefs;
+  relaxed: boolean;
+  relaxNote: string | null;
+}
+
+/**
+ * Search with AUTO-RELAXATION: when the filters match fewer than
+ * MIN_CONTACT_TARGET people, loosen step by step (department → titles →
+ * lower seniorities) until at least 2-4 contacts surface. Returns whichever
+ * filters actually produced the result so the UI can reflect them.
+ */
+export async function searchBestContactsRelaxed(input: {
+  domain: string;
+  revenueUsd: number | null;
+  employees: number | null;
+  prefs?: ContactPrefs;
+  limit?: number;
+}): Promise<RelaxedSearchResult> {
+  const ladder = relaxationLadder(input.prefs ?? DEFAULT_CONTACT_PREFS);
+  let best: RelaxedSearchResult | null = null;
+  for (let i = 0; i < ladder.length; i++) {
+    const step = ladder[i];
+    const res = await searchBestContacts({ ...input, prefs: step.prefs, offset: 0 });
+    const wrapped: RelaxedSearchResult = {
+      ...res,
+      appliedPrefs: step.prefs,
+      relaxed: i > 0,
+      relaxNote: i > 0 ? step.note : null,
+    };
+    if (res.totalMatching >= MIN_CONTACT_TARGET) return wrapped;
+    if (!best || res.totalMatching > best.totalMatching) best = wrapped;
+  }
+  return best!; // ladder always has ≥1 step
 }
 
 interface MatchResponse {

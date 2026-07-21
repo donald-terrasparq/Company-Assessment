@@ -28,11 +28,13 @@ describe("parseContactPrefs", () => {
     expect(p.titles).toEqual(["CIO"]);
   });
 
-  it("empty departments is a valid choice; empty seniorities/titles fall back", () => {
+  it("explicit empty departments/titles are valid (relaxed state); missing titles fall back", () => {
     const p = parseContactPrefs({ seniorities: [], departments: [], titles: [] });
     expect(p.departments).toEqual([]);
+    expect(p.titles).toEqual([]); // explicitly no title filter — auto-relaxation uses this
     expect(p.seniorities).toEqual(DEFAULT_CONTACT_PREFS.seniorities);
-    expect(p.titles).toEqual(DEFAULT_CONTACT_PREFS.titles);
+    const q = parseContactPrefs({ seniorities: ["vp"], departments: [] }); // titles absent
+    expect(q.titles).toEqual(DEFAULT_CONTACT_PREFS.titles);
   });
 });
 

@@ -156,6 +156,7 @@ export const companyResults = pgTable("company_results", {
   coverageNotes: jsonb("coverage_notes").notNull().default([]),
   recencyLabel: text("recency_label"),
   confidence: numeric("confidence", { precision: 3, scale: 2 }),
+  contactFilters: jsonb("contact_filters"),
   modelUsed: text("model_used"),
   escalationReasons: jsonb("escalation_reasons").notNull().default([]),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

@@ -138,7 +138,22 @@ export function ContactsCard({
       if (!res.ok) throw new Error(json.error ?? "Search failed.");
       setHasMore(json.has_more === true);
       if (!loadMore) {
-        setApplied({ seniorities: [...seniorities], departments: [...departments], titles });
+        // auto-relaxation may have loosened the filters server-side — sync
+        // the panel so it reflects what actually produced these contacts
+        const af = json.applied_filters as
+          | { seniorities: string[]; departments: string[]; titles: string[] }
+          | undefined;
+        const next = af
+          ? { seniorities: af.seniorities, departments: af.departments, titles: af.titles.join(", ") }
+          : { seniorities: [...seniorities], departments: [...departments], titles };
+        setSeniorities(next.seniorities);
+        setDepartments(next.departments);
+        setTitles(next.titles);
+        setApplied({
+          seniorities: [...next.seniorities],
+          departments: [...next.departments],
+          titles: next.titles,
+        });
       }
       setNotice({
         ok: true,
@@ -146,9 +161,11 @@ export function ContactsCard({
           ? json.added > 0
             ? `Loaded ${json.added} more of ${json.found} matching people.`
             : `No new people — ${json.found} matches for these filters.`
-          : json.added > 0
-            ? `Found ${json.found} matching people — ${json.added} shown.`
-            : `Found ${json.found} matching people — all already on the card.`,
+          : json.relaxed
+            ? `No matches for the set filters — auto-broadened (${json.relax_note}) and found ${json.found}. Filters updated to match.`
+            : json.added > 0
+              ? `Found ${json.found} matching people — ${json.added} shown.`
+              : `Found ${json.found} matching people — all already on the card.`,
       });
       router.refresh();
     } catch (e) {

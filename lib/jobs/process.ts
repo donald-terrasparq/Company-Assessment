@@ -16,11 +16,11 @@ import { signalProfiles } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { enrichCompany } from "@/lib/research/enrich";
 import { isApolloConfigured } from "@/lib/apollo/client";
-import { searchBestContacts } from "@/lib/apollo/contacts";
+import { searchBestContactsRelaxed } from "@/lib/apollo/contacts";
 import { parseContactPrefs } from "@/lib/apollo/prefs";
 import { getActiveCompanyProfile } from "@/lib/db/queries/company-profiles";
 import { enrichOrganization, newsForOrganization, type ApolloOrgData } from "@/lib/apollo/organization";
-import { addApolloContacts } from "@/lib/db/queries/contacts";
+import { addApolloContacts, setResultContactFilters } from "@/lib/db/queries/contacts";
 import { gather } from "@/lib/research/gather";
 import { resolveDomain } from "@/lib/research/identify";
 import { shouldCorrectDomain } from "@/lib/normalize/domain";
@@ -294,13 +294,17 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
     // failure-tolerant — a dead Apollo costs the auto-contacts, not the run
     if (settings?.apolloEnabled && isApolloConfigured() && domain) {
       try {
-        const { candidates } = await searchBestContacts({
+        const { candidates, appliedPrefs, relaxed, relaxNote } = await searchBestContactsRelaxed({
           domain,
           revenueUsd: extraction.annual_revenue_usd ?? apolloOrg?.revenueUsd ?? null,
           employees: extraction.employee_estimate ?? apolloOrg?.employees ?? null,
           prefs: parseContactPrefs(settings.contactDefaults),
         });
         const added = await addApolloContacts(resultId, candidates);
+        await setResultContactFilters(resultId, appliedPrefs);
+        if (relaxed) {
+          console.log(`worker: ${company.name} — contact filters auto-relaxed (${relaxNote})`);
+        }
         if (candidates.length > 0) {
           await logUsage({
             runId: run.id,

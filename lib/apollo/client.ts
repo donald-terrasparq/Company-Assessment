@@ -1,11 +1,13 @@
 /**
  * Apollo.io REST client (Phase 7). Server-side only — the key never reaches
- * the browser. Exactly two endpoints are used (scope the API key to these):
+ * the browser. Exactly four endpoints are used (scope the API key to these):
  *
- *   POST /api/v1/mixed_people/search   People Search — find best contacts
- *   POST /api/v1/people/match          People Enrichment — reveal email/phone
+ *   POST /api/v1/mixed_people/search     People Search — find best contacts
+ *   POST /api/v1/people/match            People Enrichment — reveal email/phone
+ *   GET  /api/v1/organizations/enrich    Organization Enrichment — firmographics
+ *   POST /api/v1/news_articles/search    News — per-company event articles
  *
- * No organization endpoints, no bulk endpoints, no CRM/sequence endpoints.
+ * No bulk endpoints, no CRM/sequence/task endpoints.
  */
 
 const BASE = "https://api.apollo.io/api/v1";
@@ -20,17 +22,17 @@ export function isApolloConfigured(): boolean {
   return !!apolloKey();
 }
 
-export async function apolloPost<T>(path: string, body: Record<string, unknown>): Promise<T> {
+async function request<T>(path: string, init: RequestInit): Promise<T> {
   const key = apolloKey();
   if (!key) throw new Error("Apollo key is not configured (env var APOLLO).");
   const res = await fetch(`${BASE}${path}`, {
-    method: "POST",
+    ...init,
     headers: {
       "Content-Type": "application/json",
       "Cache-Control": "no-cache",
       "X-Api-Key": key,
+      ...init.headers,
     },
-    body: JSON.stringify(body),
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   if (!res.ok) {
@@ -38,4 +40,13 @@ export async function apolloPost<T>(path: string, body: Record<string, unknown>)
     throw new Error(`Apollo ${path} failed (${res.status}): ${text.slice(0, 200)}`);
   }
   return (await res.json()) as T;
+}
+
+export async function apolloPost<T>(path: string, body: Record<string, unknown>): Promise<T> {
+  return request<T>(path, { method: "POST", body: JSON.stringify(body) });
+}
+
+export async function apolloGet<T>(path: string, params: Record<string, string>): Promise<T> {
+  const qs = new URLSearchParams(params).toString();
+  return request<T>(`${path}?${qs}`, { method: "GET" });
 }

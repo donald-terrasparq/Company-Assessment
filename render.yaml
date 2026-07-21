@@ -69,6 +69,8 @@ services:
         value: brave
       - key: BRAVE_API_KEY
         sync: false
+      - key: APOLLO
+        sync: false               # org enrichment + news during analysis runs
       - key: SEC_USER_AGENT
         value: "CTS Mobility Company Assessment (ops@ctsmobility.com)"
       - key: WORKER_CONCURRENCY

@@ -23,11 +23,19 @@ rules (no CEO), the safe default.
 |---|---|---|
 | `POST /api/v1/mixed_people/search` (**People Search**) | "Find best contacts" button | No export credits — returns names/titles/LinkedIn only, never emails |
 | `POST /api/v1/people/match` (**People Enrichment**) | "Reveal email" / "Get phone #" on ONE selected contact | 1 export credit per email; 1 mobile credit per phone |
+| `GET /api/v1/organizations/enrich` (**Organization Enrichment**) | Every analysis run (worker), per company with a domain | No export credits |
+| `POST /api/v1/news_articles/search` (**News Search**) | Every analysis run, when org enrichment returned an id | No export credits |
 
-Nothing else. **Not** used and should NOT be granted to the key: Organization
-Search/Enrichment (`organizations/*` — we research companies ourselves), Bulk
-People Enrichment (`people/bulk_match` — bulk reveal is exactly what this design
-avoids), and all CRM/sequence/task endpoints.
+Organization enrichment fills firmographics the research pass missed (employee
+count, annual revenue, retail locations — these backstop the ENT/MM/SMB segment
+badge), plus funding history and detected tech stack, all fed to the extraction
+prompt as reference facts. News articles become citable candidate sources;
+items without a resolvable URL are dropped (hard rule 3), and the usual
+Zod validation + citation guard still applies before anything is stored.
+
+Nothing else. **Not** used and should NOT be granted to the key: Bulk People
+Enrichment (`people/bulk_match` — bulk reveal is exactly what this design
+avoids), Organization Search, and all CRM/sequence/task endpoints.
 
 Phone numbers are delivered **asynchronously**: `people/match` with
 `reveal_phone_number: true` requires a `webhook_url`; Apollo POSTs the number to
@@ -44,9 +52,12 @@ actually requested can write, and only into that contact's phone field.
    *API endpoint access*, enable only:
    - **People Search** — `POST /api/v1/mixed_people/search`
    - **People Enrichment** — `POST /api/v1/people/match`
-3. **Set the env var**: Render dashboard → `company-assessment-web` →
-   Environment → add `APOLLO` = the key (`APOLLO_API_KEY` also accepted). (Web service only — the worker
-   never calls Apollo.) Save; Render redeploys.
+   - **Organization Enrichment** — `GET /api/v1/organizations/enrich`
+   - **News Search** — `POST /api/v1/news_articles/search`
+3. **Set the env var**: Render dashboard → add `APOLLO` = the key
+   (`APOLLO_API_KEY` also accepted) on **both** services: `company-assessment-web`
+   (contact search + reveals) and `company-assessment-worker` (org enrichment +
+   news during runs). Save; Render redeploys.
 4. **Run the migration**: automatic — the deploy's `preDeployCommand` applies
    `0007_apollo.sql` (adds `contacts.apollo_person_id`, `contacts.phone_requested_at`).
 5. **Enable the feature**: sign in as admin → Settings → **Data sources** →

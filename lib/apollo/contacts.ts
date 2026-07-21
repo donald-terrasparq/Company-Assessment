@@ -64,12 +64,19 @@ export async function searchBestContacts(input: {
   const data = await apolloPost<SearchResponse>("/mixed_people/api_search", body);
 
   const candidates: ApolloCandidate[] = [...(data.people ?? []), ...(data.contacts ?? [])]
-    .map((p) => ({
-      apolloPersonId: p.person_id ?? p.id,
-      name: p.name ?? [p.first_name, p.last_name].filter(Boolean).join(" "),
-      title: p.title ?? null,
-      linkedinUrl: p.linkedin_url ?? null,
-    }))
+    .map((p) => {
+      // api_search's `name` can carry the first name only — prefer the split
+      // fields, and graft last_name on when `name` lacks it
+      const joined = [p.first_name, p.last_name].filter(Boolean).join(" ");
+      let name = joined || p.name || "";
+      if (p.name && p.name.split(/\s+/).length > name.split(/\s+/).length) name = p.name;
+      return {
+        apolloPersonId: p.person_id ?? p.id,
+        name,
+        title: p.title ?? null,
+        linkedinUrl: p.linkedin_url ?? null,
+      };
+    })
     .filter((p) => p.apolloPersonId && p.name)
     // the hard gate: no CEO ≥ $20M, no C-level > $500M — whatever search returned
     .filter((p) => isAllowedContact(p.title, input.revenueUsd, input.employees));

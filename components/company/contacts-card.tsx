@@ -8,8 +8,26 @@
  */
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown, Copy, Loader2, Mail, Phone, RefreshCw, Search, SlidersHorizontal } from "lucide-react";
-import { monogramFor } from "@/components/prospects/monogram";
+import {
+  Banknote,
+  Briefcase,
+  Check,
+  ChevronDown,
+  Copy,
+  Factory,
+  Loader2,
+  Mail,
+  Megaphone,
+  MonitorCog,
+  Phone,
+  RefreshCw,
+  Search,
+  ShoppingCart,
+  SlidersHorizontal,
+  Wrench,
+  type LucideIcon,
+} from "lucide-react";
+import { DEPARTMENT_META, departmentForTitle, type Department } from "@/lib/contacts/department";
 import {
   DEPARTMENT_OPTIONS,
   SENIORITY_OPTIONS,
@@ -30,9 +48,30 @@ export interface ContactRow {
   phoneRequested: boolean;
 }
 
-function initials(name: string): string {
-  const words = name.split(/\s+/).filter(Boolean);
-  return ((words[0]?.[0] ?? "") + (words[1]?.[0] ?? words[0]?.[1] ?? "")).toUpperCase();
+const DEPARTMENT_ICONS: Record<Department, LucideIcon> = {
+  it: MonitorCog,
+  engineering: Wrench,
+  finance: Banknote,
+  operations: Factory,
+  marketing: Megaphone,
+  procurement: ShoppingCart,
+  general: Briefcase,
+};
+
+/** Department tile shown in front of each contact's name/title. */
+function DepartmentIcon({ title }: { title: string | null }) {
+  const dept = departmentForTitle(title);
+  const meta = DEPARTMENT_META[dept];
+  const Icon = DEPARTMENT_ICONS[dept];
+  return (
+    <span
+      title={meta.label}
+      className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-[11px]"
+      style={{ background: meta.soft, color: meta.color }}
+    >
+      <Icon size={19} strokeWidth={1.9} aria-hidden />
+    </span>
+  );
 }
 
 export function ContactsCard({
@@ -241,27 +280,16 @@ export function ContactsCard({
         </p>
       ) : (
         contacts.map((c) => {
-          const avatar = monogramFor(c.name);
           return (
             <div
               key={c.id}
               className="border-b border-line-2 py-3 first:pt-0 last:border-none last:pb-0"
             >
               <div className="flex gap-3">
-                <span
-                  className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-full font-disp text-[14px] font-semibold text-white"
-                  style={{ background: avatar.gradient }}
-                >
-                  {initials(c.name)}
-                </span>
+                <DepartmentIcon title={c.title} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 font-disp text-[13.5px] font-semibold text-ink">
                     {c.name}
-                    {c.source === "apollo" && (
-                      <span className="rounded-md bg-[#EAF1FB] px-1.5 py-0.5 text-[10px] font-semibold text-fwa">
-                        Apollo
-                      </span>
-                    )}
                     {!c.verified && (
                       <span className="rounded-md bg-[#FBF0DA] px-1.5 py-0.5 text-[10px] font-semibold text-tier2">
                         unverified

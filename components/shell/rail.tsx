@@ -12,26 +12,16 @@ const NAV = [
   { href: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
-/** The 74px ink rail from the prototype: brand tile, four nav icons, avatar. */
+/**
+ * The 74px ink rail. No standalone brand tile — the ACTIVE tab carries the
+ * branding: white icon on the orange spark gradient, same treatment the old
+ * brand tile had.
+ */
 export function Rail({ initials }: { initials: string }) {
   const pathname = usePathname();
 
   return (
     <nav className="sticky top-0 flex h-screen w-[74px] flex-shrink-0 flex-col items-center gap-1.5 bg-ink py-[18px] text-white">
-      <div
-        title="Company Assessment"
-        className="mb-[18px] grid h-10 w-10 flex-shrink-0 place-items-center rounded-[11px] bg-gradient-to-br from-spark to-[#ff8a5a] shadow-[0_6px_18px_rgba(255,107,74,.4)]"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <path
-            d="M12 3v18M5 8v8M19 8v8M8.5 5.5v13M15.5 5.5v13"
-            stroke="#fff"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-          />
-        </svg>
-      </div>
-
       {NAV.map(({ href, label, icon: Icon }) => {
         const active = pathname.startsWith(href);
         return (
@@ -41,15 +31,13 @@ export function Rail({ initials }: { initials: string }) {
             title={label}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "relative grid h-11 w-11 place-items-center rounded-xl text-[#8595ab] transition-colors duration-150",
-              "hover:bg-white/[.07] hover:text-[#cdd6e2]",
-              active && "bg-white/10 text-white",
+              "grid h-11 w-11 place-items-center rounded-xl text-[#8595ab] transition-colors duration-150",
+              active
+                ? "bg-gradient-to-br from-spark to-[#ff8a5a] text-white shadow-[0_6px_18px_rgba(255,107,74,.4)]"
+                : "hover:bg-white/[.07] hover:text-[#cdd6e2]",
             )}
           >
-            {active && (
-              <span className="absolute -left-[18px] bottom-3 top-3 w-[3px] rounded-[3px] bg-spark" />
-            )}
-            <Icon size={21} strokeWidth={1.8} />
+            <Icon size={21} strokeWidth={active ? 2 : 1.8} />
           </Link>
         );
       })}

@@ -219,6 +219,10 @@ export function ProspectsView({
             {filtered.map((r, i) => {
               const mono = monogramFor(r.companyName);
               const fresh = isFreshLabel(r.recencyLabel);
+              // company sub-line capped at 80 chars so long HQ/size details
+              // can't stretch the column and squeeze Why now
+              const infoRaw = [r.hq, r.sizeLabel].filter(Boolean).join(" · ") || r.domain || "—";
+              const info = infoRaw.length > 80 ? `${infoRaw.slice(0, 79)}…` : infoRaw;
               return (
                 <tr
                   key={r.resultId}
@@ -235,7 +239,7 @@ export function ProspectsView({
                   >
                     {i + 1}
                   </td>
-                  <td className="px-3 py-4">
+                  <td className="max-w-[280px] px-3 py-4">
                     <div className="flex items-center gap-3">
                       <div
                         className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-[11px] font-disp text-[15px] font-bold text-white"
@@ -247,8 +251,8 @@ export function ProspectsView({
                         <div className="truncate font-disp text-[14px] font-semibold text-ink">
                           {r.companyName}
                         </div>
-                        <div className="truncate text-[11.5px] text-muted">
-                          {[r.hq, r.sizeLabel].filter(Boolean).join(" · ") || r.domain || "—"}
+                        <div className="truncate text-[11.5px] text-muted" title={infoRaw}>
+                          {info}
                         </div>
                       </div>
                     </div>
@@ -289,8 +293,8 @@ export function ProspectsView({
                       />
                     </div>
                   </td>
-                  <td className="max-w-[260px] px-3 py-4">
-                    <div className="truncate text-[12.5px] font-medium text-ink" title={r.whyNow ?? undefined}>
+                  <td className="w-[34%] min-w-[280px] max-w-[440px] px-3 py-4">
+                    <div className="line-clamp-2 text-[12.5px] font-medium leading-[1.4] text-ink" title={r.whyNow ?? undefined}>
                       {r.whyNow || <span className="text-muted">no current trigger</span>}
                     </div>
                     <div className="mt-1 flex items-center gap-2">
@@ -300,7 +304,7 @@ export function ProspectsView({
                           FRESH
                         </span>
                       )}
-                      {r.recencyLabel && (
+                      {r.recencyLabel && r.recencyLabel !== "forward" && (
                         <span className="mono text-[10.5px] text-muted">{r.recencyLabel}</span>
                       )}
                     </div>

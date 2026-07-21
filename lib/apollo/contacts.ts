@@ -24,15 +24,19 @@ export interface ApolloCandidate {
   linkedinUrl: string | null;
 }
 
+interface SearchPerson {
+  id: string;
+  person_id?: string; // present on CRM-contact records — the enrichable id
+  name?: string;
+  first_name?: string;
+  last_name?: string;
+  title?: string | null;
+  linkedin_url?: string | null;
+}
+
 interface SearchResponse {
-  people?: Array<{
-    id: string;
-    name?: string;
-    first_name?: string;
-    last_name?: string;
-    title?: string | null;
-    linkedin_url?: string | null;
-  }>;
+  people?: SearchPerson[]; // net-new directory people
+  contacts?: SearchPerson[]; // records already saved in the Apollo workspace
 }
 
 export const MAX_APOLLO_CONTACTS = 5;
@@ -45,17 +49,19 @@ export async function searchBestContacts(input: {
 }): Promise<ApolloCandidate[]> {
   const band = companyBand(input.revenueUsd, input.employees);
   const data = await apolloPost<SearchResponse>("/mixed_people/search", {
+    // both spellings — Apollo renamed this param across API versions and
+    // silently ignores the one it doesn't know
     q_organization_domains_list: [input.domain],
+    q_organization_domains: input.domain,
     person_seniorities: searchSeniorities(band),
     person_titles: TARGET_TITLES,
-    contact_email_status: ["verified", "likely to engage"],
     page: 1,
     per_page: 25,
   });
 
-  const candidates: ApolloCandidate[] = (data.people ?? [])
+  const candidates: ApolloCandidate[] = [...(data.people ?? []), ...(data.contacts ?? [])]
     .map((p) => ({
-      apolloPersonId: p.id,
+      apolloPersonId: p.person_id ?? p.id,
       name: p.name ?? [p.first_name, p.last_name].filter(Boolean).join(" "),
       title: p.title ?? null,
       linkedinUrl: p.linkedin_url ?? null,

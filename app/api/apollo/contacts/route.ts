@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { auth } from "@/auth";
-import { isApolloConfigured } from "@/lib/apollo/client";
+import { apolloErrorMessage, isApolloConfigured } from "@/lib/apollo/client";
 import { searchBestContacts } from "@/lib/apollo/contacts";
 import { addApolloContacts } from "@/lib/db/queries/contacts";
 import { getResultDetail } from "@/lib/db/queries/prospects";
@@ -53,6 +53,6 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ found: candidates.length, added });
   } catch (err) {
     console.error("apollo contacts:", err);
-    return Response.json({ error: "Apollo search failed — try again shortly." }, { status: 502 });
+    return Response.json({ error: apolloErrorMessage(err) }, { status: 502 });
   }
 }

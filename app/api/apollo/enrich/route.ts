@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { auth } from "@/auth";
-import { isApolloConfigured } from "@/lib/apollo/client";
+import { apolloErrorMessage, isApolloConfigured } from "@/lib/apollo/client";
 import { requestPhone, revealEmail } from "@/lib/apollo/contacts";
 import { webhookToken } from "@/lib/apollo/webhook-token";
 import {
@@ -95,6 +95,6 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ status: "requested" });
   } catch (err) {
     console.error("apollo enrich:", err);
-    return Response.json({ error: "Apollo enrichment failed — try again shortly." }, { status: 502 });
+    return Response.json({ error: apolloErrorMessage(err) }, { status: 502 });
   }
 }

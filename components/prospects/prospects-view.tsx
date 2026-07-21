@@ -6,7 +6,7 @@
  * caps at 100 rows); Export CSV passes the active filters to the server so
  * the file honors them.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, ChevronDown, ChevronRight, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,17 @@ import type { ProspectRow } from "@/lib/db/queries/prospects";
 import { CAVEAT_COPY } from "@/lib/scoring/caveats";
 import { SegmentBadge } from "./segment-badge";
 import { ScoreAnatomyBar, isFreshLabel } from "./score-anatomy";
+import { sessionCompanyIds } from "./add-company-modal";
+import { SEARCH_EVENT } from "@/components/shell/top-bar";
+
+/** Top-bar live search matches these fields, case-insensitive. */
+function matchesQuery(r: ProspectRow, q: string): boolean {
+  const needle = q.trim().toLowerCase();
+  if (!needle) return true;
+  return [r.companyName, r.industry, r.whyNow, r.hq, r.listName, r.domain]
+    .filter(Boolean)
+    .some((v) => (v as string).toLowerCase().includes(needle));
+}
 
 const TIER_META: Record<
   string,
@@ -41,10 +52,19 @@ export function ProspectsView({
   rows,
   listParam,
   showListColumn,
+  initialQuery = "",
+  showEntryDate = false,
+  sessionOnly = false,
 }: {
   rows: ProspectRow[];
   listParam: string;
   showListColumn: boolean;
+  /** ?q= from the URL — the top-bar search takes over from here, live. */
+  initialQuery?: string;
+  /** Manual Entry list: show each company's date of entry. */
+  showEntryDate?: boolean;
+  /** Manual Entry, fresh from the Add-company modal: only this session's entries. */
+  sessionOnly?: boolean;
 }) {
   const router = useRouter();
   const [tiers, setTiers] = useState<string[]>([]);
@@ -52,10 +72,29 @@ export function ProspectsView({
   const [freshOnly, setFreshOnly] = useState(false);
   const [hideCaveats, setHideCaveats] = useState(false);
   const [sort, setSort] = useState<SortKey>("tier");
+  const [query, setQuery] = useState(initialQuery);
+  const [sessionIds, setSessionIds] = useState<string[] | null>(null);
+
+  // live filtering from the top-bar search box
+  useEffect(() => {
+    const onSearch = (e: Event) => setQuery((e as CustomEvent<string>).detail ?? "");
+    window.addEventListener(SEARCH_EVENT, onSearch);
+    return () => window.removeEventListener(SEARCH_EVENT, onSearch);
+  }, []);
+
+  // sessionStorage is browser-only — read it after mount
+  useEffect(() => {
+    if (sessionOnly) setSessionIds(sessionCompanyIds());
+  }, [sessionOnly]);
 
   const filters: ProspectFilters = { tiers, categories: cats, freshOnly, hideCaveats };
   const filtered = useMemo(() => {
-    const f = applyFilters(rows, filters);
+    let f = applyFilters(rows, filters);
+    if (query.trim()) f = f.filter((r) => matchesQuery(r, query));
+    if (sessionOnly && sessionIds) {
+      const ids = new Set(sessionIds);
+      f = f.filter((r) => ids.has(r.companyId));
+    }
     const sorted = [...f];
     if (sort === "company") sorted.sort((a, b) => a.companyName.localeCompare(b.companyName));
     else if (sort === "industry")
@@ -69,7 +108,7 @@ export function ProspectsView({
       );
     return sorted;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, tiers, cats, freshOnly, hideCaveats, sort]);
+  }, [rows, tiers, cats, freshOnly, hideCaveats, sort, query, sessionOnly, sessionIds]);
 
   const dist = useMemo(() => {
     const counts = { tier_1: 0, tier_2: 0, tier_3: 0, defunct: 0 };
@@ -170,7 +209,18 @@ export function ProspectsView({
         >
           Hide caveats
         </button>
+        {sessionOnly && (
+          <button
+            type="button"
+            onClick={() => router.push(`/prospects?list=${listParam}`)}
+            className="rounded-[20px] border border-ink bg-ink px-3 py-1.5 text-[12.5px] font-medium text-white"
+            title="Showing only companies you entered this session — click to see every manual entry"
+          >
+            This session · show all entries
+          </button>
+        )}
         <span className="mono ml-auto text-[12px] text-muted">
+          {query.trim() && `“${query.trim()}” · `}
           {filtered.length} of {rows.length} shown · sorted by {sort === "tier" ? "tier → score" : sort}
         </span>
         <a
@@ -253,6 +303,11 @@ export function ProspectsView({
                         <div className="truncate text-[11.5px] text-muted" title={infoRaw}>
                           {info}
                         </div>
+                        {showEntryDate && r.enteredAt && (
+                          <div className="mono mt-0.5 text-[10.5px] text-muted">
+                            entered {r.enteredAt}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </td>

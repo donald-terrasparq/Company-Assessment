@@ -31,6 +31,8 @@ export interface ProspectRow {
   whyNow: string | null;
   recencyLabel: string | null;
   caveats: string[];
+  /** Manual Entry list only: when this company was typed in. */
+  enteredAt?: string | null;
 }
 
 function mapRow(r: Record<string, unknown>): ProspectRow {
@@ -61,6 +63,7 @@ function mapRow(r: Record<string, unknown>): ProspectRow {
     whyNow: (r.why_now as string) ?? null,
     recencyLabel: (r.recency_label as string) ?? null,
     caveats: (r.caveats as string[]) ?? [],
+    enteredAt: r.entered_at ? String(r.entered_at).slice(0, 10) : null,
   };
 }
 
@@ -83,6 +86,33 @@ export async function prospectsForList(listId: string): Promise<ProspectRow[]> {
     ORDER BY cr.total_score DESC, cr.created_at
   `);
   return (result.rows as Record<string, unknown>[]).map(mapRow);
+}
+
+/**
+ * Manual Entry list: every typed-in company's LATEST result across ALL runs
+ * of the list (each manual search is its own single-job run), with the date
+ * the company was entered. Companies still being analyzed for the first time
+ * have no result yet and appear once their run streams a row in.
+ */
+export async function prospectsForManualList(listId: string): Promise<ProspectRow[]> {
+  const result = await db.execute(sql`
+    SELECT DISTINCT ON (cr.company_id)
+           cr.id AS result_id, cr.company_id, c.name AS company_name, c.website,
+           c.domain, c.domain_source, l.id AS list_id, l.display_name AS list_name,
+           cr.industry, cr.hq, cr.size_label, cr.employee_estimate,
+           cr.annual_revenue_usd, cr.location_count, cr.fit_score, cr.trigger_score,
+           cr.total_score, cr.tier, cr.fwa_score, cr.starlink_score,
+           cr.mobility_score, cr.byod_score, cr.primary_category, cr.why_now,
+           cr.recency_label, cr.caveats, c.created_at AS entered_at
+    FROM company_results cr
+    JOIN runs r ON r.id = cr.run_id AND r.list_id = ${listId} AND r.deleted_at IS NULL
+    JOIN companies c ON c.id = cr.company_id
+    JOIN lists l ON l.id = c.list_id
+    ORDER BY cr.company_id, cr.created_at DESC
+  `);
+  const rows = (result.rows as Record<string, unknown>[]).map(mapRow);
+  rows.sort((a, b) => b.totalScore - a.totalScore);
+  return rows;
 }
 
 /**

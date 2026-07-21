@@ -2,6 +2,7 @@ import { forbidden } from "next/navigation";
 import { auth } from "@/auth";
 import { getSettings } from "@/lib/db/queries/settings";
 import { updateApolloAction, updateProviderAction } from "../admin-actions";
+import { ApolloTestButton } from "@/components/settings/apollo-test-button";
 
 function KeyStatus({ configured }: { configured: boolean }) {
   return configured ? (
@@ -125,6 +126,7 @@ export default async function DataSourcesSettingsPage() {
           </span>
         )}
       </form>
+      <ApolloTestButton />
     </section>
     </div>
   );

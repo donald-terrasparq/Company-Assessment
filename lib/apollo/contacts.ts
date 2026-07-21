@@ -102,17 +102,24 @@ interface MatchResponse {
   person?: {
     id?: string;
     email?: string | null;
+    name?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
     linkedin_url?: string | null;
     title?: string | null;
   };
 }
 
-/** Reveal the work email for one selected contact (1 Apollo export credit). */
+/**
+ * Reveal the work email for one selected contact (1 Apollo export credit).
+ * Also returns the person's full name — enrichment responses carry the
+ * complete name even when search results were first-name-only.
+ */
 export async function revealEmail(input: {
   apolloPersonId: string | null;
   name: string;
   domain: string;
-}): Promise<string | null> {
+}): Promise<{ email: string | null; fullName: string | null }> {
   const body: Record<string, unknown> = {
     reveal_personal_emails: false, // work email only — never personal
   };
@@ -123,7 +130,9 @@ export async function revealEmail(input: {
   }
   const data = await apolloPost<MatchResponse>("/people/match", body);
   const email = data.person?.email ?? null;
-  return email && !email.includes("not_unlocked") ? email : null;
+  const joined = [data.person?.first_name, data.person?.last_name].filter(Boolean).join(" ");
+  const fullName = joined || data.person?.name || null;
+  return { email: email && !email.includes("not_unlocked") ? email : null, fullName };
 }
 
 /**

@@ -8,6 +8,9 @@ import { monogramFor } from "@/components/prospects/monogram";
 import { SegmentBadge } from "@/components/prospects/segment-badge";
 import { classifySegment, SEGMENT_META } from "@/lib/scoring/segment";
 import { DraftEmailModal } from "@/components/company/draft-email-modal";
+import { ContactsCard } from "@/components/company/contacts-card";
+import { isApolloConfigured } from "@/lib/apollo/client";
+import { getSettings } from "@/lib/db/queries/settings";
 import { ScoreAnatomyBar, isFreshLabel } from "@/components/prospects/score-anatomy";
 import { cn } from "@/lib/utils";
 
@@ -85,9 +88,10 @@ export default async function CompanyDetailPage({
   params: Promise<{ resultId: string }>;
 }) {
   const { resultId } = await params;
-  const detail = await getResultDetail(resultId);
+  const [detail, settings] = await Promise.all([getResultDetail(resultId), getSettings()]);
   if (!detail) notFound();
   const { result, company, list, signals, contacts } = detail;
+  const apolloReady = !!settings?.apolloEnabled && isApolloConfigured();
 
   const tier = TIER_LABEL[result.tier] ?? TIER_LABEL.tier_3;
   const segment = classifySegment({
@@ -521,64 +525,23 @@ export default async function CompanyDetailPage({
             )}
           </section>
 
-          {/* contacts */}
-          <section className="rounded-card border border-line bg-card p-5 shadow-card">
-            <Eyebrow>Top contacts</Eyebrow>
-            {contacts.length === 0 ? (
-              <p className="text-[13px] text-muted">
-                No contacts surfaced from public sources for this company.
-              </p>
-            ) : (
-              contacts.map((c) => {
-                const avatar = monogramFor(c.name);
-                return (
-                  <div key={c.id} className="flex gap-3 border-b border-line-2 py-3 first:pt-0 last:border-none last:pb-0">
-                    <span
-                      className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-full font-disp text-[14px] font-semibold text-white"
-                      style={{ background: avatar.gradient }}
-                    >
-                      {sourceInitials(c.name)}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 font-disp text-[13.5px] font-semibold text-ink">
-                        {c.name}
-                        {!c.verified && (
-                          <span className="rounded-md bg-[#FBF0DA] px-1.5 py-0.5 text-[10px] font-semibold text-tier2">
-                            unverified
-                          </span>
-                        )}
-                      </div>
-                      {c.title && <div className="mt-0.5 text-[12px] text-slate">{c.title}</div>}
-                      {c.roleRationale && (
-                        <div className="mt-1 text-[11.5px] leading-[1.4] text-muted">{c.roleRationale}</div>
-                      )}
-                      <button
-                        type="button"
-                        disabled
-                        title="Contact enrichment via Apollo.io arrives in Phase 2"
-                        className="mt-1.5 cursor-not-allowed rounded-lg border border-line bg-line-2 px-2 py-0.5 text-[10.5px] font-medium text-muted"
-                      >
-                        Reveal email — Apollo · Phase 2
-                      </button>
-                    </div>
-                    {c.linkedinUrl && (
-                      <a
-                        href={c.linkedinUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="grid h-[26px] w-[26px] flex-shrink-0 place-items-center rounded-[7px] bg-[#EAF1FB] font-disp text-[12px] font-bold text-fwa"
-                      >
-                        in
-                      </a>
-                    )}
-                  </div>
-                );
-              })
-            )}
-            <p className="mt-3 text-[10.5px] leading-[1.4] text-muted">
-              Contacts found via public search — verify names and roles before outreach.
-            </p>
-          </section>
+          {/* contacts — Apollo search + per-contact email/phone reveal */}
+          <ContactsCard
+            resultId={result.id}
+            apolloReady={apolloReady}
+            contacts={contacts.map((c) => ({
+              id: c.id,
+              name: c.name,
+              title: c.title,
+              roleRationale: c.roleRationale,
+              linkedinUrl: c.linkedinUrl,
+              email: c.email,
+              phone: c.phone,
+              source: c.source,
+              verified: c.verified,
+              phoneRequested: c.phoneRequestedAt != null,
+            }))}
+          />
 
           {/* coverage & caveats — good + warn rows */}
           <section className="rounded-card border border-line bg-card p-5 shadow-card">

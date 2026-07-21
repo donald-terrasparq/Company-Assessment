@@ -192,11 +192,13 @@ CREATE TABLE contacts (
   title              TEXT,
   role_rationale     TEXT,                -- "owns WAN + telecom; primary FWA buyer"
   linkedin_url       TEXT,
-  email              TEXT,                -- Phase 2, Apollo only
-  phone              TEXT,                -- Phase 2, Apollo only
+  email              TEXT,                -- revealed on demand via Apollo (Phase 7)
+  phone              TEXT,                -- revealed on demand via Apollo (Phase 7)
   source             TEXT NOT NULL DEFAULT 'search'
                      CHECK (source IN ('search','apollo','manual')),
   verified           BOOLEAN NOT NULL DEFAULT FALSE,
+  apollo_person_id   TEXT,                -- 0007: exact-id enrichment
+  phone_requested_at TIMESTAMPTZ,         -- 0007: async phone reveal in flight
   enriched_at        TIMESTAMPTZ,
   created_at         TIMESTAMPTZ NOT NULL DEFAULT now()
 );

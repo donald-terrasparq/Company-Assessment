@@ -100,9 +100,11 @@ export default async function DataSourcesSettingsPage() {
       <p className="mb-3 max-w-[62ch] text-[12.5px] leading-[1.5] text-slate">
         Finds target best contacts per company (IT-first; no CEO at $20M+ revenue, no C-level
         past $500M) and reveals email or direct phone only for contacts a user selects —
-        credits are never spent in bulk. Uses exactly two Apollo endpoints: People Search
-        (free) and People Enrichment (1 credit per email; mobile credit per phone). Scope the
-        API key to those two endpoints only.
+        credits are never spent in bulk. During analysis runs it also pulls organization
+        firmographics (employees, revenue, locations, funding, tech stack) and recent news
+        events as citable sources. Uses exactly four Apollo endpoints — People Search,
+        People Enrichment (1 credit per email; mobile credit per phone), Organization
+        Enrichment, and News Search. Scope the API key to those four only.
       </p>
       <form action={updateApolloAction} className="flex items-center gap-3">
         <label className="flex cursor-pointer items-center gap-2 text-[13px] text-ink">

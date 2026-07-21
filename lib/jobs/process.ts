@@ -15,6 +15,8 @@ import { db } from "@/lib/db/client";
 import { signalProfiles } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { enrichCompany } from "@/lib/research/enrich";
+import { isApolloConfigured } from "@/lib/apollo/client";
+import { enrichOrganization, newsForOrganization, type ApolloOrgData } from "@/lib/apollo/organization";
 import { gather } from "@/lib/research/gather";
 import { resolveDomain } from "@/lib/research/identify";
 import { shouldCorrectDomain } from "@/lib/normalize/domain";
@@ -151,6 +153,34 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
       }
     }
 
+    // ---- stage 1c: Apollo org enrichment + news (approved #1 and #2) ----
+    // gated on the admin toggle + key; failure-tolerant like every connector
+    let apolloOrg: ApolloOrgData | null = null;
+    let apolloNews: Awaited<ReturnType<typeof newsForOrganization>> = [];
+    const settings = await getSettings();
+    if (settings?.apolloEnabled && isApolloConfigured() && domain) {
+      const tApollo = Date.now();
+      try {
+        apolloOrg = await enrichOrganization(domain);
+        if (apolloOrg.orgId) {
+          apolloNews = await newsForOrganization(apolloOrg.orgId, now).catch(() => []);
+        }
+        await logUsage({
+          runId: run.id,
+          companyId: company.id,
+          provider: "apollo",
+          searches: 1 + (apolloNews.length > 0 ? 1 : 0),
+          costUsd: 0, // org enrichment + news consume no export credits
+        });
+      } catch (err) {
+        console.log(
+          `worker: ${company.name} — apollo enrichment skipped: ${err instanceof Error ? err.message : err}`,
+        );
+      }
+      mark("apollo", tApollo);
+    }
+    if (apolloOrg) enrichment.facts.push(...apolloOrg.facts);
+
     // ---- stage 2: gather sources (skipped when the anthropic tool searches) ----
     let sources: Awaited<ReturnType<typeof gather>>["hits"] = [];
     if (provider) {
@@ -181,8 +211,10 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
     // enrichment hits are citable sources too (news, job boards, award records)
     if (provider) {
       const seen = new Set(sources.map((s) => s.url));
-      for (const hit of enrichment.hits) {
-        if (!seen.has(hit.url)) sources.push(hit);
+      for (const hit of [...enrichment.hits, ...apolloNews]) {
+        if (seen.has(hit.url)) continue;
+        seen.add(hit.url);
+        sources.push(hit);
       }
     }
 
@@ -232,9 +264,10 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
         industry: extraction.industry,
         hq: extraction.hq,
         sizeLabel: extraction.size_label,
-        employeeEstimate: extraction.employee_estimate,
-        annualRevenueUsd: extraction.annual_revenue_usd,
-        locationCount: extraction.location_count,
+        // Apollo's directory figures backstop the extraction when it came up empty
+        employeeEstimate: extraction.employee_estimate ?? apolloOrg?.employees ?? null,
+        annualRevenueUsd: extraction.annual_revenue_usd ?? apolloOrg?.revenueUsd ?? null,
+        locationCount: extraction.location_count ?? apolloOrg?.locationCount ?? null,
         whyNow: extraction.why_now || null,
         recommendedPlay: normalizePlaySteps(extraction.recommended_play).join("\n") || null,
         caveats: extraction.caveats,

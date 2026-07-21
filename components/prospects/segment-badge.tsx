@@ -9,14 +9,16 @@ export function SegmentBadge({
   employees,
   annualRevenueUsd,
   sizeLabel,
+  locationCount,
   size = "sm",
 }: {
   employees: number | null;
   annualRevenueUsd: number | null;
   sizeLabel?: string | null;
+  locationCount?: number | null;
   size?: "sm" | "lg";
 }) {
-  const segment = classifySegment({ employees, annualRevenueUsd, sizeLabel });
+  const segment = classifySegment({ employees, annualRevenueUsd, sizeLabel, locationCount });
   const meta = segment ? SEGMENT_META[segment] : null;
   const cls =
     size === "lg"

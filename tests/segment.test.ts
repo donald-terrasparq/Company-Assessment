@@ -33,7 +33,19 @@ describe("classifySegment (SMB / Mid-Market / Enterprise)", () => {
     expect(classifySegment({ employees: null, annualRevenueUsd: null, sizeLabel: "~40 staff" })).toBe("smb");
   });
 
-  it("returns null when neither headcount nor revenue is known", () => {
+  it("falls back to location count when headcount and revenue are unknown", () => {
+    // the Micro Center case: ~25 stores, no headcount/revenue extracted → Mid-Market
+    expect(classifySegment({ employees: null, annualRevenueUsd: null, locationCount: 25 })).toBe("mid_market");
+    expect(classifySegment({ employees: null, annualRevenueUsd: null, locationCount: 150 })).toBe("enterprise");
+    expect(classifySegment({ employees: null, annualRevenueUsd: null, locationCount: 3 })).toBe("smb");
+  });
+
+  it("a 10+ site footprint outranks a small partial headcount", () => {
+    expect(classifySegment({ employees: 50, annualRevenueUsd: null, locationCount: 12 })).toBe("mid_market");
+    expect(classifySegment({ employees: 50, annualRevenueUsd: null, locationCount: 2 })).toBe("smb");
+  });
+
+  it("returns null when headcount, revenue, and locations are all unknown", () => {
     expect(classifySegment({ employees: null, annualRevenueUsd: null, sizeLabel: null })).toBeNull();
     expect(classifySegment({ employees: null, annualRevenueUsd: null, sizeLabel: "unknown" })).toBeNull();
   });

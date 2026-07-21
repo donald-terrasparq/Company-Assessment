@@ -69,15 +69,27 @@ export function employeesFromLabel(sizeLabel: string | null): number | null {
   return Math.max(...matches.map(Number));
 }
 
-/** Classify a company; null when we know neither headcount nor revenue. */
+/**
+ * Classify a company. Headcount and revenue are the primary evidence; when
+ * BOTH are missing, physical footprint stands in — a chain with 10+ sites
+ * runs 200+ people on any staffing model (≈ mid-market), and 100+ sites is
+ * enterprise scale. Null only when we know none of the three.
+ */
 export function classifySegment(input: {
   employees: number | null;
   annualRevenueUsd: number | null;
   sizeLabel?: string | null;
+  locationCount?: number | null;
 }): Segment | null {
   const employees = input.employees ?? employeesFromLabel(input.sizeLabel ?? null);
   const revenue = input.annualRevenueUsd;
-  if (employees == null && revenue == null) return null;
+  const locations = input.locationCount ?? null;
+  if (employees == null && revenue == null) {
+    if (locations == null) return null;
+    if (locations >= 100) return "enterprise";
+    if (locations >= 10) return "mid_market";
+    return "smb";
+  }
 
   if ((employees ?? 0) >= ENTERPRISE_EMPLOYEES || (revenue ?? 0) >= ENTERPRISE_REVENUE) {
     return "enterprise";
@@ -85,5 +97,8 @@ export function classifySegment(input: {
   if ((employees ?? 0) >= MID_MARKET_EMPLOYEES || (revenue ?? 0) >= MID_MARKET_REVENUE) {
     return "mid_market";
   }
+  // small on the numbers we have — but a 10+ site footprint outranks a
+  // missing or partial headcount figure
+  if (locations != null && locations >= 10) return "mid_market";
   return "smb";
 }

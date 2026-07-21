@@ -45,7 +45,7 @@ actually requested can write, and only into that contact's phone field.
    - **People Search** — `POST /api/v1/mixed_people/search`
    - **People Enrichment** — `POST /api/v1/people/match`
 3. **Set the env var**: Render dashboard → `company-assessment-web` →
-   Environment → add `APOLLO_API_KEY` = the key. (Web service only — the worker
+   Environment → add `APOLLO` = the key (`APOLLO_API_KEY` also accepted). (Web service only — the worker
    never calls Apollo.) Save; Render redeploys.
 4. **Run the migration**: automatic — the deploy's `preDeployCommand` applies
    `0007_apollo.sql` (adds `contacts.apollo_person_id`, `contacts.phone_requested_at`).

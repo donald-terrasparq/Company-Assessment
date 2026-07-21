@@ -11,13 +11,18 @@
 const BASE = "https://api.apollo.io/api/v1";
 const TIMEOUT_MS = 15_000;
 
+/** The Render env var is named APOLLO; APOLLO_API_KEY also works. */
+export function apolloKey(): string | undefined {
+  return process.env.APOLLO ?? process.env.APOLLO_API_KEY;
+}
+
 export function isApolloConfigured(): boolean {
-  return !!process.env.APOLLO_API_KEY;
+  return !!apolloKey();
 }
 
 export async function apolloPost<T>(path: string, body: Record<string, unknown>): Promise<T> {
-  const key = process.env.APOLLO_API_KEY;
-  if (!key) throw new Error("APOLLO_API_KEY is not configured.");
+  const key = apolloKey();
+  if (!key) throw new Error("Apollo key is not configured (env var APOLLO).");
   const res = await fetch(`${BASE}${path}`, {
     method: "POST",
     headers: {

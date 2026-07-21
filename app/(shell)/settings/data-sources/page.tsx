@@ -50,7 +50,7 @@ export default async function DataSourcesSettingsPage() {
     },
   ];
 
-  const apolloConfigured = !!process.env.APOLLO_API_KEY;
+  const apolloConfigured = !!(process.env.APOLLO ?? process.env.APOLLO_API_KEY);
   const apolloEnabled = !!settings?.apolloEnabled;
 
   return (
@@ -117,7 +117,7 @@ export default async function DataSourcesSettingsPage() {
         </button>
         {apolloEnabled && !apolloConfigured && (
           <span className="text-[11.5px] font-medium text-tier2">
-            Enabled, but APOLLO_API_KEY is missing — set it in Render.
+            Enabled, but the APOLLO env key is missing — set it in Render.
           </span>
         )}
       </form>

@@ -24,7 +24,7 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "Apollo is disabled in Settings → Data sources." }, { status: 403 });
   }
   if (!isApolloConfigured()) {
-    return Response.json({ error: "APOLLO_API_KEY is not configured." }, { status: 503 });
+    return Response.json({ error: "Apollo key is not configured — set the APOLLO env var in Render." }, { status: 503 });
   }
 
   const parsed = BodySchema.safeParse(await request.json().catch(() => null));

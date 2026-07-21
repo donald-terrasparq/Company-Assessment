@@ -244,6 +244,7 @@ export function ProspectsView({
                         employees={r.employeeEstimate}
                         annualRevenueUsd={r.annualRevenueUsd}
                         sizeLabel={r.sizeLabel}
+                        locationCount={r.locationCount}
                       />
                       <div className="min-w-0">
                         <div className="truncate font-disp text-[14px] font-semibold text-ink">

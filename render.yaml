@@ -35,9 +35,10 @@ services:
         value: brave
       - key: BRAVE_API_KEY
         sync: false               # optional; free tier
-      - key: APOLLO_API_KEY
+      - key: APOLLO
         sync: false               # optional; Phase 7 contact enrichment — scope the key
                                   # to People Search + People Enrichment only
+                                  # (APOLLO_API_KEY is accepted as an alias)
       - key: SEC_USER_AGENT
         value: "CTS Mobility Company Assessment (ops@ctsmobility.com)"
       - key: SEED_ADMIN_USER

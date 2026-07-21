@@ -1,7 +1,9 @@
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { db } from "../client";
 import { companies, companyResults, contacts, lists, runs, signals } from "../schema";
+import { MANUAL_LIST_NAME } from "./manual";
+import { dedupeBestByCompany } from "@/lib/prospects/dedupe";
 import type { CompanyResultRow, SignalRow } from "./results";
 
 export interface ProspectRow {
@@ -115,56 +117,37 @@ export async function prospectsForManualList(listId: string): Promise<ProspectRo
   return rows;
 }
 
+/** Manual Entry shows every typed-in company; other lists their latest run. */
+async function rowsForListRecord(list: { id: string; name: string }): Promise<ProspectRow[]> {
+  return list.name === MANUAL_LIST_NAME
+    ? prospectsForManualList(list.id)
+    : prospectsForList(list.id);
+}
+
 /**
- * VIEW SELECTED — combine the latest runs of chosen lists, dedupe by domain
- * (best score wins, same rule as VIEW ALL), ranked by score.
+ * VIEW SELECTED — combine the chosen lists, dedupe by domain (best score
+ * wins), dynamically ranked. Composed in code (not the stale all_prospects
+ * DB view, whose column list froze at creation) so Manual Entry contributes
+ * ALL its entries, not just its newest single-company run.
  */
 export async function prospectsForLists(listIds: string[]): Promise<ProspectRow[]> {
   if (listIds.length === 0) return [];
-  const idList = sql.join(
-    listIds.map((id) => sql`${id}`),
-    sql`, `,
-  );
-  const result = await db.execute(sql`
-    WITH latest AS (
-      SELECT DISTINCT ON (list_id) id, list_id FROM runs
-      WHERE list_id IN (${idList}) AND deleted_at IS NULL
-      ORDER BY list_id, created_at DESC
-    )
-    SELECT DISTINCT ON (COALESCE(c.domain, lower(c.name)))
-           cr.id AS result_id, cr.company_id, c.name AS company_name, c.website,
-           c.domain, c.domain_source, l.id AS list_id, l.display_name AS list_name,
-           cr.industry, cr.hq, cr.size_label, cr.employee_estimate,
-           cr.annual_revenue_usd, cr.location_count, cr.fit_score, cr.trigger_score,
-           cr.total_score, cr.tier, cr.fwa_score, cr.starlink_score,
-           cr.mobility_score, cr.byod_score, cr.primary_category, cr.why_now,
-           cr.recency_label, cr.caveats
-    FROM company_results cr
-    JOIN latest ON latest.id = cr.run_id
-    JOIN companies c ON c.id = cr.company_id
-    JOIN lists l ON l.id = c.list_id
-    WHERE l.deleted_at IS NULL
-    ORDER BY COALESCE(c.domain, lower(c.name)), cr.total_score DESC, cr.created_at DESC
-  `);
-  const rows = (result.rows as Record<string, unknown>[]).map(mapRow);
-  rows.sort((a, b) => b.totalScore - a.totalScore); // dynamic combined ranking
-  return rows;
+  const listRows = await db
+    .select({ id: lists.id, name: lists.name })
+    .from(lists)
+    .where(and(inArray(lists.id, listIds), isNull(lists.deletedAt)));
+  const all = (await Promise.all(listRows.map(rowsForListRecord))).flat();
+  return dedupeBestByCompany(all);
 }
 
-/** VIEW ALL — the `all_prospects` view: latest complete run of every list, deduped by domain. */
+/** VIEW ALL — every list's prospects, deduped by domain, best score wins. */
 export async function allProspects(): Promise<ProspectRow[]> {
-  const result = await db.execute(sql`
-    SELECT ap.id AS result_id, ap.company_id, ap.company_name, ap.website, ap.domain,
-           c.domain_source, ap.list_id, ap.list_name, ap.industry, ap.hq,
-           ap.size_label, ap.employee_estimate, ap.annual_revenue_usd,
-           ap.location_count, ap.fit_score, ap.trigger_score, ap.total_score, ap.tier,
-           ap.fwa_score, ap.starlink_score, ap.mobility_score, ap.byod_score,
-           ap.primary_category, ap.why_now, ap.recency_label, ap.caveats
-    FROM all_prospects ap
-    JOIN companies c ON c.id = ap.company_id
-    ORDER BY ap.total_score DESC
-  `);
-  return (result.rows as Record<string, unknown>[]).map(mapRow);
+  const listRows = await db
+    .select({ id: lists.id, name: lists.name })
+    .from(lists)
+    .where(isNull(lists.deletedAt));
+  const all = (await Promise.all(listRows.map(rowsForListRecord))).flat();
+  return dedupeBestByCompany(all);
 }
 
 export interface ResultDetail {

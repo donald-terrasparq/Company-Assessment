@@ -30,6 +30,7 @@ export const WeightProfileSchema = z.object({
     .refine((t) => t.tier_1_min > t.tier_2_min, {
       message: "Tier 1 threshold must be above Tier 2.",
     }),
+  caveat_caps: z.boolean().catch(true),
   signals: z.record(
     z.string(),
     z.object({

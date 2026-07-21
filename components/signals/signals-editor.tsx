@@ -331,7 +331,23 @@ export function SignalsEditor({
                     />
                   </label>
                 ))}
-                <div className="mt-4 flex items-start gap-2 rounded-[10px] border border-line-2 bg-[#FBFCFD] px-3 py-2.5">
+                <label className="mt-4 flex cursor-pointer items-start gap-2 rounded-[10px] border border-line-2 bg-[#FBFCFD] px-3 py-2.5">
+                  <input
+                    type="checkbox"
+                    checked={weights.caveat_caps !== false}
+                    onChange={(e) =>
+                      setWeights((w) => ({ ...w, caveat_caps: e.target.checked }))
+                    }
+                    className="mt-0.5"
+                  />
+                  <span className="text-[11px] leading-[1.4] text-slate">
+                    <b className="text-ink">Caveats cap Tier 1 → Tier 2.</b> When on, trust
+                    caveats (enterprise procurement, holding company, overseas growth,
+                    unconfirmed identity) hold a high scorer at &quot;monitor&quot;. Turn off to
+                    let tiers follow scores alone — the caveat still shows on the row.
+                  </span>
+                </label>
+                <div className="mt-2.5 flex items-start gap-2 rounded-[10px] border border-line-2 bg-[#FBFCFD] px-3 py-2.5">
                   <Lock size={13} className="mt-0.5 flex-shrink-0 text-muted" aria-hidden />
                   <p
                     className="text-[11px] leading-[1.4] text-slate"

@@ -191,7 +191,12 @@ export function scoreCompany(
   } else {
     tier = "tier_3";
   }
-  if (tier === "tier_1" && caveats.some((c) => (TIER_CAPPING_CAVEATS as readonly string[]).includes(c))) {
+  const capsEnabled = weights.caveat_caps !== false;
+  if (
+    capsEnabled &&
+    tier === "tier_1" &&
+    caveats.some((c) => (TIER_CAPPING_CAVEATS as readonly string[]).includes(c))
+  ) {
     tier = "tier_2";
   }
 

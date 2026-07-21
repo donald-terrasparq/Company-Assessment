@@ -94,6 +94,20 @@ export function ContactsCard({
   const [seniorities, setSeniorities] = useState<string[]>(defaults.seniorities);
   const [departments, setDepartments] = useState<string[]>(defaults.departments);
   const [titles, setTitles] = useState(defaults.titles.join(", "));
+  // what the displayed contacts were last searched with — UPDATE lights up
+  // only when the panel differs from this
+  const [applied, setApplied] = useState({
+    seniorities: [...defaults.seniorities],
+    departments: [...defaults.departments],
+    titles: defaults.titles.join(", "),
+  });
+
+  const sameSet = (a: string[], b: string[]) =>
+    a.length === b.length && [...a].sort().join("|") === [...b].sort().join("|");
+  const filtersDirty =
+    !sameSet(seniorities, applied.seniorities) ||
+    !sameSet(departments, applied.departments) ||
+    titles.trim() !== applied.titles.trim();
 
   const toggle = (list: string[], set: (v: string[]) => void, value: string) =>
     set(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
@@ -118,6 +132,9 @@ export function ContactsCard({
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Search failed.");
       setHasMore(json.has_more === true);
+      if (!loadMore) {
+        setApplied({ seniorities: [...seniorities], departments: [...departments], titles });
+      }
       setNotice({
         ok: true,
         text: loadMore
@@ -257,6 +274,29 @@ export function ContactsCard({
                 placeholder="VP, Manager, Senior Manager"
                 className="w-full rounded-[8px] border border-line bg-card px-2.5 py-1.5 text-[12px] text-ink outline-none focus:border-steel"
               />
+              <button
+                type="button"
+                onClick={() => findContacts(false)}
+                disabled={!filtersDirty || busy !== null}
+                title={
+                  filtersDirty
+                    ? "Re-search with the changed filters — replaces the contacts shown"
+                    : "Change a filter above to enable"
+                }
+                className={cn(
+                  "mt-3 flex w-full items-center justify-center gap-2 rounded-[10px] border px-3 py-2 text-[12.5px] font-bold uppercase tracking-[.04em] transition-colors",
+                  filtersDirty
+                    ? "border-spark bg-spark text-white hover:opacity-90"
+                    : "cursor-not-allowed border-line bg-line-2 text-muted",
+                )}
+              >
+                {busy === "find" ? (
+                  <Loader2 size={13} className="animate-spin" aria-hidden />
+                ) : (
+                  <RefreshCw size={13} aria-hidden />
+                )}
+                {busy === "find" ? "Updating…" : "Update"}
+              </button>
               <p className="mt-2 text-[10.5px] leading-[1.4] text-muted">
                 Defaults come from Settings → Contacts. Size guardrail still applies (no CEO
                 at $20M+, no C-level past $500M).

@@ -34,6 +34,7 @@ export async function updateSettings(patch: {
   retentionDays?: number;
   escalationPct?: number;
   apolloEnabled?: boolean;
+  contactDefaults?: unknown;
 }): Promise<void> {
   await db
     .update(settings)

@@ -43,6 +43,21 @@ export async function updateApolloAction(formData: FormData): Promise<void> {
   revalidatePath("/settings/data-sources");
 }
 
+export async function updateContactDefaultsAction(formData: FormData): Promise<void> {
+  if (!(await requireAdmin())) return;
+  const { parseContactPrefs } = await import("@/lib/apollo/prefs");
+  const prefs = parseContactPrefs({
+    seniorities: formData.getAll("seniorities").map(String),
+    departments: formData.getAll("departments").map(String),
+    titles: String(formData.get("titles") ?? "")
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean),
+  });
+  await updateSettings({ contactDefaults: prefs });
+  revalidatePath("/settings/contacts");
+}
+
 export async function updateBudgetAction(formData: FormData): Promise<void> {
   if (!(await requireAdmin())) return;
   // preset chip (if one was clicked) wins over the custom input

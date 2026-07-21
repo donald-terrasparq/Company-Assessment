@@ -10,6 +10,7 @@ import { classifySegment, SEGMENT_META } from "@/lib/scoring/segment";
 import { DraftEmailModal } from "@/components/company/draft-email-modal";
 import { ContactsCard } from "@/components/company/contacts-card";
 import { isApolloConfigured } from "@/lib/apollo/client";
+import { parseContactPrefs } from "@/lib/apollo/prefs";
 import { getSettings } from "@/lib/db/queries/settings";
 import { ScoreAnatomyBar, isFreshLabel } from "@/components/prospects/score-anatomy";
 import { cn } from "@/lib/utils";
@@ -531,6 +532,7 @@ export default async function CompanyDetailPage({
           <ContactsCard
             resultId={result.id}
             apolloReady={apolloReady}
+            defaults={parseContactPrefs(settings?.contactDefaults)}
             contacts={contacts.map((c) => ({
               id: c.id,
               name: c.name,

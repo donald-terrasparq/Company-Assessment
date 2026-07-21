@@ -1,14 +1,20 @@
 "use client";
 
 /**
- * Top contacts card (Phase 7). Selecting a contact exposes the two explicit
- * enrichment options — reveal email, then optionally get a direct phone —
- * so Apollo credits are only spent on people the user actually chose.
+ * Top contacts card (Phase 7). Default view: Name / Title rows with Email and
+ * Phone buttons on every contact — one press pulls from Apollo, no selection
+ * step. Quick filters (Seniority / Department / Title, pre-filled from the
+ * admin defaults in Settings → Contacts) tune the Apollo search per company.
  */
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Copy, Loader2, Mail, Phone, RefreshCw, Search } from "lucide-react";
+import { Check, ChevronDown, Copy, Loader2, Mail, Phone, RefreshCw, Search, SlidersHorizontal } from "lucide-react";
 import { monogramFor } from "@/components/prospects/monogram";
+import {
+  DEPARTMENT_OPTIONS,
+  SENIORITY_OPTIONS,
+  type ContactPrefs,
+} from "@/lib/apollo/prefs";
 import { cn } from "@/lib/utils";
 
 export interface ContactRow {
@@ -33,16 +39,24 @@ export function ContactsCard({
   resultId,
   contacts,
   apolloReady,
+  defaults,
 }: {
   resultId: string;
   contacts: ContactRow[];
   apolloReady: boolean; // apollo_enabled setting + APOLLO env key present
+  defaults: ContactPrefs; // admin defaults from Settings → Contacts
 }) {
   const router = useRouter();
-  const [selected, setSelected] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null); // "find" | `email:${id}` | `phone:${id}`
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [seniorities, setSeniorities] = useState<string[]>(defaults.seniorities);
+  const [departments, setDepartments] = useState<string[]>(defaults.departments);
+  const [titles, setTitles] = useState(defaults.titles.join(", "));
+
+  const toggle = (list: string[], set: (v: string[]) => void, value: string) =>
+    set(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
 
   async function findContacts() {
     setBusy("find");
@@ -51,7 +65,14 @@ export function ContactsCard({
       const res = await fetch("/api/apollo/contacts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ result_id: resultId }),
+        body: JSON.stringify({
+          result_id: resultId,
+          overrides: {
+            seniorities,
+            departments,
+            titles: titles.split(",").map((t) => t.trim()).filter(Boolean),
+          },
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Search failed.");
@@ -109,19 +130,95 @@ export function ContactsCard({
       </p>
 
       {apolloReady && (
-        <button
-          type="button"
-          onClick={findContacts}
-          disabled={busy === "find"}
-          className="mb-3 flex w-full items-center justify-center gap-2 rounded-[10px] border border-line bg-[#FBFCFD] px-3 py-2 text-[12.5px] font-semibold text-ink transition-colors hover:border-[#cdd4de] disabled:opacity-50"
-        >
-          {busy === "find" ? (
-            <Loader2 size={14} className="animate-spin" aria-hidden />
-          ) : (
-            <Search size={14} aria-hidden />
+        <div className="mb-3">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={findContacts}
+              disabled={busy === "find"}
+              className="flex flex-1 items-center justify-center gap-2 rounded-[10px] border border-line bg-[#FBFCFD] px-3 py-2 text-[12.5px] font-semibold text-ink transition-colors hover:border-[#cdd4de] disabled:opacity-50"
+            >
+              {busy === "find" ? (
+                <Loader2 size={14} className="animate-spin" aria-hidden />
+              ) : (
+                <Search size={14} aria-hidden />
+              )}
+              {busy === "find" ? "Searching Apollo…" : "Find contacts — Apollo"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setFiltersOpen(!filtersOpen)}
+              title="Title / Seniority / Department filters"
+              className={cn(
+                "flex items-center gap-1.5 rounded-[10px] border px-3 py-2 text-[12px] font-semibold transition-colors",
+                filtersOpen
+                  ? "border-ink bg-ink text-white"
+                  : "border-line bg-card text-slate hover:border-[#cdd4de]",
+              )}
+            >
+              <SlidersHorizontal size={13} aria-hidden />
+              <ChevronDown size={12} className={cn("transition-transform", filtersOpen && "rotate-180")} aria-hidden />
+            </button>
+          </div>
+
+          {filtersOpen && (
+            <div className="mt-2.5 rounded-[10px] border border-line-2 bg-[#FBFCFD] p-3">
+              <p className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[.08em] text-muted">
+                Seniority
+              </p>
+              <div className="mb-3 flex flex-wrap gap-1.5">
+                {SENIORITY_OPTIONS.map((o) => (
+                  <button
+                    key={o.value}
+                    type="button"
+                    onClick={() => toggle(seniorities, setSeniorities, o.value)}
+                    className={cn(
+                      "rounded-[16px] border px-2.5 py-1 text-[11px] font-medium transition-colors",
+                      seniorities.includes(o.value)
+                        ? "border-ink bg-ink text-white"
+                        : "border-line bg-card text-slate hover:border-[#cdd4de]",
+                    )}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+              <p className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[.08em] text-muted">
+                Department
+              </p>
+              <div className="mb-3 flex flex-wrap gap-1.5">
+                {DEPARTMENT_OPTIONS.map((o) => (
+                  <button
+                    key={o.value}
+                    type="button"
+                    onClick={() => toggle(departments, setDepartments, o.value)}
+                    className={cn(
+                      "rounded-[16px] border px-2.5 py-1 text-[11px] font-medium transition-colors",
+                      departments.includes(o.value)
+                        ? "border-ink bg-ink text-white"
+                        : "border-line bg-card text-slate hover:border-[#cdd4de]",
+                    )}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+              <p className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[.08em] text-muted">
+                Title keywords
+              </p>
+              <input
+                value={titles}
+                onChange={(e) => setTitles(e.target.value)}
+                placeholder="VP, Manager, Senior Manager"
+                className="w-full rounded-[8px] border border-line bg-card px-2.5 py-1.5 text-[12px] text-ink outline-none focus:border-steel"
+              />
+              <p className="mt-2 text-[10.5px] leading-[1.4] text-muted">
+                Defaults come from Settings → Contacts. Size guardrail still applies (no CEO
+                at $20M+, no C-level past $500M).
+              </p>
+            </div>
           )}
-          {busy === "find" ? "Searching Apollo…" : "Find best contacts — Apollo"}
-        </button>
+        </div>
       )}
 
       {notice && (
@@ -137,35 +234,28 @@ export function ContactsCard({
 
       {contacts.length === 0 ? (
         <p className="text-[13px] text-muted">
-          No contacts surfaced from public sources for this company.
-          {apolloReady ? " Try the Apollo search above." : ""}
+          No contacts yet for this company.
+          {apolloReady
+            ? " New runs pull them automatically — or press Find contacts above."
+            : ""}
         </p>
       ) : (
         contacts.map((c) => {
           const avatar = monogramFor(c.name);
-          const isSelected = selected === c.id;
           return (
             <div
               key={c.id}
-              className={cn(
-                "border-b border-line-2 py-3 first:pt-0 last:border-none last:pb-0",
-                isSelected && "-mx-2 rounded-[10px] border border-line bg-[#FBFCFD] px-2",
-              )}
+              className="border-b border-line-2 py-3 first:pt-0 last:border-none last:pb-0"
             >
-              <button
-                type="button"
-                onClick={() => setSelected(isSelected ? null : c.id)}
-                className="flex w-full gap-3 text-left"
-                title={isSelected ? "Deselect" : "Select to reveal email / phone"}
-              >
+              <div className="flex gap-3">
                 <span
                   className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-full font-disp text-[14px] font-semibold text-white"
                   style={{ background: avatar.gradient }}
                 >
                   {initials(c.name)}
                 </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-2 font-disp text-[13.5px] font-semibold text-ink">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 font-disp text-[13.5px] font-semibold text-ink">
                     {c.name}
                     {c.source === "apollo" && (
                       <span className="rounded-md bg-[#EAF1FB] px-1.5 py-0.5 text-[10px] font-semibold text-fwa">
@@ -177,102 +267,94 @@ export function ContactsCard({
                         unverified
                       </span>
                     )}
-                  </span>
-                  {c.title && <span className="mt-0.5 block text-[12px] text-slate">{c.title}</span>}
+                  </div>
+                  {c.title && <div className="mt-0.5 text-[12px] text-slate">{c.title}</div>}
                   {c.roleRationale && (
-                    <span className="mt-1 block text-[11.5px] leading-[1.4] text-muted">
+                    <div className="mt-1 text-[11.5px] leading-[1.4] text-muted">
                       {c.roleRationale}
-                    </span>
+                    </div>
                   )}
-                </span>
-                {c.linkedinUrl && (
-                  <a
-                    href={c.linkedinUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="grid h-[26px] w-[26px] flex-shrink-0 place-items-center rounded-[7px] bg-[#EAF1FB] font-disp text-[12px] font-bold text-fwa"
-                  >
-                    in
-                  </a>
-                )}
-              </button>
 
-              {/* revealed details */}
-              {(c.email || c.phone) && (
-                <div className="mt-2 flex flex-col gap-1 pl-[52px]">
+                  {/* revealed values */}
                   {c.email && (
-                    <span className="flex items-center gap-2 text-[12px] text-ink">
+                    <div className="mt-1.5 flex items-center gap-2 text-[12px] text-ink">
                       <Mail size={12} className="text-muted" aria-hidden />
                       <a href={`mailto:${c.email}`} className="mono hover:underline">{c.email}</a>
                       <button type="button" onClick={() => copy(`e${c.id}`, c.email!)} className="text-muted hover:text-ink" title="Copy email">
                         {copied === `e${c.id}` ? <Check size={12} aria-hidden /> : <Copy size={12} aria-hidden />}
                       </button>
-                    </span>
+                    </div>
                   )}
                   {c.phone && (
-                    <span className="flex items-center gap-2 text-[12px] text-ink">
+                    <div className="mt-1 flex items-center gap-2 text-[12px] text-ink">
                       <Phone size={12} className="text-muted" aria-hidden />
                       <span className="mono">{c.phone}</span>
                       <button type="button" onClick={() => copy(`p${c.id}`, c.phone!)} className="text-muted hover:text-ink" title="Copy phone">
                         {copied === `p${c.id}` ? <Check size={12} aria-hidden /> : <Copy size={12} aria-hidden />}
                       </button>
-                    </span>
+                    </div>
                   )}
-                </div>
-              )}
 
-              {/* enrichment options — only for the SELECTED contact */}
-              {isSelected && apolloReady && (
-                <div className="mt-2.5 flex flex-wrap items-center gap-2 pl-[52px]">
-                  {!c.email && (
-                    <button
-                      type="button"
-                      onClick={() => enrich(c.id, "email")}
-                      disabled={busy !== null}
-                      className="flex items-center gap-1.5 rounded-lg border border-ink bg-ink px-2.5 py-1.5 text-[11.5px] font-semibold text-white hover:bg-[#1b2d43] disabled:opacity-50"
-                    >
-                      {busy === `email:${c.id}` ? (
-                        <Loader2 size={12} className="animate-spin" aria-hidden />
-                      ) : (
-                        <Mail size={12} aria-hidden />
+                  {/* one-press Apollo pulls — always visible per contact */}
+                  {apolloReady && (!c.email || (!c.phone && !c.phoneRequested) || (c.phoneRequested && !c.phone)) && (
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      {!c.email && (
+                        <button
+                          type="button"
+                          onClick={() => enrich(c.id, "email")}
+                          disabled={busy !== null}
+                          className="flex items-center gap-1.5 rounded-lg border border-line bg-card px-2 py-1 text-[11px] font-semibold text-ink hover:border-[#cdd4de] disabled:opacity-50"
+                          title="Pull work email from Apollo (1 credit)"
+                        >
+                          {busy === `email:${c.id}` ? (
+                            <Loader2 size={11} className="animate-spin" aria-hidden />
+                          ) : (
+                            <Mail size={11} aria-hidden />
+                          )}
+                          Email
+                        </button>
                       )}
-                      Reveal email
-                    </button>
-                  )}
-                  {!c.phone && !c.phoneRequested && (
-                    <button
-                      type="button"
-                      onClick={() => enrich(c.id, "phone")}
-                      disabled={busy !== null}
-                      className="flex items-center gap-1.5 rounded-lg border border-line bg-card px-2.5 py-1.5 text-[11.5px] font-semibold text-ink hover:border-[#cdd4de] disabled:opacity-50"
-                    >
-                      {busy === `phone:${c.id}` ? (
-                        <Loader2 size={12} className="animate-spin" aria-hidden />
-                      ) : (
-                        <Phone size={12} aria-hidden />
+                      {!c.phone && !c.phoneRequested && (
+                        <button
+                          type="button"
+                          onClick={() => enrich(c.id, "phone")}
+                          disabled={busy !== null}
+                          className="flex items-center gap-1.5 rounded-lg border border-line bg-card px-2 py-1 text-[11px] font-semibold text-ink hover:border-[#cdd4de] disabled:opacity-50"
+                          title="Pull direct phone from Apollo (mobile credit, arrives ~1 min)"
+                        >
+                          {busy === `phone:${c.id}` ? (
+                            <Loader2 size={11} className="animate-spin" aria-hidden />
+                          ) : (
+                            <Phone size={11} aria-hidden />
+                          )}
+                          Phone
+                        </button>
                       )}
-                      Get phone #
-                    </button>
+                      {!c.phone && c.phoneRequested && (
+                        <button
+                          type="button"
+                          onClick={() => router.refresh()}
+                          className="flex items-center gap-1.5 rounded-lg border border-line bg-line-2 px-2 py-1 text-[11px] font-medium text-slate"
+                          title="Apollo delivers the number asynchronously — refresh to check"
+                        >
+                          <RefreshCw size={11} aria-hidden />
+                          Phone requested
+                        </button>
+                      )}
+                    </div>
                   )}
-                  {!c.phone && c.phoneRequested && (
-                    <button
-                      type="button"
-                      onClick={() => router.refresh()}
-                      className="flex items-center gap-1.5 rounded-lg border border-line bg-line-2 px-2.5 py-1.5 text-[11.5px] font-medium text-slate"
-                      title="Apollo delivers the number asynchronously — refresh to check"
-                    >
-                      <RefreshCw size={12} aria-hidden />
-                      Phone requested — refresh
-                    </button>
-                  )}
-                  <span className="text-[10.5px] text-muted">
-                    {!c.email ? "email: 1 credit" : ""}
-                    {!c.email && !c.phone && !c.phoneRequested ? " · " : ""}
-                    {!c.phone && !c.phoneRequested ? "phone: mobile credit" : ""}
-                  </span>
                 </div>
-              )}
+                {c.linkedinUrl && (
+                  <a
+                    href={c.linkedinUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="grid h-[26px] w-[26px] flex-shrink-0 place-items-center rounded-[7px] bg-[#EAF1FB] font-disp text-[12px] font-bold text-fwa"
+                  >
+                    in
+                  </a>
+                )}
+              </div>
             </div>
           );
         })
@@ -280,7 +362,7 @@ export function ContactsCard({
 
       <p className="mt-3 text-[10.5px] leading-[1.4] text-muted">
         {apolloReady
-          ? "Search finds people only — email and phone are pulled per contact you select, so credits are never spent in bulk."
+          ? "Contacts are pulled automatically on every run. Email and phone are fetched per contact you press — credits are never spent in bulk."
           : "Contacts found via public search — verify names and roles before outreach. Enable Apollo in Settings → Data sources to reveal emails and phone numbers."}
       </p>
     </section>

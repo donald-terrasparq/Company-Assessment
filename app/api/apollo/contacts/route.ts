@@ -2,12 +2,25 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { apolloErrorMessage, isApolloConfigured } from "@/lib/apollo/client";
 import { searchBestContacts } from "@/lib/apollo/contacts";
+import { parseContactPrefs } from "@/lib/apollo/prefs";
 import { addApolloContacts } from "@/lib/db/queries/contacts";
 import { getResultDetail } from "@/lib/db/queries/prospects";
 import { getSettings } from "@/lib/db/queries/settings";
 import { logUsage } from "@/lib/db/queries/usage";
 
-const BodySchema = z.object({ result_id: z.string().uuid() });
+const BodySchema = z.object({
+  result_id: z.string().uuid(),
+  // quick-filter overrides from the Top Contacts card; defaults come from
+  // Settings → Contacts. Unknown values are dropped by parseContactPrefs.
+  overrides: z
+    .object({
+      seniorities: z.array(z.string()).max(10).optional(),
+      departments: z.array(z.string()).max(10).optional(),
+      titles: z.array(z.string().max(60)).max(12).optional(),
+    })
+    .nullable()
+    .optional(),
+});
 
 /**
  * POST /api/apollo/contacts — find target best contacts for one company.
@@ -36,11 +49,17 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "No domain on file — Apollo needs one to search." }, { status: 422 });
   }
 
+  const defaults = parseContactPrefs(settings.contactDefaults);
+  const prefs = parsed.data.overrides
+    ? parseContactPrefs({ ...defaults, ...parsed.data.overrides })
+    : defaults;
+
   try {
     const candidates = await searchBestContacts({
       domain: detail.company.domain,
       revenueUsd: detail.result.annualRevenueUsd,
       employees: detail.result.employeeEstimate,
+      prefs,
     });
     const added = await addApolloContacts(detail.result.id, candidates);
     await logUsage({

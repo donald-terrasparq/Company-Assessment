@@ -9,13 +9,8 @@
  * number when it arrives.
  */
 import { apolloPost } from "./client";
-import {
-  companyBand,
-  isAllowedContact,
-  rankContacts,
-  searchSeniorities,
-  TARGET_TITLES,
-} from "./targeting";
+import { buildSearchFilters, DEFAULT_CONTACT_PREFS, type ContactPrefs } from "./prefs";
+import { companyBand, isAllowedContact, rankContacts } from "./targeting";
 
 export interface ApolloCandidate {
   apolloPersonId: string;
@@ -41,23 +36,33 @@ interface SearchResponse {
 
 export const MAX_APOLLO_CONTACTS = 5;
 
-/** Find best contacts for a company — filtered by the seniority rules. */
+/**
+ * Find best contacts for a company. Filters come from the admin defaults
+ * (Settings → Contacts) or a per-search override; the revenue-band gate is
+ * applied both to the search and again to whatever comes back.
+ */
 export async function searchBestContacts(input: {
   domain: string;
   revenueUsd: number | null;
   employees: number | null;
+  prefs?: ContactPrefs;
 }): Promise<ApolloCandidate[]> {
   const band = companyBand(input.revenueUsd, input.employees);
-  const data = await apolloPost<SearchResponse>("/mixed_people/api_search", {
+  const filters = buildSearchFilters(input.prefs ?? DEFAULT_CONTACT_PREFS, band);
+  const body: Record<string, unknown> = {
     // both spellings — Apollo renamed this param across API versions and
     // silently ignores the one it doesn't know
     q_organization_domains_list: [input.domain],
     q_organization_domains: input.domain,
-    person_seniorities: searchSeniorities(band),
-    person_titles: TARGET_TITLES,
+    person_seniorities: filters.seniorities,
+    person_titles: filters.titles,
     page: 1,
     per_page: 25,
-  });
+  };
+  if (filters.apolloDepartments.length > 0) {
+    body.person_department_or_subdepartments = filters.apolloDepartments;
+  }
+  const data = await apolloPost<SearchResponse>("/mixed_people/api_search", body);
 
   const candidates: ApolloCandidate[] = [...(data.people ?? []), ...(data.contacts ?? [])]
     .map((p) => ({

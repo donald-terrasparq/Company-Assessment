@@ -34,7 +34,12 @@ interface SearchResponse {
   contacts?: SearchPerson[]; // records already saved in the Apollo workspace
 }
 
-export const MAX_APOLLO_CONTACTS = 5;
+export const MAX_APOLLO_CONTACTS = 5; // page size shown per fetch
+
+export interface ContactSearchResult {
+  candidates: ApolloCandidate[];
+  totalMatching: number; // after the seniority gate — drives "load more"
+}
 
 /**
  * Find best contacts for a company. Filters come from the admin defaults
@@ -46,7 +51,10 @@ export async function searchBestContacts(input: {
   revenueUsd: number | null;
   employees: number | null;
   prefs?: ContactPrefs;
-}): Promise<ApolloCandidate[]> {
+  /** paging window over the ranked matches — "load more" advances this */
+  offset?: number;
+  limit?: number;
+}): Promise<ContactSearchResult> {
   const band = companyBand(input.revenueUsd, input.employees);
   const filters = buildSearchFilters(input.prefs ?? DEFAULT_CONTACT_PREFS, band);
   const body: Record<string, unknown> = {
@@ -56,7 +64,7 @@ export async function searchBestContacts(input: {
     person_seniorities: filters.seniorities,
     person_titles: filters.titles,
     page: 1,
-    per_page: 25,
+    per_page: 100, // one big page; we rank and window locally
   };
   if (filters.apolloDepartments.length > 0) {
     body.person_department_or_subdepartments = filters.apolloDepartments;
@@ -81,7 +89,13 @@ export async function searchBestContacts(input: {
     // the hard gate: no CEO ≥ $20M, no C-level > $500M — whatever search returned
     .filter((p) => isAllowedContact(p.title, input.revenueUsd, input.employees));
 
-  return rankContacts(candidates).slice(0, MAX_APOLLO_CONTACTS);
+  const ranked = rankContacts(candidates);
+  const offset = Math.max(0, input.offset ?? 0);
+  const limit = input.limit ?? MAX_APOLLO_CONTACTS;
+  return {
+    candidates: ranked.slice(offset, offset + limit),
+    totalMatching: ranked.length,
+  };
 }
 
 interface MatchResponse {

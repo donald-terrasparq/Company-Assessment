@@ -294,7 +294,7 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
     // failure-tolerant — a dead Apollo costs the auto-contacts, not the run
     if (settings?.apolloEnabled && isApolloConfigured() && domain) {
       try {
-        const candidates = await searchBestContacts({
+        const { candidates } = await searchBestContacts({
           domain,
           revenueUsd: extraction.annual_revenue_usd ?? apolloOrg?.revenueUsd ?? null,
           employees: extraction.employee_estimate ?? apolloOrg?.employees ?? null,

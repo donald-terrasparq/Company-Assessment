@@ -501,6 +501,7 @@ export default async function CompanyDetailPage({
               name: c.name,
               title: c.title,
               verified: c.verified,
+              hasEmail: c.email != null,
             }))}
           />
 

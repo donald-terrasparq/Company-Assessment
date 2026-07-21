@@ -17,6 +17,7 @@ export interface EmailContactOption {
   name: string;
   title: string | null;
   verified: boolean;
+  hasEmail: boolean; // enriched with a revealed email address
 }
 
 const NO_CONTACT = "__none__";
@@ -199,18 +200,24 @@ export function DraftEmailModal({
 
               {/* 2 · contact */}
               {fieldLabel("2 · Contact")}
+              {contacts.some((c) => c.hasEmail) && (
+                <p className="-mt-1 mb-1.5 text-[10.5px] text-muted">✉ = email on file</p>
+              )}
               <select
                 value={contactId}
                 onChange={(e) => setContactId(e.target.value)}
                 className="mb-5 w-full rounded-[10px] border border-line bg-card px-3 py-2.5 text-[13.5px] text-ink outline-none focus:border-steel"
               >
-                {contacts.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                    {c.title ? ` — ${c.title}` : ""}
-                    {c.verified ? "" : " (unverified)"}
-                  </option>
-                ))}
+                {[...contacts]
+                  .sort((a, b) => Number(b.hasEmail) - Number(a.hasEmail))
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.hasEmail ? "✉ " : ""}
+                      {c.name}
+                      {c.title ? ` — ${c.title}` : ""}
+                      {c.verified ? "" : " (unverified)"}
+                    </option>
+                  ))}
                 <option value={NO_CONTACT}>No named contact — write for IT leadership</option>
               </select>
 

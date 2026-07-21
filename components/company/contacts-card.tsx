@@ -112,6 +112,11 @@ export function ContactsCard({
   const toggle = (list: string[], set: (v: string[]) => void, value: string) =>
     set(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
 
+  // enriched contacts (revealed email/phone) float to the TOP; stable within groups
+  const enrichRank = (c: ContactRow) =>
+    (c.email ? 2 : 0) + (c.phone ? 2 : 0) + (c.phoneRequested && !c.phone ? 1 : 0);
+  const sortedContacts = [...contacts].sort((a, b) => enrichRank(b) - enrichRank(a));
+
   async function findContacts(loadMore = false) {
     setBusy(loadMore ? "more" : "find");
     setNotice(null);
@@ -326,7 +331,7 @@ export function ContactsCard({
         </p>
       ) : (
         <div className="max-h-[440px] overflow-y-auto pr-1">
-        {contacts.map((c) => {
+        {sortedContacts.map((c) => {
           return (
             <div
               key={c.id}

@@ -2,7 +2,7 @@
  * Apollo.io REST client (Phase 7). Server-side only — the key never reaches
  * the browser. Exactly four endpoints are used (scope the API key to these):
  *
- *   POST /api/v1/mixed_people/search     People Search — find best contacts
+ *   POST /api/v1/mixed_people/api_search     People Search — find best contacts
  *   POST /api/v1/people/match            People Enrichment — reveal email/phone
  *   GET  /api/v1/organizations/enrich    Organization Enrichment — firmographics
  *   POST /api/v1/news_articles/search    News — per-company event articles

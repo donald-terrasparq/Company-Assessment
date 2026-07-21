@@ -16,7 +16,9 @@ import { signalProfiles } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { enrichCompany } from "@/lib/research/enrich";
 import { isApolloConfigured } from "@/lib/apollo/client";
+import { searchBestContacts } from "@/lib/apollo/contacts";
 import { enrichOrganization, newsForOrganization, type ApolloOrgData } from "@/lib/apollo/organization";
+import { addApolloContacts } from "@/lib/db/queries/contacts";
 import { gather } from "@/lib/research/gather";
 import { resolveDomain } from "@/lib/research/identify";
 import { shouldCorrectDomain } from "@/lib/normalize/domain";
@@ -256,7 +258,7 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
     );
 
     // ---- stage 5: idempotent persistence ----
-    await upsertCompanyResult({
+    const resultId = await upsertCompanyResult({
       runId: run.id,
       companyId: company.id,
       scores,
@@ -282,6 +284,34 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
         linkedinUrl: c.linkedin_url,
       })),
     });
+
+    // ---- stage 5b: Apollo best contacts, automatic (IT-first, seniority-gated) ----
+    // contacts land on the card without anyone pressing "Find best contacts";
+    // failure-tolerant — a dead Apollo costs the auto-contacts, not the run
+    if (settings?.apolloEnabled && isApolloConfigured() && domain) {
+      try {
+        const candidates = await searchBestContacts({
+          domain,
+          revenueUsd: extraction.annual_revenue_usd ?? apolloOrg?.revenueUsd ?? null,
+          employees: extraction.employee_estimate ?? apolloOrg?.employees ?? null,
+        });
+        const added = await addApolloContacts(resultId, candidates);
+        if (candidates.length > 0) {
+          await logUsage({
+            runId: run.id,
+            companyId: company.id,
+            provider: "apollo",
+            searches: 1,
+            costUsd: 0,
+          });
+        }
+        if (added > 0) console.log(`worker: ${company.name} — ${added} Apollo contact(s) added`);
+      } catch (err) {
+        console.log(
+          `worker: ${company.name} — apollo contact search skipped: ${err instanceof Error ? err.message : err}`,
+        );
+      }
+    }
 
     await markJobDone(job.id);
     console.log(

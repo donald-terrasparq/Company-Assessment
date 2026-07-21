@@ -21,7 +21,7 @@ rules (no CEO), the safe default.
 
 | Endpoint | When | Cost |
 |---|---|---|
-| `POST /api/v1/mixed_people/search` (**People Search**) | "Find best contacts" button | No export credits — returns names/titles/LinkedIn only, never emails |
+| `POST /api/v1/mixed_people/api_search` (**People Search**) | "Find best contacts" button | No export credits — returns names/titles/LinkedIn only, never emails |
 | `POST /api/v1/people/match` (**People Enrichment**) | "Reveal email" / "Get phone #" on ONE selected contact | 1 export credit per email; 1 mobile credit per phone |
 | `GET /api/v1/organizations/enrich` (**Organization Enrichment**) | Every analysis run (worker), per company with a domain | No export credits |
 | `POST /api/v1/news_articles/search` (**News Search**) | Every analysis run, when org enrichment returned an id | No export credits |
@@ -49,7 +49,7 @@ actually requested can write, and only into that contact's phone field.
    export credits are included per seat, mobile credits vary by plan).
 2. **Create the key**: Apollo → Settings → **Integrations → API** → *Create new key*.
    Name it e.g. `company-assessment`. Under *API endpoint access*, enable:
-   - **People Search** — `POST /api/v1/mixed_people/search`
+   - **People Search** — `POST /api/v1/mixed_people/api_search`
    - **People Enrichment** — `POST /api/v1/people/match`
    - **Organization Enrichment** — `GET /api/v1/organizations/enrich`
    - **News Search** — `POST /api/v1/news_articles/search`

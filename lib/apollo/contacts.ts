@@ -48,7 +48,7 @@ export async function searchBestContacts(input: {
   employees: number | null;
 }): Promise<ApolloCandidate[]> {
   const band = companyBand(input.revenueUsd, input.employees);
-  const data = await apolloPost<SearchResponse>("/mixed_people/search", {
+  const data = await apolloPost<SearchResponse>("/mixed_people/api_search", {
     // both spellings — Apollo renamed this param across API versions and
     // silently ignores the one it doesn't know
     q_organization_domains_list: [input.domain],

@@ -12,6 +12,9 @@ const BodySchema = z.object({
   play_index: z.number().int().min(0),
   contact_id: z.string().uuid().nullable(),
   style_key: z.string(),
+  // outreach sequence: which email this is (1-based) out of how many (1-4)
+  sequence_position: z.number().int().min(1).max(4).default(1),
+  sequence_length: z.number().int().min(1).max(4).default(1),
 });
 
 /**
@@ -31,7 +34,11 @@ export async function POST(request: Request): Promise<Response> {
   if (!parsed.success) {
     return Response.json({ error: "Invalid request body." }, { status: 400 });
   }
-  const { result_id, play_index, contact_id, style_key } = parsed.data;
+  const { result_id, play_index, contact_id, style_key, sequence_position, sequence_length } =
+    parsed.data;
+  if (sequence_position > sequence_length) {
+    return Response.json({ error: "sequence_position exceeds sequence_length." }, { status: 422 });
+  }
 
   if (!EMAIL_STYLES.some((s) => s.key === style_key)) {
     return Response.json({ error: "Unknown style." }, { status: 422 });
@@ -82,6 +89,8 @@ export async function POST(request: Request): Promise<Response> {
       contact,
       styleKey: style_key,
       signals: topSignals,
+      sequencePosition: sequence_position,
+      sequenceLength: sequence_length,
     });
 
     await logUsage({

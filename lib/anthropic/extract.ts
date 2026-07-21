@@ -266,7 +266,10 @@ export async function extractSignals(input: {
   for (let attempt = 0; attempt < 2; attempt++) {
     const response = await client.messages.create({
       model: input.model,
-      max_tokens: 4096,
+      // Granular signals + contacts + coverage + plays can exceed 4k output
+      // tokens on content-rich companies; a truncated response fails Zod and
+      // burned all 3 job attempts — the "same companies always fail" bug.
+      max_tokens: 8192,
       system: SYSTEM_PROMPT,
       ...(input.useWebSearchTool
         ? {
@@ -296,6 +299,12 @@ export async function extractSignals(input: {
       response.usage as { server_tool_use?: { web_search_requests?: number } }
     ).server_tool_use;
     usage.webSearches += serverToolUse?.web_search_requests ?? 0;
+
+    if (response.stop_reason === "max_tokens") {
+      // truncated JSON can never parse — name the real problem for the retry/log
+      lastError = "response truncated at max_tokens — extraction output too long";
+      continue;
+    }
 
     try {
       const json = JSON.parse(extractJsonText(response.content));

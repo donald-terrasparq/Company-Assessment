@@ -17,6 +17,7 @@ function row(over: Partial<ProspectRow>): ProspectRow {
     sizeLabel: "500–2k",
     employeeEstimate: null,
     annualRevenueUsd: null,
+    locationCount: null,
     fitScore: 20,
     triggerScore: 40,
     totalScore: 60,

@@ -98,6 +98,7 @@ export default async function CompanyDetailPage({
     employees: result.employeeEstimate,
     annualRevenueUsd: result.annualRevenueUsd,
     sizeLabel: result.sizeLabel,
+    locationCount: result.locationCount,
   });
   const segmentMeta = segment ? SEGMENT_META[segment] : null;
   const fresh = isFreshLabel(result.recencyLabel);
@@ -146,6 +147,7 @@ export default async function CompanyDetailPage({
           employees={result.employeeEstimate}
           annualRevenueUsd={result.annualRevenueUsd}
           sizeLabel={result.sizeLabel}
+          locationCount={result.locationCount}
           size="lg"
         />
         <div className="min-w-0 flex-1">

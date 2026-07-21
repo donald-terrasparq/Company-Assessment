@@ -36,7 +36,7 @@ export function ContactsCard({
 }: {
   resultId: string;
   contacts: ContactRow[];
-  apolloReady: boolean; // apollo_enabled setting + APOLLO_API_KEY present
+  apolloReady: boolean; // apollo_enabled setting + APOLLO env key present
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<string | null>(null);

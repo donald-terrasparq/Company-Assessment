@@ -5,6 +5,7 @@ import { getResultDetail } from "@/lib/db/queries/prospects";
 import { normalizePlaySteps } from "@/lib/anthropic/extract";
 import { CAVEAT_COPY } from "@/lib/scoring/caveats";
 import { monogramFor } from "@/components/prospects/monogram";
+import { DraftEmailModal } from "@/components/company/draft-email-modal";
 import { ScoreAnatomyBar, isFreshLabel } from "@/components/prospects/score-anatomy";
 import { cn } from "@/lib/utils";
 
@@ -465,6 +466,18 @@ export default async function CompanyDetailPage({
 
         {/* RIGHT */}
         <div className="flex flex-col gap-5">
+          {/* draft email — opens the play/contact/style modal */}
+          <DraftEmailModal
+            resultId={result.id}
+            playSteps={playSteps}
+            contacts={contacts.map((c) => ({
+              id: c.id,
+              name: c.name,
+              title: c.title,
+              verified: c.verified,
+            }))}
+          />
+
           {/* recommended play — concise numbered steps with bold lead-ins */}
           <section className="rounded-card border border-line bg-card p-5 shadow-card">
             <Eyebrow>Recommended play</Eyebrow>

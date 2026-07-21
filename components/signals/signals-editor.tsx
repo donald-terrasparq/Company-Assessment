@@ -1,28 +1,23 @@
 "use client";
 
 /**
- * Signals tab (Phase 5): the signal library with strength sliders, global
- * weight controls, and the LIVE impact preview — scoring is a pure function,
- * so the browser recomputes every company's tier instantly as weights change.
+ * Signals tab (Phase 5): the signal library with strength sliders and the
+ * LIVE impact preview — scoring is a pure function, so the browser recomputes
+ * every company's tier instantly as weights change. Global weight controls
+ * (fit, recency, confidence, thresholds, boosts) live in Settings → Scoring.
  * Saving/applying is admin-only (server re-checks).
  */
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { scoreCompany, type ScorableSignal, type Tier } from "@/lib/scoring/score";
+import { scoreCompany, type Tier } from "@/lib/scoring/score";
 import type { Category, WeightProfile } from "@/lib/scoring/default-weights";
 import { SIGNAL_COPY, SIGNAL_GROUPS } from "@/lib/scoring/signal-copy";
 import { strengthLabel } from "@/lib/scoring/weights-schema";
+import type { PreviewCompany } from "@/lib/db/queries/preview";
 
-export interface PreviewCompany {
-  resultId: string;
-  tier: string;
-  totalScore: number;
-  fit: { industry: number; size: number; multi_location: number; geography: number };
-  caveats: string[];
-  signals: ScorableSignal[];
-}
+export type { PreviewCompany };
 
 const CAT_CHIP: Record<Category, string> = {
   FWA: "bg-fwa-soft text-fwa",
@@ -31,9 +26,6 @@ const CAT_CHIP: Record<Category, string> = {
   BYOD: "bg-byod-soft text-byod",
 };
 const TIER_ORDER: Record<string, number> = { defunct: 0, tier_3: 1, tier_2: 2, tier_1: 3 };
-
-const inputCls =
-  "w-[64px] rounded-[8px] border border-line bg-card px-2 py-1 text-right text-[12.5px] mono text-ink outline-none focus:border-steel";
 
 function Eyebrow({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {
   return (
@@ -220,146 +212,6 @@ export function SignalsEditor({
             </section>
           ))}
 
-          {/* global controls */}
-          <section className="rounded-card border border-line bg-card p-5 shadow-card">
-            <Eyebrow>Global controls</Eyebrow>
-            <div className="grid gap-5 sm:grid-cols-2">
-              <div>
-                <p className="mb-2 text-[12px] font-semibold text-ink">
-                  Fit weights{" "}
-                  <span className={cn("mono", fitSum === 30 ? "text-muted" : "font-bold text-spark")}>
-                    (total {fitSum}/30{fitSum !== 30 ? " — must equal 30 to save" : ""})
-                  </span>
-                </p>
-                {(["industry", "size", "multi_location", "geography"] as const).map((k) => (
-                  <label key={k} className="mb-1.5 flex items-center gap-2 text-[12px] text-slate">
-                    <span className="w-[110px] capitalize">{k.replaceAll("_", " ")}</span>
-                    <input
-                      type="number"
-                      value={weights.fit[k]}
-                      min={0}
-                      max={30}
-                      onChange={(e) =>
-                        setWeights((w) => ({ ...w, fit: { ...w.fit, [k]: Number(e.target.value) } }))
-                      }
-                      className={inputCls}
-                    />
-                  </label>
-                ))}
-              </div>
-              <div>
-                <p className="mb-2 text-[12px] font-semibold text-ink">Recency curve</p>
-                {(Object.keys(weights.recency) as Array<keyof WeightProfile["recency"]>).map((k) => (
-                  <label key={k} className="mb-1.5 flex items-center gap-2 text-[12px] text-slate">
-                    <span className="mono w-[110px]">{k}</span>
-                    <input
-                      type="number"
-                      step={0.05}
-                      min={0}
-                      max={1}
-                      value={weights.recency[k]}
-                      onChange={(e) =>
-                        setWeights((w) => ({
-                          ...w,
-                          recency: { ...w.recency, [k]: Number(e.target.value) },
-                        }))
-                      }
-                      className={inputCls}
-                    />
-                  </label>
-                ))}
-              </div>
-              <div>
-                <p className="mb-2 text-[12px] font-semibold text-ink">Source confidence</p>
-                {(["primary", "secondary", "weak"] as const).map((k) => (
-                  <label key={k} className="mb-1.5 flex items-center gap-2 text-[12px] text-slate">
-                    <span className="w-[110px] capitalize">{k}</span>
-                    <input
-                      type="number"
-                      step={0.05}
-                      min={0}
-                      max={1}
-                      value={weights.confidence[k]}
-                      onChange={(e) =>
-                        setWeights((w) => ({
-                          ...w,
-                          confidence: { ...w.confidence, [k]: Number(e.target.value) },
-                        }))
-                      }
-                      className={inputCls}
-                    />
-                  </label>
-                ))}
-                <p className="mb-2 mt-4 text-[12px] font-semibold text-ink">Tier thresholds</p>
-                {(["tier_1_min", "tier_2_min"] as const).map((k) => (
-                  <label key={k} className="mb-1.5 flex items-center gap-2 text-[12px] text-slate">
-                    <span className="mono w-[110px]">{k}</span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={weights.tiers[k]}
-                      onChange={(e) =>
-                        setWeights((w) => ({
-                          ...w,
-                          tiers: { ...w.tiers, [k]: Number(e.target.value) },
-                        }))
-                      }
-                      className={inputCls}
-                    />
-                  </label>
-                ))}
-              </div>
-              <div>
-                <p className="mb-2 text-[12px] font-semibold text-ink">Category boost</p>
-                {(["FWA", "STARLINK", "MOBILITY", "BYOD"] as const).map((k) => (
-                  <label key={k} className="mb-1.5 flex items-center gap-2 text-[12px] text-slate">
-                    <span className="w-[110px]">{k}</span>
-                    <input
-                      type="number"
-                      step={0.1}
-                      min={0.5}
-                      max={2}
-                      value={weights.category_boost[k]}
-                      onChange={(e) =>
-                        setWeights((w) => ({
-                          ...w,
-                          category_boost: { ...w.category_boost, [k]: Number(e.target.value) },
-                        }))
-                      }
-                      className={inputCls}
-                    />
-                  </label>
-                ))}
-                <label className="mt-4 flex cursor-pointer items-start gap-2 rounded-[10px] border border-line-2 bg-[#FBFCFD] px-3 py-2.5">
-                  <input
-                    type="checkbox"
-                    checked={weights.caveat_caps !== false}
-                    onChange={(e) =>
-                      setWeights((w) => ({ ...w, caveat_caps: e.target.checked }))
-                    }
-                    className="mt-0.5"
-                  />
-                  <span className="text-[11px] leading-[1.4] text-slate">
-                    <b className="text-ink">Caveats cap Tier 1 → Tier 2.</b> When on, trust
-                    caveats (enterprise procurement, holding company, overseas growth,
-                    unconfirmed identity) hold a high scorer at &quot;monitor&quot;. Turn off to
-                    let tiers follow scores alone — the caveat still shows on the row.
-                  </span>
-                </label>
-                <div className="mt-2.5 flex items-start gap-2 rounded-[10px] border border-line-2 bg-[#FBFCFD] px-3 py-2.5">
-                  <Lock size={13} className="mt-0.5 flex-shrink-0 text-muted" aria-hidden />
-                  <p
-                    className="text-[11px] leading-[1.4] text-slate"
-                    title="A company with no source-backed signal can never be Tier 1, whatever its fit score. This is the product's core trust guarantee."
-                  >
-                    <b className="text-ink">Guardrail (locked):</b> fit alone can never produce
-                    Tier 1 — a fresh, sourced signal is always required.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </section>
         </div>
 
         {/* RIGHT: live impact + save */}
@@ -445,7 +297,8 @@ export function SignalsEditor({
                   {busy === "apply" ? "Applying…" : "Save & apply to all lists"}
                 </button>
                 <p className="text-[10.5px] leading-[1.4] text-muted">
-                  Applying re-scores stored signals — no API calls, no cost.
+                  Applying re-scores stored signals — no API calls, no cost. Global weights
+                  (fit, recency, thresholds, boosts) moved to Settings → Scoring.
                 </p>
               </div>
             </section>

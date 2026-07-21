@@ -50,10 +50,9 @@ export async function searchBestContacts(input: {
   const band = companyBand(input.revenueUsd, input.employees);
   const filters = buildSearchFilters(input.prefs ?? DEFAULT_CONTACT_PREFS, band);
   const body: Record<string, unknown> = {
-    // both spellings — Apollo renamed this param across API versions and
-    // silently ignores the one it doesn't know
+    // api_search accepts exactly ONE domain param — sending the legacy
+    // q_organization_domains alongside this one is a 422
     q_organization_domains_list: [input.domain],
-    q_organization_domains: input.domain,
     person_seniorities: filters.seniorities,
     person_titles: filters.titles,
     page: 1,

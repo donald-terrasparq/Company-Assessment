@@ -7,6 +7,7 @@ import { getResultDetail } from "@/lib/db/queries/prospects";
 import { getActiveCompanyProfile } from "@/lib/db/queries/company-profiles";
 import { getSettings } from "@/lib/db/queries/settings";
 import { logUsage, monthToDateCostUsd } from "@/lib/db/queries/usage";
+import { saveDraftedEmail } from "@/lib/db/queries/emails";
 
 const BodySchema = z.object({
   result_id: z.string().uuid(),
@@ -106,6 +107,18 @@ export async function POST(request: Request): Promise<Response> {
       outputTokens: drafted.outputTokens,
       costUsd: drafted.costUsd,
     });
+
+    await saveDraftedEmail({
+      companyId: company.id,
+      contactName: contact?.name ?? null,
+      playText: play,
+      styleKey: style_key,
+      sequencePosition: sequence_position,
+      sequenceLength: sequence_length,
+      subject: drafted.subject,
+      body: drafted.body,
+      createdBy: session.user.id,
+    }).catch(() => {}); // history is best-effort — never fail the draft
 
     return Response.json({ subject: drafted.subject, body: drafted.body });
   } catch {

@@ -8,6 +8,8 @@ import { monogramFor } from "@/components/prospects/monogram";
 import { SegmentBadge } from "@/components/prospects/segment-badge";
 import { classifySegment, SEGMENT_META } from "@/lib/scoring/segment";
 import { DraftEmailModal } from "@/components/company/draft-email-modal";
+import { EmailHistoryCard } from "@/components/company/email-history";
+import { listDraftedEmailsForCompany } from "@/lib/db/queries/emails";
 import { ContactsCard } from "@/components/company/contacts-card";
 import { isApolloConfigured } from "@/lib/apollo/client";
 import { parseContactPrefs } from "@/lib/apollo/prefs";
@@ -91,6 +93,7 @@ export default async function CompanyDetailPage({
   const { resultId } = await params;
   const [detail, settings] = await Promise.all([getResultDetail(resultId), getSettings()]);
   if (!detail) notFound();
+  const draftedEmails = await listDraftedEmailsForCompany(detail.company.id);
   const { result, company, list, signals, contacts } = detail;
   const apolloReady = !!settings?.apolloEnabled && isApolloConfigured();
 
@@ -498,6 +501,21 @@ export default async function CompanyDetailPage({
               name: c.name,
               title: c.title,
               verified: c.verified,
+            }))}
+          />
+
+          {/* drafted-email history — pull up past emails/sequences any time */}
+          <EmailHistoryCard
+            emails={draftedEmails.map((e) => ({
+              id: e.id,
+              contactName: e.contactName,
+              playText: e.playText,
+              styleKey: e.styleKey,
+              sequencePosition: e.sequencePosition,
+              sequenceLength: e.sequenceLength,
+              subject: e.subject,
+              body: e.body,
+              createdAt: e.createdAt.toISOString(),
             }))}
           />
 

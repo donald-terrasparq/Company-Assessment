@@ -221,3 +221,17 @@ export const companyProfiles = pgTable("company_profiles", {
   isActive: boolean("is_active").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const draftedEmails = pgTable("drafted_emails", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id").notNull(),
+  contactName: text("contact_name"),
+  playText: text("play_text").notNull(),
+  styleKey: text("style_key").notNull(),
+  sequencePosition: integer("sequence_position").notNull().default(1),
+  sequenceLength: integer("sequence_length").notNull().default(1),
+  subject: text("subject").notNull(),
+  body: text("body").notNull(),
+  createdBy: uuid("created_by"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});

@@ -75,3 +75,12 @@ export async function setActiveProfile(id: string): Promise<void> {
     await tx.update(companyProfiles).set({ isActive: true }).where(eq(companyProfiles.id, id));
   });
 }
+
+/** No active profile → the app falls back to the built-in CTS defaults. */
+export async function deactivateProfile(id: string): Promise<void> {
+  await db.update(companyProfiles).set({ isActive: false }).where(eq(companyProfiles.id, id));
+}
+
+export async function deleteProfile(id: string): Promise<void> {
+  await db.delete(companyProfiles).where(eq(companyProfiles.id, id));
+}

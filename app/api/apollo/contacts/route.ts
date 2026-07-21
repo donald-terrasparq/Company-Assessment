@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { apolloErrorMessage, isApolloConfigured } from "@/lib/apollo/client";
 import { searchBestContacts } from "@/lib/apollo/contacts";
 import { parseContactPrefs } from "@/lib/apollo/prefs";
-import { addApolloContacts } from "@/lib/db/queries/contacts";
+import { addApolloContacts, replaceApolloContacts } from "@/lib/db/queries/contacts";
 import { getResultDetail } from "@/lib/db/queries/prospects";
 import { getSettings } from "@/lib/db/queries/settings";
 import { logUsage } from "@/lib/db/queries/usage";
@@ -61,7 +61,11 @@ export async function POST(request: Request): Promise<Response> {
       employees: detail.result.employeeEstimate,
       prefs,
     });
-    const added = await addApolloContacts(detail.result.id, candidates);
+    // quick-filter searches REPLACE what's on the card (keeping enriched and
+    // research-found contacts); default searches only add
+    const added = parsed.data.overrides
+      ? await replaceApolloContacts(detail.result.id, candidates)
+      : await addApolloContacts(detail.result.id, candidates);
     await logUsage({
       runId: detail.result.runId,
       companyId: detail.company.id,

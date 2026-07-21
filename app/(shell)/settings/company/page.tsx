@@ -5,8 +5,10 @@ import { PRODUCT_SLOTS } from "@/lib/company/profile";
 import {
   activateCompanyProfileAction,
   addCompanyProfileAction,
+  deactivateCompanyProfileAction,
   saveCompanyProfileAction,
 } from "../admin-actions";
+import { DeleteProfileButton } from "@/components/settings/delete-profile-button";
 
 const inputCls =
   "w-full rounded-[10px] border border-line bg-card px-3 py-2.5 text-[13px] text-ink outline-none focus:border-steel";
@@ -85,18 +87,38 @@ export default async function CompanySettingsPage({
               + Add company
             </button>
           </form>
-          {!selected.isActive && selected.id && (
-            <form action={activateCompanyProfileAction} className="ml-auto">
-              <input type="hidden" name="id" value={selected.id} />
-              <button
-                type="submit"
-                className="rounded-[10px] border border-ink bg-ink px-3.5 py-2 text-[13px] font-medium text-white hover:bg-[#1b2d43]"
-              >
-                Make active
-              </button>
-            </form>
-          )}
+          <span className="ml-auto flex items-center gap-2">
+            {!selected.isActive && selected.id && (
+              <form action={activateCompanyProfileAction}>
+                <input type="hidden" name="id" value={selected.id} />
+                <button
+                  type="submit"
+                  className="rounded-[10px] border border-ink bg-ink px-3.5 py-2 text-[13px] font-medium text-white hover:bg-[#1b2d43]"
+                >
+                  Make active
+                </button>
+              </form>
+            )}
+            {selected.isActive && selected.id && (
+              <form action={deactivateCompanyProfileAction}>
+                <input type="hidden" name="id" value={selected.id} />
+                <button
+                  type="submit"
+                  title="With no active profile, the built-in CTS Mobility defaults apply"
+                  className="rounded-[10px] border border-line bg-card px-3.5 py-2 text-[13px] font-medium text-slate hover:border-[#cdd4de] hover:text-ink"
+                >
+                  Make inactive
+                </button>
+              </form>
+            )}
+            {selected.id && <DeleteProfileButton id={selected.id} name={selected.name} />}
+          </span>
         </div>
+        <p className="mt-2.5 text-[11px] text-muted">
+          Exactly one profile can be active at a time — the active one drives all searches,
+          signals, and drafted emails. With none active, the built-in CTS Mobility defaults
+          apply.
+        </p>
       </section>
 
       {/* edit form */}

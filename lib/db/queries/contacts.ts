@@ -50,6 +50,29 @@ export async function addApolloContacts(
   return added;
 }
 
+/**
+ * Filtered re-search (the card's quick filters): REPLACE the Apollo contacts
+ * on display with the new result set. Enriched rows (revealed email/phone or
+ * a phone request in flight) are kept — that data cost credits — as are
+ * research-found ('search') contacts.
+ */
+export async function replaceApolloContacts(
+  companyResultId: string,
+  candidates: ApolloCandidate[],
+): Promise<number> {
+  const existing = await db
+    .select()
+    .from(contacts)
+    .where(eq(contacts.companyResultId, companyResultId));
+  const removable = existing.filter(
+    (c) => c.source === "apollo" && !c.email && !c.phone && !c.phoneRequestedAt,
+  );
+  for (const c of removable) {
+    await db.delete(contacts).where(eq(contacts.id, c.id));
+  }
+  return addApolloContacts(companyResultId, candidates);
+}
+
 export async function setContactEmail(id: string, email: string): Promise<void> {
   await db
     .update(contacts)

@@ -274,3 +274,21 @@ INSERT INTO company_profiles (name, website, industry, products, ai_context, is_
     "searchKeywords":"new location, expansion, network, connectivity, internet outage, devices, tablets, field workforce"}',
   TRUE
 );
+
+-- ─────────────────────────── drafted emails (0010) ───────────────────────────
+-- history of generated outreach emails, tied to the company so it survives
+-- re-analysis; play/contact stored as text snapshots
+CREATE TABLE drafted_emails (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id        UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  contact_name      TEXT,
+  play_text         TEXT NOT NULL,
+  style_key         TEXT NOT NULL,
+  sequence_position INT NOT NULL DEFAULT 1,
+  sequence_length   INT NOT NULL DEFAULT 1,
+  subject           TEXT NOT NULL,
+  body              TEXT NOT NULL,
+  created_by        UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX drafted_emails_company_idx ON drafted_emails(company_id, created_at DESC);

@@ -120,3 +120,23 @@ export async function activateCompanyProfileAction(formData: FormData): Promise<
   await setActiveProfile(id.data);
   revalidatePath("/settings/company");
 }
+
+export async function deactivateCompanyProfileAction(formData: FormData): Promise<void> {
+  if (!(await requireAdmin())) return;
+  const { deactivateProfile } = await import("@/lib/db/queries/company-profiles");
+  const id = z.string().uuid().safeParse(formData.get("id"));
+  if (!id.success) return;
+  await deactivateProfile(id.data);
+  revalidatePath("/settings/company");
+}
+
+export async function deleteCompanyProfileAction(formData: FormData): Promise<void> {
+  if (!(await requireAdmin())) return;
+  const { deleteProfile } = await import("@/lib/db/queries/company-profiles");
+  const id = z.string().uuid().safeParse(formData.get("id"));
+  if (!id.success) return;
+  await deleteProfile(id.data);
+  revalidatePath("/settings/company");
+  const { redirect } = await import("next/navigation");
+  redirect("/settings/company");
+}

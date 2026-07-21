@@ -188,7 +188,7 @@ export function ContactsCard({
               ) : (
                 <Search size={14} aria-hidden />
               )}
-              {busy === "find" ? "Searching Apollo…" : "Find contacts — Apollo"}
+              {busy === "find" ? "Searching…" : "Find contacts"}
             </button>
             <button
               type="button"

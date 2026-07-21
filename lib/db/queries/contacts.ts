@@ -23,16 +23,33 @@ export async function addApolloContacts(
     .from(contacts)
     .where(eq(contacts.companyResultId, companyResultId));
   const byName = new Map(existing.map((c) => [c.name.trim().toLowerCase(), c]));
+  const byApolloId = new Map(
+    existing.filter((c) => c.apolloPersonId).map((c) => [c.apolloPersonId as string, c]),
+  );
+  // a first-name-only row matches its own fuller candidate ("Steven" ~ "Steven Doyle")
+  const wordCount = (n: string) => n.trim().split(/\s+/).length;
 
   let added = 0;
   for (const cand of candidates) {
-    const match = byName.get(cand.name.trim().toLowerCase());
+    const match =
+      byApolloId.get(cand.apolloPersonId) ??
+      byName.get(cand.name.trim().toLowerCase()) ??
+      existing.find(
+        (c) =>
+          wordCount(c.name) === 1 &&
+          cand.name.toLowerCase().startsWith(`${c.name.trim().toLowerCase()} `),
+      );
     if (match) {
+      const patch: Record<string, unknown> = {};
       if (!match.apolloPersonId) {
-        await db
-          .update(contacts)
-          .set({ apolloPersonId: cand.apolloPersonId, verified: true })
-          .where(eq(contacts.id, match.id));
+        patch.apolloPersonId = cand.apolloPersonId;
+        patch.verified = true;
+      }
+      // upgrade stored first-name-only rows to the full name
+      if (wordCount(cand.name) > wordCount(match.name)) patch.name = cand.name;
+      if (!match.title && cand.title) patch.title = cand.title;
+      if (Object.keys(patch).length > 0) {
+        await db.update(contacts).set(patch).where(eq(contacts.id, match.id));
       }
       continue;
     }
@@ -87,6 +104,11 @@ export async function setContactEmail(id: string, email: string): Promise<void> 
     .update(contacts)
     .set({ email, enrichedAt: new Date() })
     .where(eq(contacts.id, id));
+}
+
+/** Enrichment responses carry the complete name — upgrade partial rows. */
+export async function setContactName(id: string, name: string): Promise<void> {
+  await db.update(contacts).set({ name }).where(eq(contacts.id, id));
 }
 
 export async function markPhoneRequested(id: string): Promise<void> {

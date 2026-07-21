@@ -7,6 +7,7 @@ import {
   getContactById,
   markPhoneRequested,
   setContactEmail,
+  setContactName,
 } from "@/lib/db/queries/contacts";
 import { getResultDetail } from "@/lib/db/queries/prospects";
 import { getSettings } from "@/lib/db/queries/settings";
@@ -56,11 +57,17 @@ export async function POST(request: Request): Promise<Response> {
   try {
     if (parsed.data.reveal === "email") {
       if (contact.email) return Response.json({ email: contact.email }); // already revealed
-      const email = await revealEmail({
+      const { email, fullName } = await revealEmail({
         apolloPersonId: contact.apolloPersonId,
         name: contact.name,
         domain: detail.company.domain,
       });
+      if (
+        fullName &&
+        fullName.trim().split(/\s+/).length > contact.name.trim().split(/\s+/).length
+      ) {
+        await setContactName(contact.id, fullName); // "Steven" → "Steven Doyle"
+      }
       if (!email) {
         return Response.json({ error: "Apollo has no verified email for this person." }, { status: 404 });
       }

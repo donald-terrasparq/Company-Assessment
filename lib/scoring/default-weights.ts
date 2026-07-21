@@ -26,6 +26,9 @@ export interface WeightProfile {
   };
   confidence: { primary: number; secondary: number; weak: number };
   tiers: { tier_1_min: number; tier_2_min: number };
+  /** When true (default), trust caveats cap Tier 1 → Tier 2. When false, tiers
+   * follow scores alone (defunct and the no-signal guardrail always apply). */
+  caveat_caps?: boolean;
   signals: Record<string, SignalWeight>;
   category_boost: Record<Category, number>;
 }
@@ -36,6 +39,7 @@ export const DEFAULT_WEIGHTS: WeightProfile = {
   recency: { forward: 1.0, lt_30d: 1.0, m1_3: 0.8, m4_5: 0.6, m6_12: 0.3, gt_12m: 0.1 },
   confidence: { primary: 1.0, secondary: 0.85, weak: 0.6 },
   tiers: { tier_1_min: 63, tier_2_min: 38 },
+  caveat_caps: true,
   signals: {
     // Location & facility → mostly FWA + STARLINK
     new_facility_announced: { base: 48, categories: ["FWA", "STARLINK"], enabled: true },

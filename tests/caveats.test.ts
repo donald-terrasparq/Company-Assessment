@@ -58,4 +58,21 @@ describe("caveats cap the tier (docs/05 Phase 3 caveats.test)", () => {
       expect(scoreCompany(company71([caveat]), DEFAULT_WEIGHTS, NOW).tier).toBe("tier_1");
     }
   });
+
+  it("caveat_caps=false lets tiers follow scores alone (Signals-tab toggle)", () => {
+    const noCaps = { ...DEFAULT_WEIGHTS, caveat_caps: false };
+    const s = scoreCompany(company71(["enterprise_procurement"]), noCaps, NOW);
+    expect(s.total_score).toBe(71);
+    expect(s.tier).toBe("tier_1"); // caveat still stored/displayed, tier uncapped
+
+    // defunct and the no-signal guardrail are NOT affected by the toggle
+    expect(scoreCompany(company71(["defunct"]), noCaps, NOW).tier).toBe("defunct");
+    expect(
+      scoreCompany(
+        { fit: { industry: 10, size: 8, multi_location: 7, geography: 5 }, signals: [], caveats: [] },
+        noCaps,
+        NOW,
+      ).tier,
+    ).toBe("tier_3");
+  });
 });

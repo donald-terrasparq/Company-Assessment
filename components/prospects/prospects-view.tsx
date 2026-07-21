@@ -16,11 +16,18 @@ import { CAVEAT_COPY } from "@/lib/scoring/caveats";
 import { monogramFor } from "./monogram";
 import { ScoreAnatomyBar, isFreshLabel } from "./score-anatomy";
 
-const TIER_META: Record<string, { label: string; dot: string }> = {
-  tier_1: { label: "Tier 1", dot: "bg-tier1" },
-  tier_2: { label: "Tier 2", dot: "bg-tier2" },
-  tier_3: { label: "Tier 3", dot: "bg-tier3" },
+const TIER_META: Record<
+  string,
+  { label: string; short: string; dot: string; badge: string; accent: string }
+> = {
+  tier_1: { label: "Tier 1", short: "T1", dot: "bg-tier1", badge: "bg-tier1-soft text-tier1", accent: "border-l-tier1" },
+  tier_2: { label: "Tier 2", short: "T2", dot: "bg-tier2", badge: "bg-[#FBF0DA] text-tier2", accent: "border-l-tier2" },
+  tier_3: { label: "Tier 3", short: "T3", dot: "bg-tier3", badge: "bg-line-2 text-tier3", accent: "border-l-tier3" },
+  defunct: { label: "Defunct", short: "DEF", dot: "bg-[#C6CCD6]", badge: "bg-line-2 text-muted", accent: "border-l-[#C6CCD6]" },
 };
+
+const TIER_ORDER: Record<string, number> = { tier_1: 0, tier_2: 1, tier_3: 2, defunct: 3 };
+const CAPPING_CAVEATS = ["enterprise_procurement", "overseas_growth", "holding_company", "identity_unconfirmed"];
 const CATEGORY_META: Record<string, { label: string; cls: string; dot: string }> = {
   FWA: { label: "FWA", cls: "bg-fwa-soft text-fwa", dot: "bg-fwa" },
   STARLINK: { label: "STAR", cls: "bg-starlink-soft text-starlink", dot: "bg-starlink" },
@@ -28,7 +35,7 @@ const CATEGORY_META: Record<string, { label: string; cls: string; dot: string }>
   BYOD: { label: "BYOD", cls: "bg-byod-soft text-byod", dot: "bg-byod" },
 };
 
-type SortKey = "score" | "company" | "industry";
+type SortKey = "tier" | "score" | "company" | "industry";
 
 export function ProspectsView({
   rows,
@@ -44,7 +51,7 @@ export function ProspectsView({
   const [cats, setCats] = useState<string[]>([]);
   const [freshOnly, setFreshOnly] = useState(false);
   const [hideCaveats, setHideCaveats] = useState(false);
-  const [sort, setSort] = useState<SortKey>("score");
+  const [sort, setSort] = useState<SortKey>("tier");
 
   const filters: ProspectFilters = { tiers, categories: cats, freshOnly, hideCaveats };
   const filtered = useMemo(() => {
@@ -53,7 +60,13 @@ export function ProspectsView({
     if (sort === "company") sorted.sort((a, b) => a.companyName.localeCompare(b.companyName));
     else if (sort === "industry")
       sorted.sort((a, b) => (a.industry ?? "").localeCompare(b.industry ?? ""));
-    else sorted.sort((a, b) => b.totalScore - a.totalScore);
+    else if (sort === "score") sorted.sort((a, b) => b.totalScore - a.totalScore);
+    else
+      sorted.sort(
+        (a, b) =>
+          (TIER_ORDER[a.tier] ?? 9) - (TIER_ORDER[b.tier] ?? 9) ||
+          b.totalScore - a.totalScore,
+      );
     return sorted;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, tiers, cats, freshOnly, hideCaveats, sort]);
@@ -158,7 +171,7 @@ export function ProspectsView({
           Hide caveats
         </button>
         <span className="mono ml-auto text-[12px] text-muted">
-          {filtered.length} of {rows.length} shown · sorted by {sort}
+          {filtered.length} of {rows.length} shown · sorted by {sort === "tier" ? "tier → score" : sort}
         </span>
         <a
           href={exportUrl}
@@ -187,8 +200,13 @@ export function ProspectsView({
                 </button>
               </th>
               <th className="px-3 py-3 font-semibold">
-                <button type="button" onClick={() => setSort("score")} className="uppercase tracking-[.09em] hover:text-ink">
-                  Score · Fit / Trigger{sort === "score" && " ↓"}
+                <button
+                  type="button"
+                  onClick={() => setSort(sort === "tier" ? "score" : "tier")}
+                  className="uppercase tracking-[.09em] hover:text-ink"
+                  title="Click to toggle: tier → score vs raw score"
+                >
+                  Score · Fit / Trigger{sort === "tier" ? " (tier ↓)" : sort === "score" ? " ↓" : ""}
                 </button>
               </th>
               <th className="px-3 py-3 font-semibold">Why now</th>
@@ -209,7 +227,14 @@ export function ProspectsView({
                     "relative cursor-pointer border-b border-line-2 transition-colors last:border-none hover:bg-[#FAFBFC]",
                   )}
                 >
-                  <td className="mono px-4 py-4 text-[12px] text-muted">{i + 1}</td>
+                  <td
+                    className={cn(
+                      "mono border-l-[3px] px-4 py-4 text-[12px] text-muted",
+                      TIER_META[r.tier]?.accent ?? "border-l-transparent",
+                    )}
+                  >
+                    {i + 1}
+                  </td>
                   <td className="px-3 py-4">
                     <div className="flex items-center gap-3">
                       <div
@@ -239,8 +264,22 @@ export function ProspectsView({
                   </td>
                   <td className="px-3 py-4">
                     <div className="flex items-center gap-2.5">
-                      <span className="mono w-[30px] text-right text-[17px] font-bold text-ink">
-                        {r.totalScore}
+                      <span
+                        className={cn(
+                          "flex w-[52px] flex-col items-center rounded-[10px] px-1.5 py-1",
+                          TIER_META[r.tier]?.badge ?? "bg-line-2 text-slate",
+                        )}
+                        title={`${TIER_META[r.tier]?.label ?? r.tier}${r.tier === "tier_2" && r.caveats.some((c) => CAPPING_CAVEATS.includes(c)) ? " — high score capped by a trust caveat" : ""}`}
+                      >
+                        <span className="mono text-[17px] font-bold leading-none">
+                          {r.totalScore}
+                        </span>
+                        <span className="mt-0.5 text-[9px] font-bold tracking-[.06em]">
+                          {TIER_META[r.tier]?.short ?? "—"}
+                          {r.tier === "tier_2" && r.caveats.some((c) => CAPPING_CAVEATS.includes(c))
+                            ? " · CAPPED"
+                            : ""}
+                        </span>
                       </span>
                       <ScoreAnatomyBar
                         fit={r.fitScore}

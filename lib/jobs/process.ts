@@ -17,6 +17,7 @@ import { eq } from "drizzle-orm";
 import { enrichCompany } from "@/lib/research/enrich";
 import { isApolloConfigured } from "@/lib/apollo/client";
 import { searchBestContacts } from "@/lib/apollo/contacts";
+import { parseContactPrefs } from "@/lib/apollo/prefs";
 import { enrichOrganization, newsForOrganization, type ApolloOrgData } from "@/lib/apollo/organization";
 import { addApolloContacts } from "@/lib/db/queries/contacts";
 import { gather } from "@/lib/research/gather";
@@ -294,6 +295,7 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
           domain,
           revenueUsd: extraction.annual_revenue_usd ?? apolloOrg?.revenueUsd ?? null,
           employees: extraction.employee_estimate ?? apolloOrg?.employees ?? null,
+          prefs: parseContactPrefs(settings.contactDefaults),
         });
         const added = await addApolloContacts(resultId, candidates);
         if (candidates.length > 0) {

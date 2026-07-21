@@ -26,6 +26,9 @@ CREATE TABLE settings (
   retention_days           INT NOT NULL DEFAULT 365,
   escalation_pct           INT NOT NULL DEFAULT 20 CHECK (escalation_pct IN (0,20,40,60,80,100)),
   apollo_enabled           BOOLEAN NOT NULL DEFAULT FALSE,
+  -- 0008: Apollo contact-search defaults (Settings → Contacts tab)
+  contact_defaults         JSONB NOT NULL DEFAULT
+    '{"seniorities":["vp","director","manager"],"departments":["information_technology"],"titles":["VP","Manager","Senior Manager"]}',
   updated_at               TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

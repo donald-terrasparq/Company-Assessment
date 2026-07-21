@@ -49,6 +49,7 @@ export const settings = pgTable("settings", {
   retentionDays: integer("retention_days").notNull().default(365),
   escalationPct: integer("escalation_pct").notNull().default(20),
   apolloEnabled: boolean("apollo_enabled").notNull().default(false),
+  contactDefaults: jsonb("contact_defaults"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

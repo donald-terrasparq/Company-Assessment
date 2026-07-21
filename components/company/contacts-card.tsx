@@ -90,6 +90,7 @@ export function ContactsCard({
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [seniorities, setSeniorities] = useState<string[]>(defaults.seniorities);
   const [departments, setDepartments] = useState<string[]>(defaults.departments);
   const [titles, setTitles] = useState(defaults.titles.join(", "));
@@ -97,8 +98,8 @@ export function ContactsCard({
   const toggle = (list: string[], set: (v: string[]) => void, value: string) =>
     set(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
 
-  async function findContacts() {
-    setBusy("find");
+  async function findContacts(loadMore = false) {
+    setBusy(loadMore ? "more" : "find");
     setNotice(null);
     try {
       const res = await fetch("/api/apollo/contacts", {
@@ -106,6 +107,7 @@ export function ContactsCard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           result_id: resultId,
+          load_more: loadMore,
           overrides: {
             seniorities,
             departments,
@@ -115,11 +117,15 @@ export function ContactsCard({
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Search failed.");
+      setHasMore(json.has_more === true);
       setNotice({
         ok: true,
-        text:
-          json.added > 0
-            ? `Found ${json.found} matching people — ${json.added} added.`
+        text: loadMore
+          ? json.added > 0
+            ? `Loaded ${json.added} more of ${json.found} matching people.`
+            : `No new people — ${json.found} matches for these filters.`
+          : json.added > 0
+            ? `Found ${json.found} matching people — ${json.added} shown.`
             : `Found ${json.found} matching people — all already on the card.`,
       });
       router.refresh();
@@ -173,8 +179,8 @@ export function ContactsCard({
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={findContacts}
-              disabled={busy === "find"}
+              onClick={() => findContacts(false)}
+              disabled={busy !== null}
               className="flex flex-1 items-center justify-center gap-2 rounded-[10px] border border-line bg-[#FBFCFD] px-3 py-2 text-[12.5px] font-semibold text-ink transition-colors hover:border-[#cdd4de] disabled:opacity-50"
             >
               {busy === "find" ? (
@@ -279,7 +285,8 @@ export function ContactsCard({
             : ""}
         </p>
       ) : (
-        contacts.map((c) => {
+        <div className="max-h-[440px] overflow-y-auto pr-1">
+        {contacts.map((c) => {
           return (
             <div
               key={c.id}
@@ -385,7 +392,24 @@ export function ContactsCard({
               </div>
             </div>
           );
-        })
+        })}
+        </div>
+      )}
+
+      {apolloReady && contacts.length > 0 && hasMore && (
+        <button
+          type="button"
+          onClick={() => findContacts(true)}
+          disabled={busy !== null}
+          className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-[10px] border border-dashed border-line bg-card px-3 py-2 text-[12px] font-semibold text-slate transition-colors hover:border-[#cdd4de] hover:text-ink disabled:opacity-50"
+        >
+          {busy === "more" ? (
+            <Loader2 size={13} className="animate-spin" aria-hidden />
+          ) : (
+            <ChevronDown size={13} aria-hidden />
+          )}
+          {busy === "more" ? "Loading more…" : "Load more matches"}
+        </button>
       )}
 
       <p className="mt-3 text-[10.5px] leading-[1.4] text-muted">

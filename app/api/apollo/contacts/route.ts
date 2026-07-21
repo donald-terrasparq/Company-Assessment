@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { apolloErrorMessage, isApolloConfigured } from "@/lib/apollo/client";
 import { searchBestContacts } from "@/lib/apollo/contacts";
 import { parseContactPrefs } from "@/lib/apollo/prefs";
-import { addApolloContacts, replaceApolloContacts } from "@/lib/db/queries/contacts";
+import { addApolloContacts, countApolloContacts, replaceApolloContacts } from "@/lib/db/queries/contacts";
 import { getResultDetail } from "@/lib/db/queries/prospects";
 import { getSettings } from "@/lib/db/queries/settings";
 import { logUsage } from "@/lib/db/queries/usage";
@@ -20,6 +20,8 @@ const BodySchema = z.object({
     })
     .nullable()
     .optional(),
+  // true = append the NEXT page of ranked matches (offset = contacts already shown)
+  load_more: z.boolean().optional().default(false),
 });
 
 /**
@@ -55,17 +57,22 @@ export async function POST(request: Request): Promise<Response> {
     : defaults;
 
   try {
-    const candidates = await searchBestContacts({
+    // load-more appends the next window of the ranked matches; the offset is
+    // however many Apollo contacts this result already shows
+    const offset = parsed.data.load_more ? await countApolloContacts(detail.result.id) : 0;
+    const { candidates, totalMatching } = await searchBestContacts({
       domain: detail.company.domain,
       revenueUsd: detail.result.annualRevenueUsd,
       employees: detail.result.employeeEstimate,
       prefs,
+      offset,
     });
-    // quick-filter searches REPLACE what's on the card (keeping enriched and
-    // research-found contacts); default searches only add
-    const added = parsed.data.overrides
-      ? await replaceApolloContacts(detail.result.id, candidates)
-      : await addApolloContacts(detail.result.id, candidates);
+    // filter changes REPLACE what's on the card (keeping enriched and
+    // research-found contacts); load-more and the default search only add
+    const added =
+      parsed.data.overrides && !parsed.data.load_more
+        ? await replaceApolloContacts(detail.result.id, candidates)
+        : await addApolloContacts(detail.result.id, candidates);
     await logUsage({
       runId: detail.result.runId,
       companyId: detail.company.id,
@@ -73,7 +80,11 @@ export async function POST(request: Request): Promise<Response> {
       searches: 1,
       costUsd: 0, // people search consumes no export credits
     });
-    return Response.json({ found: candidates.length, added });
+    return Response.json({
+      found: totalMatching,
+      added,
+      has_more: offset + candidates.length < totalMatching,
+    });
   } catch (err) {
     console.error("apollo contacts:", err);
     return Response.json({ error: apolloErrorMessage(err) }, { status: 502 });

@@ -73,6 +73,15 @@ export async function replaceApolloContacts(
   return addApolloContacts(companyResultId, candidates);
 }
 
+/** How many Apollo-sourced contacts a result already shows — load-more's offset. */
+export async function countApolloContacts(companyResultId: string): Promise<number> {
+  const rows = await db
+    .select({ id: contacts.id })
+    .from(contacts)
+    .where(and(eq(contacts.companyResultId, companyResultId), eq(contacts.source, "apollo")));
+  return rows.length;
+}
+
 export async function setContactEmail(id: string, email: string): Promise<void> {
   await db
     .update(contacts)

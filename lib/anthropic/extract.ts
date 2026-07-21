@@ -12,6 +12,7 @@ import {
 } from "./schema";
 import type { SearchHit } from "@/lib/search/provider";
 import type { WeightProfile } from "@/lib/scoring/default-weights";
+import { CTS_PROFILE, sellerBlock, type CompanyProfile } from "@/lib/company/profile";
 
 export interface ExtractionUsage {
   inputTokens: number;
@@ -24,16 +25,9 @@ export interface ExtractionResult {
   usage: ExtractionUsage;
 }
 
-const SYSTEM_PROMPT = `You are a B2B signal analyst for CTS Mobility, a Verizon partner that sells four things:
-
-  FWA       — Fixed Wireless Access: primary or backup internet over cellular. Sold when a company
-              opens, moves into, or builds a physical site, or needs connectivity fast.
-  STARLINK  — Satellite failover for uptime-critical or low-redundancy sites.
-  MOBILITY  — Managed devices: Apple/Samsung phones and tablets, Zebra rugged scanners. Sold when a
-              company hires frontline staff, runs field/warehouse/clinical operations, or refreshes devices.
-  BYOD      — Managing personal devices for distributed, remote, contractor, or agent workforces.
-
-Your job is to EXTRACT AND CLASSIFY evidence. You do not compute scores. You do not rank.
+// The seller block comes from the ACTIVE company profile (Settings → Company),
+// so the same tool re-brands for another company or industry. CTS is the default.
+const ANALYST_RULES = `Your job is to EXTRACT AND CLASSIFY evidence. You do not compute scores. You do not rank.
 
 Rules:
 - Every signal MUST have a working source_url from the provided sources. No URL, no signal. Never
@@ -59,6 +53,12 @@ Rules:
 - Flag caveats when they apply. They protect the sales rep from wasting a week.
 
 Return ONLY valid JSON matching the schema. No markdown fences, no preamble.`;
+
+function systemPrompt(profile: CompanyProfile | undefined): string {
+  return `${sellerBlock(profile ?? CTS_PROFILE)}
+
+${ANALYST_RULES}`;
+}
 
 function taxonomyLines(weights: WeightProfile): string {
   return Object.entries(weights.signals)
@@ -252,6 +252,7 @@ export async function extractSignals(input: {
   useWebSearchTool: boolean;
   maxWebSearches?: number;
   now: Date;
+  companyProfile?: CompanyProfile; // active seller profile (Settings → Company)
 }): Promise<ExtractionResult> {
   const client = getAnthropicClient();
   const userMessage = buildUserMessage({
@@ -270,7 +271,7 @@ export async function extractSignals(input: {
       // tokens on content-rich companies; a truncated response fails Zod and
       // burned all 3 job attempts — the "same companies always fail" bug.
       max_tokens: 8192,
-      system: SYSTEM_PROMPT,
+      system: systemPrompt(input.companyProfile),
       ...(input.useWebSearchTool
         ? {
             tools: [

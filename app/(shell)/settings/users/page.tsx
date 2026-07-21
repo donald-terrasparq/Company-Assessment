@@ -34,6 +34,7 @@ export default async function UsersSettingsPage() {
           <caption className="sr-only">All user accounts</caption>
           <thead>
             <tr className="border-b border-line text-[10.5px] font-semibold uppercase tracking-[.09em] text-muted">
+              <th className="py-2 pr-4 font-semibold">Name</th>
               <th className="py-2 pr-4 font-semibold">Username</th>
               <th className="py-2 pr-4 font-semibold">Email</th>
               <th className="py-2 pr-4 font-semibold">Role</th>
@@ -45,7 +46,10 @@ export default async function UsersSettingsPage() {
           <tbody>
             {users.map((u) => (
               <tr key={u.id} className="border-b border-line-2 last:border-none">
-                <td className="py-2.5 pr-4 font-medium text-ink">{u.username}</td>
+                <td className="py-2.5 pr-4 font-medium text-ink">
+                  {[u.firstName, u.lastName].filter(Boolean).join(" ") || "—"}
+                </td>
+                <td className="py-2.5 pr-4 text-slate">{u.username}</td>
                 <td className="py-2.5 pr-4 text-slate">{u.email ?? "—"}</td>
                 <td className="py-2.5 pr-4">
                   <span className="rounded-md bg-line-2 px-2 py-0.5 font-disp text-[10.5px] font-semibold uppercase tracking-wide text-slate">
@@ -93,7 +97,32 @@ export default async function UsersSettingsPage() {
           <span className="mono normal-case tracking-normal">one-time · 7-day expiry</span>
         </p>
 
-        <form action={createInviteAction} className="mb-4 flex items-end gap-3">
+        <form action={createInviteAction} className="mb-4 flex flex-wrap items-end gap-3">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[12px] font-medium text-slate">First name</span>
+            <input
+              name="first_name"
+              required
+              className="w-[140px] rounded-[10px] border border-line bg-card px-3 py-2 text-[13px] text-ink outline-none focus:border-steel"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[12px] font-medium text-slate">Last name</span>
+            <input
+              name="last_name"
+              required
+              className="w-[140px] rounded-[10px] border border-line bg-card px-3 py-2 text-[13px] text-ink outline-none focus:border-steel"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[12px] font-medium text-slate">Email</span>
+            <input
+              name="email"
+              type="email"
+              required
+              className="w-[220px] rounded-[10px] border border-line bg-card px-3 py-2 text-[13px] text-ink outline-none focus:border-steel"
+            />
+          </label>
           <label className="flex flex-col gap-1.5">
             <span className="text-[12px] font-medium text-slate">Role for new user</span>
             <select
@@ -125,7 +154,11 @@ export default async function UsersSettingsPage() {
                 key={inv.id}
                 className="flex flex-wrap items-center gap-3 rounded-[11px] border border-line-2 px-3.5 py-2.5"
               >
-                <code className="mono text-[12px] text-ink">{inv.code}</code>
+                <span className="text-[12.5px] font-medium text-ink">
+                  {[inv.firstName, inv.lastName].filter(Boolean).join(" ") || "(no name)"}
+                </span>
+                {inv.email && <span className="mono text-[11px] text-slate">{inv.email}</span>}
+                <code className="mono text-[12px] text-muted">{inv.code}</code>
                 <span className="rounded-md bg-line-2 px-2 py-0.5 font-disp text-[10.5px] font-semibold uppercase tracking-wide text-slate">
                   {inv.role}
                 </span>

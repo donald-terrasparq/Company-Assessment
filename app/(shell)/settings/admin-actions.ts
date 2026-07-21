@@ -75,3 +75,48 @@ export async function updateRetentionAction(formData: FormData): Promise<void> {
   await updateSettings({ retentionDays: parsed.data });
   revalidatePath("/settings/retention");
 }
+
+export async function saveCompanyProfileAction(formData: FormData): Promise<void> {
+  if (!(await requireAdmin())) return;
+  const { parseCompanyProfile, PRODUCT_SLOTS } = await import("@/lib/company/profile");
+  const { updateProfile } = await import("@/lib/db/queries/company-profiles");
+  const id = z.string().uuid().safeParse(formData.get("id"));
+  if (!id.success) return;
+  const profile = parseCompanyProfile({
+    name: formData.get("name"),
+    website: formData.get("website"),
+    industry: formData.get("industry"),
+    products: PRODUCT_SLOTS.map((slot, i) => ({
+      slot,
+      label: formData.get(`product_label_${i}`),
+      description: formData.get(`product_desc_${i}`),
+    })),
+    aiContext: {
+      companyDescription: formData.get("company_description"),
+      signalGuidance: formData.get("signal_guidance"),
+      searchKeywords: formData.get("search_keywords"),
+    },
+  });
+  await updateProfile(id.data, profile);
+  revalidatePath("/settings/company");
+}
+
+export async function addCompanyProfileAction(): Promise<void> {
+  if (!(await requireAdmin())) return;
+  const { CTS_PROFILE } = await import("@/lib/company/profile");
+  const { createProfile } = await import("@/lib/db/queries/company-profiles");
+  // new profiles start as a copy of the CTS template to edit, inactive
+  const id = await createProfile({ ...CTS_PROFILE, name: "New company profile" });
+  revalidatePath("/settings/company");
+  const { redirect } = await import("next/navigation");
+  redirect(`/settings/company?profile=${id}`);
+}
+
+export async function activateCompanyProfileAction(formData: FormData): Promise<void> {
+  if (!(await requireAdmin())) return;
+  const { setActiveProfile } = await import("@/lib/db/queries/company-profiles");
+  const id = z.string().uuid().safeParse(formData.get("id"));
+  if (!id.success) return;
+  await setActiveProfile(id.data);
+  revalidatePath("/settings/company");
+}

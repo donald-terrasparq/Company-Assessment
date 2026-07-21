@@ -20,6 +20,8 @@ export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   username: text("username").notNull().unique(),
   email: text("email").unique(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
   passwordHash: text("password_hash").notNull(),
   role: text("role", { enum: ["admin", "member"] }).notNull().default("member"),
   isActive: boolean("is_active").notNull().default(true),
@@ -30,6 +32,9 @@ export const invites = pgTable("invites", {
   id: uuid("id").primaryKey().defaultRandom(),
   code: text("code").notNull().unique(),
   role: text("role", { enum: ["admin", "member"] }).notNull().default("member"),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  email: text("email"),
   createdBy: uuid("created_by"),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   usedBy: uuid("used_by"),
@@ -203,5 +208,16 @@ export const apiUsage = pgTable("api_usage", {
   inputTokens: integer("input_tokens").notNull().default(0),
   outputTokens: integer("output_tokens").notNull().default(0),
   costUsd: numeric("cost_usd", { precision: 10, scale: 6 }).notNull().default("0"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const companyProfiles = pgTable("company_profiles", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  website: text("website"),
+  industry: text("industry"),
+  products: jsonb("products").notNull().default([]),
+  aiContext: jsonb("ai_context").notNull().default({}),
+  isActive: boolean("is_active").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

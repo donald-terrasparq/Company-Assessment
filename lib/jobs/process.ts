@@ -18,6 +18,7 @@ import { enrichCompany } from "@/lib/research/enrich";
 import { isApolloConfigured } from "@/lib/apollo/client";
 import { searchBestContacts } from "@/lib/apollo/contacts";
 import { parseContactPrefs } from "@/lib/apollo/prefs";
+import { getActiveCompanyProfile } from "@/lib/db/queries/company-profiles";
 import { enrichOrganization, newsForOrganization, type ApolloOrgData } from "@/lib/apollo/organization";
 import { addApolloContacts } from "@/lib/db/queries/contacts";
 import { gather } from "@/lib/research/gather";
@@ -223,6 +224,7 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
 
     // ---- stage 3: extraction (zod-validated, retry once inside) ----
     const tExtract = Date.now();
+    const companyProfile = await getActiveCompanyProfile();
     const { extraction, usage } = await extractSignals({
       companyName: company.name,
       domain,
@@ -233,6 +235,7 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
       facts: enrichment.facts,
       useWebSearchTool,
       now,
+      companyProfile,
     });
     mark("extract", tExtract);
     await logUsage({

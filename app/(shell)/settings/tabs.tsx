@@ -13,6 +13,7 @@ export function SettingsTabs({ isAdmin }: { isAdmin: boolean }) {
     ...(isAdmin
       ? [
           { href: "/settings/users", label: "Users" },
+          { href: "/settings/company", label: "Company" },
           { href: "/settings/analysis", label: "Analysis" },
           { href: "/settings/scoring", label: "Scoring" },
           { href: "/settings/data-sources", label: "Data sources" },

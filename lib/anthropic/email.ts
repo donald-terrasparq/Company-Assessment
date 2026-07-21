@@ -20,6 +20,8 @@ export interface EmailContext {
   /** Position in a multi-email outreach sequence (1-based). Default 1 of 1. */
   sequencePosition?: number;
   sequenceLength?: number;
+  /** Active company profile (Settings → Company); CTS wording as fallback. */
+  seller?: { name: string; description: string };
 }
 
 /** Pure prompt builder — unit-testable. */
@@ -49,12 +51,15 @@ NOT replied to the earlier email(s). Rules for follow-ups:
 - Fresh subject line — never "Re:" or a copy of a previous subject.
 - Never claim they replied, opened, or clicked anything.\n`;
 
-  return `Draft a cold outreach email from a CTS Mobility sales rep.
+  const sellerName = ctx.seller?.name ?? "CTS Mobility";
+  const sellerDescription =
+    ctx.seller?.description ??
+    "CTS Mobility is a Verizon partner selling: Fixed Wireless Access (fast primary/backup internet over cellular), Starlink satellite failover, managed mobility (phones/tablets/rugged devices), and BYOD management.";
+
+  return `Draft a cold outreach email from a ${sellerName} sales rep.
 ${sequenceBlock}
 
-CTS Mobility is a Verizon partner selling: Fixed Wireless Access (fast primary/backup
-internet over cellular), Starlink satellite failover, managed mobility (phones/tablets/
-rugged devices), and BYOD management.
+${sellerDescription}
 
 Company being contacted: ${ctx.companyName}${ctx.domain ? ` (${ctx.domain})` : ""}
 ${ctx.industry ? `Industry: ${ctx.industry}` : ""}
@@ -74,7 +79,7 @@ HARD RULES:
 - Reference ONLY the facts above. Never invent numbers, dates, names, products, or claims.
 - Never fabricate familiarity ("we spoke last year") or social proof ("we work with your competitors").
 - No pricing. No attachments mentioned.
-- Sign off with the placeholders: [Your name], CTS Mobility, [Your phone].
+- Sign off with the placeholders: [Your name], ${sellerName}, [Your phone].
 - Subject line under 60 characters, specific to their situation, no clickbait.
 
 Return ONLY JSON: { "subject": string, "body": string }

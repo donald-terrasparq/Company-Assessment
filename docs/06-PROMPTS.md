@@ -69,7 +69,7 @@ Drop hits older than 18 months before sending to the model — they cost tokens 
 
 ## Extraction call (`lib/anthropic/extract.ts`)
 
-One call per company. Model from `settings.model`. `max_tokens: 4096`.
+One call per company. Model from `settings.model`. `max_tokens: 8192`.
 If `search_provider = 'anthropic'`, pass the web search tool and skip step 1 entirely:
 
 ```ts

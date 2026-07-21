@@ -48,12 +48,22 @@ actually requested can write, and only into that contact's phone field.
 1. **Plan**: API access requires a paid Apollo plan (Basic or higher; email
    export credits are included per seat, mobile credits vary by plan).
 2. **Create the key**: Apollo → Settings → **Integrations → API** → *Create new key*.
-   Name it e.g. `company-assessment`. **Do not make it a master key** — under
-   *API endpoint access*, enable only:
+   Name it e.g. `company-assessment`. Under *API endpoint access*, enable:
    - **People Search** — `POST /api/v1/mixed_people/search`
    - **People Enrichment** — `POST /api/v1/people/match`
    - **Organization Enrichment** — `GET /api/v1/organizations/enrich`
    - **News Search** — `POST /api/v1/news_articles/search`
+
+   **If searches still return 403 with those enabled, set the key as a
+   master key.** Apollo requires master keys for its *search* endpoints
+   (People Search, News Search) on most plans — scoped keys reliably cover
+   only the enrichment endpoints. A master key is safe here because the app
+   itself only ever calls the four endpoints above, the key lives in a
+   server-side env var, and reveals are single-contact user actions.
+
+   **Plan note**: Professional and higher plans include API access — no
+   separate API purchase is needed for these endpoints; they draw on the
+   plan's rate limits and credit allowances.
 3. **Set the env var**: Render dashboard → add `APOLLO` = the key
    (`APOLLO_API_KEY` also accepted) on **both** services: `company-assessment-web`
    (contact search + reveals) and `company-assessment-worker` (org enrichment +

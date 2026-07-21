@@ -104,7 +104,9 @@ export default async function DataSourcesSettingsPage() {
         firmographics (employees, revenue, locations, funding, tech stack) and recent news
         events as citable sources. Uses exactly four Apollo endpoints — People Search,
         People Enrichment (1 credit per email; mobile credit per phone), Organization
-        Enrichment, and News Search. Scope the API key to those four only.
+        Enrichment, and News Search. Enable those four on the key; if searches return
+        403 anyway, set it as a master key — Apollo requires master keys for its search
+        endpoints on most plans (the app still only ever calls these four).
       </p>
       <form action={updateApolloAction} className="flex items-center gap-3">
         <label className="flex cursor-pointer items-center gap-2 text-[13px] text-ink">

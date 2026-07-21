@@ -3,8 +3,10 @@ import {
   allProspects,
   prospectsForList,
   prospectsForLists,
+  prospectsForManualList,
   type ProspectRow,
 } from "@/lib/db/queries/prospects";
+import { MANUAL_LIST_NAME } from "@/lib/db/queries/manual";
 import { latestRunForList, listListsWithLatestRun } from "@/lib/db/queries/lists";
 import { ListSelector, ProspectsView } from "@/components/prospects/prospects-view";
 import { RefreshWhileRunning } from "@/components/prospects/refresh-while-running";
@@ -12,9 +14,9 @@ import { RefreshWhileRunning } from "@/components/prospects/refresh-while-runnin
 export default async function ProspectsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ list?: string; lists?: string }>;
+  searchParams: Promise<{ list?: string; lists?: string; q?: string; session?: string }>;
 }) {
-  const [{ list: listParamRaw, lists: listsParamRaw }, lists] = await Promise.all([
+  const [{ list: listParamRaw, lists: listsParamRaw, q, session }, lists] = await Promise.all([
     searchParams,
     listListsWithLatestRun(),
   ]);
@@ -50,6 +52,10 @@ export default async function ProspectsPage({
   const selectedList =
     isAll || isSelected ? null : (lists.find((l) => l.id === listParam) ?? lists[0]);
 
+  // Manual Entry accumulates single-company runs — show every entry's latest
+  // result (with entry date), not just the newest run
+  const isManual = !isAll && !isSelected && selectedList!.name === MANUAL_LIST_NAME;
+
   let rows: ProspectRow[];
   let activeRunId: string | null = null;
   let runStatus: string | null = null;
@@ -57,6 +63,15 @@ export default async function ProspectsPage({
     rows = await prospectsForLists(selectedIds);
   } else if (isAll) {
     rows = await allProspects();
+  } else if (isManual) {
+    rows = await prospectsForManualList(selectedList!.id);
+    const latest = await latestRunForList(selectedList!.id);
+    if (latest) {
+      runStatus = latest.status;
+      if (latest.status === "queued" || latest.status === "running") {
+        activeRunId = latest.id;
+      }
+    }
   } else {
     rows = await prospectsForList(selectedList!.id);
     const latest = await latestRunForList(selectedList!.id);
@@ -116,7 +131,14 @@ export default async function ProspectsPage({
           )}
         </section>
       ) : (
-        <ProspectsView rows={rows} listParam={exportParam} showListColumn={showListColumn} />
+        <ProspectsView
+          rows={rows}
+          listParam={exportParam}
+          showListColumn={showListColumn}
+          initialQuery={q ?? ""}
+          showEntryDate={isManual}
+          sessionOnly={isManual && session === "1"}
+        />
       )}
     </div>
   );

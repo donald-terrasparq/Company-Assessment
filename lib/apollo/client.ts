@@ -13,9 +13,30 @@
 const BASE = "https://api.apollo.io/api/v1";
 const TIMEOUT_MS = 15_000;
 
-/** The Render env var is named APOLLO; APOLLO_API_KEY also works. */
+/**
+ * The Render env var is named APOLLO; APOLLO_API_KEY also works. Whitespace
+ * and wrapping quotes are stripped — the classic causes of a 401 after a
+ * copy-paste into a dashboard field.
+ */
 export function apolloKey(): string | undefined {
-  return process.env.APOLLO ?? process.env.APOLLO_API_KEY;
+  const raw = process.env.APOLLO ?? process.env.APOLLO_API_KEY;
+  if (!raw) return undefined;
+  const cleaned = raw.trim().replace(/^["']+|["']+$/g, "");
+  return cleaned || undefined;
+}
+
+/** Which env var supplied the key, for diagnostics. */
+export function apolloKeySource(): "APOLLO" | "APOLLO_API_KEY" | null {
+  if (process.env.APOLLO) return "APOLLO";
+  if (process.env.APOLLO_API_KEY) return "APOLLO_API_KEY";
+  return null;
+}
+
+/** Safe fingerprint (first/last 4 chars + length) — never the key itself. */
+export function apolloKeyFingerprint(): string | null {
+  const key = apolloKey();
+  if (!key) return null;
+  return `${key.slice(0, 4)}…${key.slice(-4)} (${key.length} chars)`;
 }
 
 export function isApolloConfigured(): boolean {

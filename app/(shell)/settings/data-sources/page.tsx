@@ -1,7 +1,7 @@
 import { forbidden } from "next/navigation";
 import { auth } from "@/auth";
 import { getSettings } from "@/lib/db/queries/settings";
-import { updateProviderAction } from "../admin-actions";
+import { updateApolloAction, updateProviderAction } from "../admin-actions";
 
 function KeyStatus({ configured }: { configured: boolean }) {
   return configured ? (
@@ -50,8 +50,12 @@ export default async function DataSourcesSettingsPage() {
     },
   ];
 
+  const apolloConfigured = !!process.env.APOLLO_API_KEY;
+  const apolloEnabled = !!settings?.apolloEnabled;
+
   return (
-    <section className="max-w-2xl rounded-card border border-line bg-card p-5 shadow-card">
+    <div className="flex max-w-2xl flex-col gap-5">
+    <section className="rounded-card border border-line bg-card p-5 shadow-card">
       <p className="mb-3.5 flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[.1em] text-muted">
         <span>Data sources</span>
         <span className="h-px flex-1 bg-line-2" />
@@ -85,5 +89,39 @@ export default async function DataSourcesSettingsPage() {
         </button>
       </form>
     </section>
+
+    {/* Apollo contact enrichment (Phase 7) */}
+    <section className="rounded-card border border-line bg-card p-5 shadow-card">
+      <p className="mb-3.5 flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[.1em] text-muted">
+        <span>Contact enrichment — Apollo.io</span>
+        <span className="h-px flex-1 bg-line-2" />
+        <KeyStatus configured={apolloConfigured} />
+      </p>
+      <p className="mb-3 max-w-[62ch] text-[12.5px] leading-[1.5] text-slate">
+        Finds target best contacts per company (IT-first; no CEO at $20M+ revenue, no C-level
+        past $500M) and reveals email or direct phone only for contacts a user selects —
+        credits are never spent in bulk. Uses exactly two Apollo endpoints: People Search
+        (free) and People Enrichment (1 credit per email; mobile credit per phone). Scope the
+        API key to those two endpoints only.
+      </p>
+      <form action={updateApolloAction} className="flex items-center gap-3">
+        <label className="flex cursor-pointer items-center gap-2 text-[13px] text-ink">
+          <input type="checkbox" name="enabled" defaultChecked={apolloEnabled} />
+          Enable Apollo contact enrichment
+        </label>
+        <button
+          type="submit"
+          className="rounded-[10px] border border-ink bg-ink px-4 py-2 text-[13px] font-medium text-white hover:bg-[#1b2d43]"
+        >
+          Save
+        </button>
+        {apolloEnabled && !apolloConfigured && (
+          <span className="text-[11.5px] font-medium text-tier2">
+            Enabled, but APOLLO_API_KEY is missing — set it in Render.
+          </span>
+        )}
+      </form>
+    </section>
+    </div>
   );
 }

@@ -187,6 +187,8 @@ export const contacts = pgTable("contacts", {
     .notNull()
     .default("search"),
   verified: boolean("verified").notNull().default(false),
+  apolloPersonId: text("apollo_person_id"),
+  phoneRequestedAt: timestamp("phone_requested_at", { withTimezone: true }),
   enrichedAt: timestamp("enriched_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

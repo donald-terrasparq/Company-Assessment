@@ -37,6 +37,12 @@ export async function updateProviderAction(formData: FormData): Promise<void> {
   revalidatePath("/settings/data-sources");
 }
 
+export async function updateApolloAction(formData: FormData): Promise<void> {
+  if (!(await requireAdmin())) return;
+  await updateSettings({ apolloEnabled: formData.get("enabled") === "on" });
+  revalidatePath("/settings/data-sources");
+}
+
 export async function updateBudgetAction(formData: FormData): Promise<void> {
   if (!(await requireAdmin())) return;
   // preset chip (if one was clicked) wins over the custom input

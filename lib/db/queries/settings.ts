@@ -33,6 +33,7 @@ export async function updateSettings(patch: {
   monthlyBudgetUsd?: string;
   retentionDays?: number;
   escalationPct?: number;
+  apolloEnabled?: boolean;
 }): Promise<void> {
   await db
     .update(settings)

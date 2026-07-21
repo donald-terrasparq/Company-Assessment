@@ -53,4 +53,25 @@ describe("buildEmailPrompt", () => {
     expect(p).toContain("[Your name]");
     expect(p).toContain("CTS Mobility");
   });
+
+  it("a single email has no sequence block", () => {
+    expect(buildEmailPrompt(ctx())).not.toContain("SEQUENCE:");
+    expect(buildEmailPrompt(ctx({ sequencePosition: 1, sequenceLength: 1 }))).not.toContain(
+      "SEQUENCE:",
+    );
+  });
+
+  it("email 1 of N sets up the sequence without follow-up rules", () => {
+    const p = buildEmailPrompt(ctx({ sequencePosition: 1, sequenceLength: 3 }));
+    expect(p).toContain("email 1 of a planned 3-email");
+    expect(p).not.toContain("FOLLOW-UP");
+  });
+
+  it("follow-up emails get the follow-up rules", () => {
+    const p = buildEmailPrompt(ctx({ sequencePosition: 2, sequenceLength: 3 }));
+    expect(p).toContain("FOLLOW-UP email 2 of 3");
+    expect(p).toContain("NOT replied");
+    expect(p).toContain("25% shorter");
+    expect(p).toContain("Fresh subject line");
+  });
 });

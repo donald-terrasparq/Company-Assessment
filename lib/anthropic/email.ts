@@ -17,6 +17,9 @@ export interface EmailContext {
   contact: { name: string; title: string | null } | null;
   styleKey: string;
   signals: Array<{ title: string; date: string | null; sourceName: string | null }>;
+  /** Position in a multi-email outreach sequence (1-based). Default 1 of 1. */
+  sequencePosition?: number;
+  sequenceLength?: number;
 }
 
 /** Pure prompt builder — unit-testable. */
@@ -28,7 +31,26 @@ export function buildEmailPrompt(ctx: EmailContext): string {
     ? `${ctx.contact.name}${ctx.contact.title ? `, ${ctx.contact.title}` : ""}`
     : "the IT leadership team (no named contact — use a role-appropriate greeting like \"Hi there\" and write for an IT decision-maker)";
 
+  const pos = ctx.sequencePosition ?? 1;
+  const len = ctx.sequenceLength ?? 1;
+  const sequenceBlock =
+    len <= 1
+      ? ""
+      : pos === 1
+        ? `\nSEQUENCE: This is email 1 of a planned ${len}-email outreach sequence to the same
+recipient. It must stand fully on its own, but don't exhaust every angle — later
+emails will pitch different plays.\n`
+        : `\nSEQUENCE: This is FOLLOW-UP email ${pos} of ${len} to the same recipient, who has
+NOT replied to the earlier email(s). Rules for follow-ups:
+- Briefly acknowledge the earlier note in one clause, no guilt-tripping, never
+  "just bumping this".
+- Pivot to the NEW angle below — do not repeat the earlier pitch.
+- Run roughly 25% shorter than the style's word range.
+- Fresh subject line — never "Re:" or a copy of a previous subject.
+- Never claim they replied, opened, or clicked anything.\n`;
+
   return `Draft a cold outreach email from a CTS Mobility sales rep.
+${sequenceBlock}
 
 CTS Mobility is a Verizon partner selling: Fixed Wireless Access (fast primary/backup
 internet over cellular), Starlink satellite failover, managed mobility (phones/tablets/

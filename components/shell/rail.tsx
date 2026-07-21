@@ -48,7 +48,11 @@ export function Rail({ initials }: { initials: string }) {
 
       <div
         title="Signed in — manage in Settings"
-        className="grid h-[38px] w-[38px] place-items-center rounded-full bg-[#2b3f56] font-disp text-[13px] font-semibold text-[#ccffee]"
+        className={
+          initials.length > 2
+            ? "grid h-[38px] w-[38px] place-items-center rounded-full bg-[#2b3f56] font-disp text-[8px] font-bold tracking-[.04em] text-[#ccffee]"
+            : "grid h-[38px] w-[38px] place-items-center rounded-full bg-[#2b3f56] font-disp text-[13px] font-semibold text-[#ccffee]"
+        }
       >
         {initials}
       </div>

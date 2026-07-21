@@ -21,6 +21,8 @@ export async function listUsers(): Promise<UserRow[]> {
 export async function createUser(input: {
   username: string;
   email?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
   passwordHash: string;
   role: "admin" | "member";
 }): Promise<UserRow> {
@@ -29,6 +31,8 @@ export async function createUser(input: {
     .values({
       username: input.username,
       email: input.email ?? null,
+      firstName: input.firstName ?? null,
+      lastName: input.lastName ?? null,
       passwordHash: input.passwordHash,
       role: input.role,
     })

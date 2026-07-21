@@ -7,6 +7,9 @@ export type InviteRow = typeof invites.$inferSelect;
 export async function createInvite(input: {
   code: string;
   role: "admin" | "member";
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
   createdBy: string;
   expiresAt: Date;
 }): Promise<InviteRow> {

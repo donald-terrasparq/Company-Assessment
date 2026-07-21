@@ -4,6 +4,7 @@ import { draftEmail } from "@/lib/anthropic/email";
 import { normalizePlaySteps } from "@/lib/anthropic/extract";
 import { EMAIL_STYLES } from "@/lib/email-styles";
 import { getResultDetail } from "@/lib/db/queries/prospects";
+import { getActiveCompanyProfile } from "@/lib/db/queries/company-profiles";
 import { getSettings } from "@/lib/db/queries/settings";
 import { logUsage, monthToDateCostUsd } from "@/lib/db/queries/usage";
 
@@ -91,6 +92,10 @@ export async function POST(request: Request): Promise<Response> {
       signals: topSignals,
       sequencePosition: sequence_position,
       sequenceLength: sequence_length,
+      seller: await getActiveCompanyProfile().then((p) => ({
+        name: p.name,
+        description: p.aiContext.companyDescription,
+      })),
     });
 
     await logUsage({

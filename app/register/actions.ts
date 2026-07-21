@@ -56,7 +56,10 @@ export async function registerAction(
   const passwordHash = await bcrypt.hash(password, 12);
   const user = await createUser({
     username,
-    email: email || null,
+    // the invite's email/name (set by the admin) win over the form
+    email: invite?.email ?? (email || null),
+    firstName: invite?.firstName ?? null,
+    lastName: invite?.lastName ?? null,
     passwordHash,
     role: invite?.role ?? "member",
   });

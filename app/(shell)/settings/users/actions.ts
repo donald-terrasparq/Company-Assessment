@@ -20,9 +20,18 @@ export async function createInviteAction(formData: FormData): Promise<void> {
   if (!admin) return;
 
   const role = z.enum(["admin", "member"]).catch("member").parse(formData.get("role"));
+  const trimmed = (key: string): string | null => {
+    const v = String(formData.get(key) ?? "").trim();
+    return v ? v.slice(0, 80) : null;
+  };
+  const email = trimmed("email");
+  if (email && !z.string().email().safeParse(email).success) return;
   await createInvite({
     code: generateInviteCode(),
     role,
+    firstName: trimmed("first_name"),
+    lastName: trimmed("last_name"),
+    email,
     createdBy: admin.id,
     expiresAt: inviteExpiresAt(new Date()),
   });

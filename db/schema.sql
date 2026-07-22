@@ -43,6 +43,7 @@ CREATE TABLE invites (
   last_name   TEXT,
   email       TEXT,
   email_sent_at TIMESTAMPTZ,          -- 0012: invite email delivered (Resend)
+  email_error TEXT,                   -- 0013: last Resend failure, shown in the UI
   created_by  UUID REFERENCES users(id) ON DELETE SET NULL,
   expires_at  TIMESTAMPTZ NOT NULL,
   used_by     UUID REFERENCES users(id) ON DELETE SET NULL,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildInviteEmail } from "@/lib/email/invite";
+import { buildInviteEmail, inviteEmailFailureHint } from "@/lib/email/invite";
 
 describe("buildInviteEmail", () => {
   const input = {
@@ -24,5 +24,37 @@ describe("buildInviteEmail", () => {
     const { text } = buildInviteEmail({ ...input, firstName: null, invitedBy: null });
     expect(text).toContain("Hi,");
     expect(text).not.toContain("by ");
+  });
+});
+
+describe("inviteEmailFailureHint", () => {
+  it("maps a bad key to a re-paste hint", () => {
+    expect(inviteEmailFailureHint('Resend 401: {"message":"API key is invalid"}')).toContain(
+      "RESEND_API_KEY",
+    );
+  });
+
+  it("maps the onboarding-sender restriction to the verify-domain hint", () => {
+    const hint = inviteEmailFailureHint(
+      'Resend 403: {"message":"You can only send testing emails to your own email address (you@example.com). To send emails to other recipients, please verify a domain"}',
+    );
+    expect(hint).toContain("onboarding@resend.dev");
+    expect(hint).toContain("INVITE_FROM_EMAIL");
+  });
+
+  it("maps a missing key to the env-var hint", () => {
+    expect(inviteEmailFailureHint("RESEND_API_KEY is not configured.")).toContain(
+      "Render web service",
+    );
+  });
+
+  it("maps a malformed sender to the from-address hint", () => {
+    expect(inviteEmailFailureHint('Resend 422: {"message":"Invalid `from` field"}')).toContain(
+      "INVITE_FROM_EMAIL",
+    );
+  });
+
+  it("returns null for unknown errors", () => {
+    expect(inviteEmailFailureHint("Resend 500: internal error")).toBeNull();
   });
 });

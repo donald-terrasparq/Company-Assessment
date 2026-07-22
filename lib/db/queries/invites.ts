@@ -31,8 +31,23 @@ export async function listOpenInvites(): Promise<InviteRow[]> {
     .orderBy(desc(invites.createdAt));
 }
 
+export async function findInviteById(id: string): Promise<InviteRow | undefined> {
+  const rows = await db.select().from(invites).where(eq(invites.id, id)).limit(1);
+  return rows[0];
+}
+
 export async function markInviteEmailSent(id: string): Promise<void> {
-  await db.update(invites).set({ emailSentAt: new Date() }).where(eq(invites.id, id));
+  await db
+    .update(invites)
+    .set({ emailSentAt: new Date(), emailError: null })
+    .where(eq(invites.id, id));
+}
+
+export async function setInviteEmailError(id: string, message: string): Promise<void> {
+  await db
+    .update(invites)
+    .set({ emailError: message.slice(0, 500) })
+    .where(eq(invites.id, id));
 }
 
 export async function markInviteUsed(id: string, userId: string): Promise<void> {

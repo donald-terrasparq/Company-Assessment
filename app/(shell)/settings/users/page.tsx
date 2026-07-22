@@ -158,6 +158,19 @@ export default async function UsersSettingsPage() {
                   {[inv.firstName, inv.lastName].filter(Boolean).join(" ") || "(no name)"}
                 </span>
                 {inv.email && <span className="mono text-[11px] text-slate">{inv.email}</span>}
+                {inv.email &&
+                  (inv.emailSentAt ? (
+                    <span className="rounded-full bg-tier1-soft px-2 py-0.5 text-[10px] font-bold text-tier1">
+                      ✉ EMAILED
+                    </span>
+                  ) : (
+                    <span
+                      title="The invite email didn't go out — send the link yourself with Copy link"
+                      className="rounded-full bg-[#FBF0DA] px-2 py-0.5 text-[10px] font-bold text-tier2"
+                    >
+                      NOT EMAILED
+                    </span>
+                  ))}
                 <code className="mono text-[12px] text-muted">{inv.code}</code>
                 <span className="rounded-md bg-line-2 px-2 py-0.5 font-disp text-[10.5px] font-semibold uppercase tracking-wide text-slate">
                   {inv.role}

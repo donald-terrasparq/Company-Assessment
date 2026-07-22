@@ -31,6 +31,10 @@ export async function listOpenInvites(): Promise<InviteRow[]> {
     .orderBy(desc(invites.createdAt));
 }
 
+export async function markInviteEmailSent(id: string): Promise<void> {
+  await db.update(invites).set({ emailSentAt: new Date() }).where(eq(invites.id, id));
+}
+
 export async function markInviteUsed(id: string, userId: string): Promise<void> {
   await db
     .update(invites)

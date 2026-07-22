@@ -42,6 +42,7 @@ CREATE TABLE invites (
   first_name  TEXT,                -- 0009: who the invite is for
   last_name   TEXT,
   email       TEXT,
+  email_sent_at TIMESTAMPTZ,          -- 0012: invite email delivered (Resend)
   created_by  UUID REFERENCES users(id) ON DELETE SET NULL,
   expires_at  TIMESTAMPTZ NOT NULL,
   used_by     UUID REFERENCES users(id) ON DELETE SET NULL,

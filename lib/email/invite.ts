@@ -17,6 +17,60 @@ export function isResendConfigured(): boolean {
   return !!resendKey();
 }
 
+/** Which env var supplied the key — spotting a dash-named var ("RESEND-API_KEY"). */
+export function resendKeySource(): string | null {
+  if (process.env.RESEND_API_KEY?.trim()) return "RESEND_API_KEY";
+  if (process.env["RESEND-API_KEY"]?.trim()) return "RESEND-API_KEY";
+  return null;
+}
+
+/** Safe fingerprint (first/last 4 chars) so a bad paste can be spotted. */
+export function resendKeyFingerprint(): string | null {
+  const key = resendKey();
+  if (!key) return null;
+  if (key.length <= 8) return `${key.slice(0, 2)}…`;
+  return `${key.slice(0, 4)}…${key.slice(-4)}`;
+}
+
+/** The sender the next email will use — default until INVITE_FROM_EMAIL is set. */
+export function inviteFromAddress(): string {
+  return (
+    process.env.INVITE_FROM_EMAIL?.trim() || "Company Assessment <onboarding@resend.dev>"
+  );
+}
+
+/**
+ * Pure: turn a raw Resend failure message into an actionable hint for the
+ * Users tab. Returns null when we have nothing better than the raw error.
+ */
+export function inviteEmailFailureHint(message: string): string | null {
+  const m = message.toLowerCase();
+  if (m.includes("resend_api_key is not configured")) {
+    return "Set RESEND_API_KEY on the Render web service (Environment tab), then redeploy.";
+  }
+  if (m.includes("resend 401")) {
+    return "Resend rejected the key itself — re-paste the API key into RESEND_API_KEY on the Render web service (the value, not the key name).";
+  }
+  if (
+    m.includes("testing emails") ||
+    m.includes("verify a domain") ||
+    m.includes("your own email address") ||
+    (m.includes("resend 403") && m.includes("domain"))
+  ) {
+    return "Resend's default onboarding@resend.dev sender only delivers to the email address you signed up to Resend with. Verify your own domain in Resend (Domains tab), then set INVITE_FROM_EMAIL to e.g. \"CTS Mobility <invites@yourdomain.com>\".";
+  }
+  if (m.includes("resend 422")) {
+    return "Resend rejected the message — usually a malformed from/to address. Check INVITE_FROM_EMAIL is either unset or a full address like \"Name <invites@yourdomain.com>\".";
+  }
+  if (m.includes("resend 429")) {
+    return "Resend rate limit — wait a minute and press Email again.";
+  }
+  if (m.includes("abort") || m.includes("timeout") || m.includes("fetch failed")) {
+    return "Could not reach api.resend.com from the server — likely transient; press Email again.";
+  }
+  return null;
+}
+
 export interface InviteEmailInput {
   firstName: string | null;
   companyName: string;

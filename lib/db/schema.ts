@@ -36,6 +36,7 @@ export const invites = pgTable("invites", {
   lastName: text("last_name"),
   email: text("email"),
   emailSentAt: timestamp("email_sent_at", { withTimezone: true }),
+  emailError: text("email_error"),
   createdBy: uuid("created_by"),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   usedBy: uuid("used_by"),

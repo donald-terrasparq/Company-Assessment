@@ -11,6 +11,7 @@ import { DraftEmailModal } from "@/components/company/draft-email-modal";
 import { EmailHistoryCard } from "@/components/company/email-history";
 import { listDraftedEmailsForCompany } from "@/lib/db/queries/emails";
 import { ContactsCard } from "@/components/company/contacts-card";
+import { DeleteCompanyButton } from "@/components/company/delete-company-button";
 import { isApolloConfigured } from "@/lib/apollo/client";
 import { parseContactPrefs } from "@/lib/apollo/prefs";
 import { getSettings } from "@/lib/db/queries/settings";
@@ -619,6 +620,13 @@ export default async function CompanyDetailPage({
           </section>
         </div>
       </div>
+
+      {/* danger zone — delete this company from its list, confirm-gated */}
+      <DeleteCompanyButton
+        companyId={company.id}
+        companyName={company.name}
+        listName={list.displayName}
+      />
     </div>
   );
 }

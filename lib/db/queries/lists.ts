@@ -114,6 +114,27 @@ export async function findCompanyById(id: string): Promise<CompanyRow | undefine
   return rows[0];
 }
 
+/**
+ * Permanently remove a company from its list. FK cascades take the jobs,
+ * results, signals, contacts, and drafted emails with it; the list's
+ * company_count is decremented to match.
+ */
+export async function deleteCompany(companyId: string): Promise<void> {
+  await db.transaction(async (tx) => {
+    const deleted = await tx
+      .delete(companies)
+      .where(eq(companies.id, companyId))
+      .returning({ listId: companies.listId });
+    const listId = deleted[0]?.listId;
+    if (listId) {
+      await tx
+        .update(lists)
+        .set({ companyCount: sql`GREATEST(${lists.companyCount} - 1, 0)` })
+        .where(eq(lists.id, listId));
+    }
+  });
+}
+
 export async function setCompanyDomain(
   id: string,
   domain: string,

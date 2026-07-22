@@ -5,11 +5,14 @@ import { getSettings } from "@/lib/db/queries/settings";
 import { listUsers } from "@/lib/db/queries/users";
 import {
   createInviteAction,
+  resendInviteEmailAction,
   revokeInviteAction,
   toggleOpenRegistrationAction,
   toggleUserActiveAction,
 } from "./actions";
 import { CopyInviteLink } from "./copy-invite-link";
+import { ResendTestButton } from "@/components/settings/resend-test-button";
+import { inviteEmailFailureHint } from "@/lib/email/invite";
 
 export default async function UsersSettingsPage() {
   const session = await auth();
@@ -152,47 +155,71 @@ export default async function UsersSettingsPage() {
             {invites.map((inv) => (
               <li
                 key={inv.id}
-                className="flex flex-wrap items-center gap-3 rounded-[11px] border border-line-2 px-3.5 py-2.5"
+                className="rounded-[11px] border border-line-2 px-3.5 py-2.5"
               >
-                <span className="text-[12.5px] font-medium text-ink">
-                  {[inv.firstName, inv.lastName].filter(Boolean).join(" ") || "(no name)"}
-                </span>
-                {inv.email && <span className="mono text-[11px] text-slate">{inv.email}</span>}
-                {inv.email &&
-                  (inv.emailSentAt ? (
-                    <span className="rounded-full bg-tier1-soft px-2 py-0.5 text-[10px] font-bold text-tier1">
-                      ✉ EMAILED
-                    </span>
-                  ) : (
-                    <span
-                      title="The invite email didn't go out — send the link yourself with Copy link"
-                      className="rounded-full bg-[#FBF0DA] px-2 py-0.5 text-[10px] font-bold text-tier2"
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="text-[12.5px] font-medium text-ink">
+                    {[inv.firstName, inv.lastName].filter(Boolean).join(" ") || "(no name)"}
+                  </span>
+                  {inv.email && <span className="mono text-[11px] text-slate">{inv.email}</span>}
+                  {inv.email &&
+                    (inv.emailSentAt ? (
+                      <span className="rounded-full bg-tier1-soft px-2 py-0.5 text-[10px] font-bold text-tier1">
+                        ✉ EMAILED
+                      </span>
+                    ) : (
+                      <span
+                        title="The invite email didn't go out — see the error below, or send the link yourself with Copy link"
+                        className="rounded-full bg-[#FBF0DA] px-2 py-0.5 text-[10px] font-bold text-tier2"
+                      >
+                        NOT EMAILED
+                      </span>
+                    ))}
+                  <code className="mono text-[12px] text-muted">{inv.code}</code>
+                  <span className="rounded-md bg-line-2 px-2 py-0.5 font-disp text-[10.5px] font-semibold uppercase tracking-wide text-slate">
+                    {inv.role}
+                  </span>
+                  <span className="mono text-[11px] text-muted">
+                    expires {inv.expiresAt.toISOString().slice(0, 10)}
+                  </span>
+                  <span className="flex-1" />
+                  {inv.email && !inv.emailSentAt && (
+                    <form action={resendInviteEmailAction} className="inline">
+                      <input type="hidden" name="id" value={inv.id} />
+                      <button
+                        type="submit"
+                        className="rounded-lg border border-line bg-card px-2.5 py-1 text-[11.5px] font-medium text-slate transition-colors hover:border-[#cdd4de] hover:text-ink"
+                      >
+                        Email again
+                      </button>
+                    </form>
+                  )}
+                  <CopyInviteLink code={inv.code} />
+                  <form action={revokeInviteAction} className="inline">
+                    <input type="hidden" name="id" value={inv.id} />
+                    <button
+                      type="submit"
+                      className="rounded-lg border border-line bg-card px-2.5 py-1 text-[11.5px] font-medium text-tier2 transition-colors hover:border-[#cdd4de]"
                     >
-                      NOT EMAILED
-                    </span>
-                  ))}
-                <code className="mono text-[12px] text-muted">{inv.code}</code>
-                <span className="rounded-md bg-line-2 px-2 py-0.5 font-disp text-[10.5px] font-semibold uppercase tracking-wide text-slate">
-                  {inv.role}
-                </span>
-                <span className="mono text-[11px] text-muted">
-                  expires {inv.expiresAt.toISOString().slice(0, 10)}
-                </span>
-                <span className="flex-1" />
-                <CopyInviteLink code={inv.code} />
-                <form action={revokeInviteAction} className="inline">
-                  <input type="hidden" name="id" value={inv.id} />
-                  <button
-                    type="submit"
-                    className="rounded-lg border border-line bg-card px-2.5 py-1 text-[11.5px] font-medium text-tier2 transition-colors hover:border-[#cdd4de]"
-                  >
-                    Revoke
-                  </button>
-                </form>
+                      Revoke
+                    </button>
+                  </form>
+                </div>
+                {inv.email && !inv.emailSentAt && inv.emailError && (
+                  <div className="mt-2 rounded-[9px] bg-spark-soft px-3 py-2 text-[11.5px] leading-[1.5] text-spark">
+                    <span className="mono block break-all text-[11px]">{inv.emailError}</span>
+                    {inviteEmailFailureHint(inv.emailError) && (
+                      <span className="mt-1 block font-medium">
+                        {inviteEmailFailureHint(inv.emailError)}
+                      </span>
+                    )}
+                  </div>
+                )}
               </li>
             ))}
           </ul>
         )}
+        <ResendTestButton />
       </section>
 
       <section className="rounded-card border border-line bg-card p-5 shadow-card">

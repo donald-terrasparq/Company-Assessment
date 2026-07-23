@@ -9,6 +9,7 @@ import {
   createInvite,
   deleteInvite,
   findInviteById,
+  listOpenInvites,
   markInviteEmailSent,
   setInviteEmailError,
 } from "@/lib/db/queries/invites";
@@ -134,6 +135,13 @@ export async function setEmailProviderAction(formData: FormData): Promise<void> 
   const provider = z.enum(["resend", "brevo"]).safeParse(formData.get("provider"));
   if (!provider.success) return;
   await updateSettings({ emailProvider: provider.data });
+
+  // a provider switch usually follows a failed send — retry every pending
+  // invite email through the new provider so stale errors don't linger
+  const pending = (await listOpenInvites()).filter((i) => i.email && !i.emailSentAt);
+  for (const invite of pending) {
+    await trySendInviteEmail(invite, admin.id);
+  }
   revalidatePath("/settings/users");
 }
 

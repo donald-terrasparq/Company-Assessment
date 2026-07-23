@@ -54,6 +54,9 @@ services:
         sync: false               # set before first seed, then change the password in-app
       - key: SEED_ADMIN_PASSWORD
         sync: false
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=400"   # GC below the 512MB Starter kill line
+                                            # instead of OOM-restarting (502s)
 
   # --- Background worker: drains the jobs queue ---
   - type: worker

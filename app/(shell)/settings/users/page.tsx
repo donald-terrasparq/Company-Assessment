@@ -214,6 +214,9 @@ export default async function UsersSettingsPage() {
                 </div>
                 {inv.email && !inv.emailSentAt && inv.emailError && (
                   <div className="mt-2 rounded-[9px] bg-spark-soft px-3 py-2 text-[11.5px] leading-[1.5] text-spark">
+                    <span className="block text-[10px] font-bold uppercase tracking-[.08em]">
+                      Last send attempt failed
+                    </span>
                     <span className="mono block break-all text-[11px]">{inv.emailError}</span>
                     {inviteEmailFailureHint(inv.emailError) && (
                       <span className="mt-1 block font-medium">

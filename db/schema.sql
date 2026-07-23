@@ -31,6 +31,8 @@ CREATE TABLE settings (
   -- 0008: Apollo contact-search defaults (Settings → Contacts tab)
   contact_defaults         JSONB NOT NULL DEFAULT
     '{"seniorities":["vp","director","manager"],"departments":["information_technology"],"titles":["VP","Manager","Senior Manager"]}',
+  -- 0014: invite-email provider (Settings → Users): 'resend' or 'brevo'
+  email_provider           TEXT NOT NULL DEFAULT 'resend' CHECK (email_provider IN ('resend', 'brevo')),
   updated_at               TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

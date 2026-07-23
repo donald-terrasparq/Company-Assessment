@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildInviteEmail, inviteEmailFailureHint } from "@/lib/email/invite";
+import {
+  buildInviteEmail,
+  inviteEmailFailureHint,
+  parseSenderAddress,
+} from "@/lib/email/invite";
 
 describe("buildInviteEmail", () => {
   const input = {
@@ -56,5 +60,53 @@ describe("inviteEmailFailureHint", () => {
 
   it("returns null for unknown errors", () => {
     expect(inviteEmailFailureHint("Resend 500: internal error")).toBeNull();
+  });
+
+  it("maps a bad Brevo key to a re-paste hint", () => {
+    expect(inviteEmailFailureHint('Brevo 401: {"message":"Key not found"}')).toContain(
+      "BREVO_API_KEY",
+    );
+  });
+
+  it("maps a missing Brevo key to the env-var hint", () => {
+    expect(inviteEmailFailureHint("BREVO_API_KEY is not configured.")).toContain(
+      "SMTP & API",
+    );
+  });
+
+  it("maps a missing sender to the INVITE_FROM_EMAIL hint", () => {
+    const hint = inviteEmailFailureHint(
+      "INVITE_FROM_EMAIL is not set — Brevo requires a validated sender.",
+    );
+    expect(hint).toContain("Validate a sender");
+    expect(hint).toContain("INVITE_FROM_EMAIL");
+  });
+
+  it("maps an unvalidated Brevo sender to the validate-sender hint", () => {
+    expect(
+      inviteEmailFailureHint('Brevo 400: {"code":"invalid_parameter","message":"sender email is not valid"}'),
+    ).toContain("validated senders");
+  });
+});
+
+describe("parseSenderAddress", () => {
+  it("splits a display-name sender into name + email", () => {
+    expect(parseSenderAddress("CTS Mobility <invites@ctsmobility.com>")).toEqual({
+      name: "CTS Mobility",
+      email: "invites@ctsmobility.com",
+    });
+  });
+
+  it("handles a bare address", () => {
+    expect(parseSenderAddress("donald98072@gmail.com")).toEqual({
+      email: "donald98072@gmail.com",
+    });
+  });
+
+  it("strips quotes around the display name", () => {
+    expect(parseSenderAddress('"CTS Mobility" <invites@ctsmobility.com>')).toEqual({
+      name: "CTS Mobility",
+      email: "invites@ctsmobility.com",
+    });
   });
 });

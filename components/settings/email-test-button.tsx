@@ -1,6 +1,6 @@
 "use client";
 
-/** Users tab: one-click Resend key + domain check with a safe key fingerprint. */
+/** Users tab: one-click check of the active invite-email provider. */
 import { useState } from "react";
 import { Loader2, MailCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -8,12 +8,13 @@ import { cn } from "@/lib/utils";
 interface HealthResult {
   ok: boolean;
   detail: string;
+  provider: string;
   keySource: string | null;
   keyFingerprint: string | null;
-  from: string;
+  from: string | null;
 }
 
-export function ResendTestButton() {
+export function EmailTestButton() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<HealthResult | null>(null);
 
@@ -21,15 +22,16 @@ export function ResendTestButton() {
     setBusy(true);
     setResult(null);
     try {
-      const res = await fetch("/api/resend/health");
+      const res = await fetch("/api/email/health");
       setResult((await res.json()) as HealthResult);
     } catch {
       setResult({
         ok: false,
         detail: "Request failed — is the app deployed?",
+        provider: "",
         keySource: null,
         keyFingerprint: null,
-        from: "",
+        from: null,
       });
     } finally {
       setBusy(false);
@@ -61,8 +63,8 @@ export function ResendTestButton() {
           <b>{result.ok ? "Ready." : "Not ready."}</b> {result.detail}
           {result.keyFingerprint && (
             <span className="mono block text-[11px] opacity-80">
-              key from {result.keySource}: {result.keyFingerprint} — compare with the key in
-              Resend&apos;s API Keys page
+              key from {result.keySource}: {result.keyFingerprint} — compare with the key in your{" "}
+              {result.provider === "brevo" ? "Brevo API Keys" : "Resend API Keys"} page
             </span>
           )}
         </div>

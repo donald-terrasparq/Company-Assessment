@@ -57,6 +57,9 @@ export const settings = pgTable("settings", {
   escalationPct: integer("escalation_pct").notNull().default(20),
   apolloEnabled: boolean("apollo_enabled").notNull().default(false),
   contactDefaults: jsonb("contact_defaults"),
+  emailProvider: text("email_provider", { enum: ["resend", "brevo"] })
+    .notNull()
+    .default("resend"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

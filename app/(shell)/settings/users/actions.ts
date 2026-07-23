@@ -13,10 +13,14 @@ import {
   setInviteEmailError,
 } from "@/lib/db/queries/invites";
 import type { InviteRow } from "@/lib/db/queries/invites";
-import { isResendConfigured, sendInviteEmail } from "@/lib/email/invite";
+import { sendInviteEmail } from "@/lib/email/invite";
 import { getActiveCompanyProfile } from "@/lib/db/queries/company-profiles";
 import { findUserById as findAdminById } from "@/lib/db/queries/users";
-import { setAllowOpenRegistration } from "@/lib/db/queries/settings";
+import {
+  getSettings,
+  setAllowOpenRegistration,
+  updateSettings,
+} from "@/lib/db/queries/settings";
 import { findUserById, setUserActive } from "@/lib/db/queries/users";
 
 /** Every action here re-checks the session server-side — never trust the client. */
@@ -57,23 +61,18 @@ export async function createInviteAction(formData: FormData): Promise<void> {
 /** Send (or re-send) the invite email; record success or the exact failure. */
 async function trySendInviteEmail(invite: InviteRow, adminId: string): Promise<void> {
   if (!invite.email) return;
-  if (!isResendConfigured()) {
-    await setInviteEmailError(
-      invite.id,
-      "RESEND_API_KEY is not configured on the web service.",
-    );
-    return;
-  }
   try {
     const h = await headers();
     const origin =
       process.env.APP_URL?.replace(/\/$/, "") ??
       `${h.get("x-forwarded-proto") ?? "https"}://${h.get("x-forwarded-host") ?? h.get("host")}`;
-    const [profile, adminUser] = await Promise.all([
+    const [profile, adminUser, appSettings] = await Promise.all([
       getActiveCompanyProfile(),
       findAdminById(adminId),
+      getSettings(),
     ]);
     await sendInviteEmail({
+      provider: appSettings?.emailProvider ?? "resend",
       to: invite.email,
       firstName: invite.firstName,
       companyName: profile.name,
@@ -124,6 +123,17 @@ export async function toggleUserActiveAction(formData: FormData): Promise<void> 
   const user = await findUserById(id.data);
   if (!user) return;
   await setUserActive(user.id, !user.isActive);
+  revalidatePath("/settings/users");
+}
+
+/** Settings → Users: switch the invite-email provider (Resend / Brevo). */
+export async function setEmailProviderAction(formData: FormData): Promise<void> {
+  const admin = await requireAdmin();
+  if (!admin) return;
+
+  const provider = z.enum(["resend", "brevo"]).safeParse(formData.get("provider"));
+  if (!provider.success) return;
+  await updateSettings({ emailProvider: provider.data });
   revalidatePath("/settings/users");
 }
 

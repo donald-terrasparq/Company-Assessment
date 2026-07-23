@@ -41,9 +41,13 @@ services:
                                   # (APOLLO_API_KEY is accepted as an alias)
       - key: RESEND_API_KEY
         sync: false               # optional; invite emails via Resend
+      - key: BREVO_API_KEY
+        sync: false               # optional; invite emails via Brevo (v3 key, xkeysib-…)
+                                  # pick the provider in Settings → Users
       - key: INVITE_FROM_EMAIL
-        sync: false               # optional; e.g. "CTS Mobility <invites@ctsmobility.com>"
-                                  # after verifying the domain in Resend
+        sync: false               # sender address, e.g. "CTS Mobility <invites@ctsmobility.com>"
+                                  # Resend: an address on a domain verified in Resend
+                                  # Brevo: REQUIRED — a sender validated in Brevo
       - key: SEC_USER_AGENT
         value: "CTS Mobility Company Assessment (ops@ctsmobility.com)"
       - key: SEED_ADMIN_USER

@@ -35,6 +35,7 @@ export async function updateSettings(patch: {
   escalationPct?: number;
   apolloEnabled?: boolean;
   contactDefaults?: unknown;
+  emailProvider?: "resend" | "brevo";
 }): Promise<void> {
   await db
     .update(settings)

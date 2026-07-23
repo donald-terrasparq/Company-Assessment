@@ -7,12 +7,18 @@ import {
   createInviteAction,
   resendInviteEmailAction,
   revokeInviteAction,
+  setEmailProviderAction,
   toggleOpenRegistrationAction,
   toggleUserActiveAction,
 } from "./actions";
 import { CopyInviteLink } from "./copy-invite-link";
-import { ResendTestButton } from "@/components/settings/resend-test-button";
-import { inviteEmailFailureHint } from "@/lib/email/invite";
+import { EmailTestButton } from "@/components/settings/email-test-button";
+import {
+  EMAIL_PROVIDER_LABEL,
+  EMAIL_PROVIDERS,
+  inviteEmailFailureHint,
+  isEmailProviderConfigured,
+} from "@/lib/email/invite";
 
 export default async function UsersSettingsPage() {
   const session = await auth();
@@ -24,6 +30,7 @@ export default async function UsersSettingsPage() {
     getSettings(),
   ]);
   const openRegistration = settings?.allowOpenRegistration ?? false;
+  const emailProvider = settings?.emailProvider ?? "resend";
 
   return (
     <div className="flex flex-col gap-5">
@@ -219,7 +226,51 @@ export default async function UsersSettingsPage() {
             ))}
           </ul>
         )}
-        <ResendTestButton />
+        {/* which service delivers the invite emails — admin-switchable */}
+        <div className="mt-5 rounded-[11px] border border-line-2 p-4">
+          <p className="mb-3 flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[.1em] text-muted">
+            <span>Invite email delivery</span>
+            <span className="h-px flex-1 bg-line-2" />
+          </p>
+          <form action={setEmailProviderAction} className="flex flex-wrap items-center gap-4">
+            {EMAIL_PROVIDERS.map((p) => (
+              <label key={p} className="flex items-center gap-2 text-[13px] text-ink">
+                <input
+                  type="radio"
+                  name="provider"
+                  value={p}
+                  defaultChecked={emailProvider === p}
+                  className="h-3.5 w-3.5 accent-[#E8600A]"
+                />
+                <span className="font-medium">{EMAIL_PROVIDER_LABEL[p]}</span>
+                {isEmailProviderConfigured(p) ? (
+                  <span className="rounded-full bg-tier1-soft px-2 py-0.5 text-[10px] font-bold text-tier1">
+                    KEY SET
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-line-2 px-2 py-0.5 text-[10px] font-bold text-muted">
+                    NO KEY
+                  </span>
+                )}
+              </label>
+            ))}
+            <button
+              type="submit"
+              className="rounded-[10px] border border-line bg-card px-3.5 py-2 text-[12.5px] font-semibold text-ink transition-colors hover:border-[#cdd4de]"
+            >
+              Save provider
+            </button>
+          </form>
+          <p className="mt-3 max-w-[68ch] text-[12px] leading-[1.55] text-slate">
+            <b className="font-semibold text-ink">Resend</b> needs RESEND_API_KEY, and a
+            verified domain + INVITE_FROM_EMAIL to email anyone beyond the account owner.{" "}
+            <b className="font-semibold text-ink">Brevo</b> needs BREVO_API_KEY plus
+            INVITE_FROM_EMAIL set to a sender you validated in Brevo — an individual
+            address works, no domain required. Set both env vars on the Render web
+            service.
+          </p>
+          <EmailTestButton />
+        </div>
       </section>
 
       <section className="rounded-card border border-line bg-card p-5 shadow-card">

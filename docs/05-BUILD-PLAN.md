@@ -48,9 +48,10 @@ acceptance criteria pass. Tell the user when a phase is done and wait for a look
   in the modal header, the dropzone copy, and a live `87 / 100` counter. Never truncate silently.
 - **2.5** Lists screen table + soft delete.
 
-✅ Upload the real `pre-intent.xlsx`. 79 companies land, counter reads `79 / 100`. A 101-row file is
-rejected with a message naming the count — not truncated. Bad URLs (`www.mcirocenter.com`) don't crash —
-they store with `domain = NULL` and surface a warning chip. Re-uploading dedupes.
+✅ Upload a real prospect list (e.g. `fiber-prospects.xlsx`). 79 companies land, counter reads
+`79 / 100`. A 101-row file is rejected with a message naming the count — not truncated. Bad URLs
+(`www.ridgelinefibre.com`) don't crash — they store with `domain = NULL` and surface a warning chip.
+Re-uploading dedupes.
 
 **Tests:** `domain.test.ts` — `https://WWW.Example.com/about` → `example.com`; `not a url` → `null`.
 `cap.test.ts` — 100 rows accepted, 101 rejected with 422 at the API layer even if the client is bypassed.
@@ -80,9 +81,10 @@ resolvable `source_url`. Killing the worker mid-run and letting cron resume lose
 concurrent workers never double-process a job.
 
 **Tests (this is where they matter):**
-- `score.test.ts` — golden fixtures. Feed the Erlanger signal set, assert `total = 69`,
-  `fit = 27`, `trigger = 42`, `tier = tier_1`. Feed a fit-30/no-signal company, assert Tier 3
-  (the guardrail). Feed `acquired_or_defunct`, assert `tier = defunct`, `total = 0`.
+- `score.test.ts` — golden fixtures. Feed the Ridgeline Fiber signal set (the worked example in
+  `design/company_assessment_app.html`), assert `total = 71`, `fit = 27`, `trigger = 44`,
+  `tier = tier_1`. Feed a fit-30/no-signal company, assert Tier 3 (the guardrail).
+  Feed `acquired_or_defunct`, assert `tier = defunct`, `total = 0`.
 - `caveats.test.ts` — `enterprise_procurement` caps a 71 at Tier 2.
 - Determinism: same input twice → identical output.
 
@@ -115,7 +117,7 @@ domain.
 - **5.3** Live impact preview: client-side recompute, "12 companies change tier — 3 promoted, 9 demoted."
 - **5.4** Save as named profile; `Apply to all lists` → rescore every latest run.
 
-✅ Moving `new_facility_announced` from 48 → 10 visibly demotes the facility-driven Tier 1s in the
+✅ Moving `fiber_build_announced` from 48 → 10 visibly demotes the fiber-build-driven Tier 1s in the
 preview, and saving + applying updates the Prospects table without a single API call.
 
 ---
@@ -168,8 +170,9 @@ a 100-company run and close the tab.
 
 ```
 Read CLAUDE.md, then docs/00-PRD.md, docs/01-ARCHITECTURE.md, and docs/05-BUILD-PLAN.md.
-Summarize back to me: the four opportunity categories, why scoring is done in code rather than by
-the model, and how the Render worker drains the job queue. Then implement Phase 0 only, and stop.
+Summarize back to me: the five product categories (Fiber Huts, Towers, DataComm, E911, Other), why scoring
+is done in code rather than by the model, and how the Render worker drains the job queue. Then
+implement Phase 0 only, and stop.
 ```
 
 If the summary is wrong, the docs are wrong — fix them before writing code.

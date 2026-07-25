@@ -2,16 +2,22 @@
 
 ## Problem
 
-CTS Mobility sells four things. Finding companies that need them today means reading local business
-journals, permit filings, press releases, and job boards one company at a time. It doesn't scale, and
-the signal decays — a "new store opening" is worth a lot at 30 days and almost nothing at 12 months.
+CellSite Solutions (www.cellsitesolutions.com) manufactures prefabricated telecom equipment
+buildings — remanufactured concrete shelters and the DataComm Pro line of reinforced lightweight
+modular buildings — sold into five categories: fiber huts & telecom shelters, wireless tower sites,
+modular data centers & edge, E911/public safety, and other shelter verticals (oil & gas, defense,
+utilities). Finding the
+operators, co-ops, municipalities, and industrial buyers who need them today means reading state
+broadband award lists, grant announcements, permit filings, and trade press one organization at a
+time. It doesn't scale, and the signal decays — a "BEAD award announced" is worth a lot at 30 days
+and almost nothing at 12 months.
 
 ## What Company Assessment does
 
 1. A user uploads a spreadsheet of companies (name + website, extra columns preserved).
-2. They name the list. The system appends the upload date: `Pre-Intent Leads — 2026-07-09`.
+2. They name the list. The system appends the upload date: `Fiber Operators — Midwest — 2026-07-09`.
 3. A background run researches each company against public sources.
-4. Each company gets a **fit score**, a **trigger score**, four **category scores**, a **tier**, and a
+4. Each company gets a **fit score**, a **trigger score**, five **category scores**, a **tier**, and a
    set of **signals** — each with a source URL, date, recency multiplier, and confidence.
 5. Users browse the ranked table, drill into any company, and see the signals, press, and contacts.
 6. **View All** merges every company from every list into one board ranked by score.
@@ -44,11 +50,13 @@ a surprise bill. `settings.allow_open_registration` exists but ships `false`.)
 - One background job per company, drained by the Render worker. Retries up to 3 times with backoff.
 - Free-tier search providers in Phase 1 (see `docs/01-ARCHITECTURE.md`).
 - Extract signals as structured JSON; score them with deterministic local code.
-- Produce: `fit_score` (0–30), `trigger_score` (0–70), `total_score` (0–100), `tier`, and four
-  category scores (`fwa_score`, `starlink_score`, `mobility_score`, `byod_score`, each 0–100).
-- `primary_category` = highest-scoring category, used for the service tag in the table.
+- Produce: `fit_score` (0–30), `trigger_score` (0–70), `total_score` (0–100), `tier`, and five
+  category scores (`fiber_score`, `tower_score`, `datacomm_score`, `e911_score`, `other_score`,
+  each 0–100).
+- `primary_category` = highest-scoring category, used for the category tag in the table.
 - Detect and flag: **defunct/acquired**, **enterprise/national procurement**, **foreign HQ**,
-  **overseas growth**, **franchise/BYOD-sold**, **holding company** (portfolio = separate leads).
+  **overseas growth**, **local-only builds**, **self-perform (builds its own shelters)**,
+  **holding company** (portfolio = separate leads).
   These are `caveats[]` and they *cap* the tier — see the signal model.
 
 ### Browse

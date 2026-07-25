@@ -19,8 +19,9 @@ card     #FFFFFF   surfaces
 line     #E6E9EF   borders
 
 tier_1   #0E8F6E   emerald      tier_2  #C0870F  amber      tier_3  #8A94A6  slate
-FWA      #2563C9   blue         STARLINK #0EA5A4 teal
-MOBILITY #7A3FF2   violet       BYOD     #E0682B orange
+FIBER    #2563C9   blue         TOWER    #0EA5A4 teal
+DATACOMM #7A3FF2   violet       E911     #D6453D red
+OTHER    #E0682B   orange
 spark    #FF6B4A   coral — the live/fresh trigger pulse
 ```
 
@@ -39,12 +40,12 @@ Left rail (74px, ink): brand → **Prospects** · **Lists** · **Signals** · **
 ## 1. Prospects — `/prospects`
 
 The main results table. Header carries a **list selector dropdown** whose options are every list by
-`display_name` (e.g. `Pre-Intent Leads — 2026-07-09`), plus a pinned **VIEW ALL** option at the top
+`display_name` (e.g. `Fiber Operators — Midwest — 2026-07-09`), plus a pinned **VIEW ALL** option at the top
 that switches the source to the `all_prospects` view and adds a "List" column.
 
 - **Context strip**: filename, company count, last-run timestamp, signals scanned, `Re-run` button.
 - **Tier distribution bar**: proportional segments for Tier 1/2/3/Defunct with counts.
-- **Filter chips**: Tier 1/2/3 · FWA · Starlink · Mobility · BYOD · Fresh <30d · Hide caveats.
+- **Filter chips**: Tier 1/2/3 · Fiber · Towers · DataComm · E911 · Other · Fresh <30d · Hide caveats.
   Chips are additive; the count updates ("7 of 79 shown · sorted by score").
 - **Table columns**: Rank · Company (monogram, name, HQ, size) · Industry · Score-anatomy ·
   Why now (trigger icon, one-line summary, recency pill, caveat flags) · Category tags · chevron.
@@ -59,8 +60,8 @@ that switches the source to the `all_prospects` view and adds a "List" column.
 - Header: monogram, name, HQ, industry, size, website, tier badge, big score + band.
 - **Why now** hero (dark card): the trigger sentence, the dollar figure if any, category tags.
 - **Score anatomy**: Fit sub-bars (industry/size/multi-location/geography) and Trigger with the
-  arithmetic shown — `base 48 × recency 1.0 × confidence 0.88 ≈ 42`. Show the real numbers.
-- **Category breakdown**: four horizontal bars (FWA / Starlink / Mobility / BYOD), primary one bold.
+  arithmetic shown — `base 46 × recency 1.0 × confidence 0.95 ≈ 44`. Show the real numbers.
+- **Category breakdown**: five horizontal bars (Fiber / Towers / DataComm / E911 / Other), primary one bold.
 - **Signal timeline**: reverse-chronological, each with date, event type icon, paraphrased summary,
   source badge, confidence pill, and category tags. Every entry links to `source_url`.
 - **Press & sources**: cards with paraphrased headline + ≤25-word excerpt + publication + date + link.
@@ -104,13 +105,13 @@ without showing the estimate.
 
 Two panes.
 
-**Left: the signal library.** Grouped by the four categories plus Corporate and Negative. Each row:
+**Left: the signal library.** Grouped by the five categories plus Corporate and Negative. Each row:
 
 - Signal name + **plain-English description** (from `docs/03-SIGNAL-MODEL.md` — the "Plain English"
   column is user-facing copy, not internal notes).
 - A **strength slider** (0–60) bound to `weights.signals[key].base`, with a live text label:
   - 0 → `Ignored` · 1–20 → `Weak` · 21–35 → `Moderate` · 36–45 → `Strong` · 46+ → `Decisive`
-- Category chips showing which of FWA/Starlink/Mobility/BYOD the signal feeds (editable, multi-select).
+- Category chips showing which of Fiber/Towers/DataComm/E911/Other the signal feeds (editable, multi-select).
 - An enable/disable toggle.
 - A small sparkline: "fired for 23 of 79 companies."
 
@@ -118,11 +119,11 @@ Two panes.
 
 - **Fit weights**: four sliders summing to a displayed total (warn if ≠ 30).
 - **Recency decay**: the six multipliers, rendered as an editable curve. Copy: *"How fast does a
-  signal go stale? A new-store announcement from last week is worth 10× one from two years ago."*
+  signal go stale? A grant award from last week is worth 10× one from two years ago."*
 - **Confidence**: three multipliers — primary / secondary / weak — with examples of each.
 - **Tier thresholds**: two number inputs (Tier 1 min 63, Tier 2 min 38).
-- **Category boost**: four multipliers. Copy: *"Pushing Starlink this quarter? Boost it. This changes
-  ranking within a category, never the total score."*
+- **Category boost**: five multipliers. Copy: *"Pushing DataComm Pro this quarter? Boost it. This
+  changes ranking within a category, never the total score."*
 - **Guardrail (locked, with explanation)**: "Fit alone can never produce a Tier 1. A company always
   needs at least one real, recent event." Show it as a disabled toggle with a tooltip — users should
   see the rule exists and understand why they can't turn it off.
@@ -132,7 +133,7 @@ results and show *"12 companies change tier — 3 promoted, 9 demoted"* with a `
 that diffs the ranking. `Save profile` writes a new `signal_profiles` row; `Apply to all lists`
 triggers `rescore` on every latest run (free, no API calls).
 
-Profiles are named and switchable (`Default`, `Starlink push Q3`, …). Admins can edit; members can
+Profiles are named and switchable (`Default`, `BEAD push Q3`, …). Admins can edit; members can
 preview but not save.
 
 ## 5. Settings — `/settings`
@@ -148,7 +149,7 @@ could create an account and spend API credits."*
 **Analysis** —
 - Model: `claude-sonnet-5` (Balanced, default) / `claude-opus-4-8` (High accuracy, ~3× cost).
   Show the per-run cost delta.
-- Searches per company: 4–12 slider (default 8). Directly multiplies cost.
+- Searches per company: 4–12 slider (default 9). Directly multiplies cost.
 - Default signal profile.
 - Concurrency: companies per worker tick (default 4).
 
@@ -172,6 +173,6 @@ records on request.
 
 - Every tier/category color is paired with a text label or icon — never color alone.
 - `prefers-reduced-motion`: kill the coral pulse animation.
-- Score bars get `role="img"` + `aria-label="Score 69 of 100: fit 27, trigger 42"`.
+- Score bars get `role="img"` + `aria-label="Score 71 of 100: fit 27, trigger 44"`.
 - Tables are real `<table>` markup with `<caption>`; the mockup's div-grid is for visual reference only.
 - Loading states stream: show rows as jobs complete rather than blocking on the full run.

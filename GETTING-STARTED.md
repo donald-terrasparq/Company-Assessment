@@ -73,7 +73,7 @@ First prompt (also at the bottom of `docs/05-BUILD-PLAN.md`):
 ```
 Read CLAUDE.md, then docs/00-PRD.md, docs/01-ARCHITECTURE.md, docs/05-BUILD-PLAN.md, and
 docs/09-DEPLOY-RENDER.md. Open design/company_assessment_app.html and design/README.md so you know the
-target UI. Summarize back to me: the four opportunity categories, why scoring is done in code rather
+target UI. Summarize back to me: the five product categories, why scoring is done in code rather
 than by the model, how the Render worker drains the job queue, and what the UI should look like.
 Then implement Phase 0 only, and stop.
 ```
@@ -136,7 +136,7 @@ Keep it on Starter (always-on). The blueprint already does this; don't override 
 
 (Also in `docs/09-DEPLOY-RENDER.md`.)
 
-- **Domain:** `company-assessment-web` → Settings → Custom Domains → add `app.ctsmobility.com` → create the CNAME
+- **Domain:** `company-assessment-web` → Settings → Custom Domains → add `app.cellsitesolutions.com` → create the CNAME
   Render shows you at your DNS provider → Render issues TLS automatically → set `AUTH_URL` to the new
   domain and redeploy.
 - **Users:** log in as admin → **Settings → Users → Invite user** → send each person their one-time
@@ -151,7 +151,7 @@ Every logged-in user spends **your** Anthropic credits when they run a list. Set
 
 1. **Settings → Budget** → set the monthly cap, "halt at cap" **on** (checked before every company).
 2. **Anthropic Console** → set an independent spend alert as a backstop.
-3. Upload the real `pre-intent.xlsx` (79 companies) and run it once end to end. Confirm: all 79 score,
+3. Upload a real prospect list (e.g. `fiber-prospects.xlsx`, 79 companies) and run it once end to end. Confirm: all 79 score,
    every company has ≥1 signal with a clickable source, the run finishes with no stuck job, and the
    worker logs show it picking up work within ~5s. That single run validates the whole pipeline on
    real infrastructure.

@@ -10,15 +10,16 @@ It contains the two core screens, fully interactive:
 1. **Prospect list** — the ranked results table. Toggle at the top: **Prospect list ↔ Company detail**.
    - Left rail (Prospects · Lists · Signals · Settings), upload/context strip with the
      **"Max 100 companies per list"** label and the `79 / 100` counter.
-   - Tier distribution bar, filter chips, and the stylized table populated with the seven Tier 1
-     companies from the real analysis.
+   - Tier distribution bar, filter chips (Fiber · Towers · DataComm · E911 · Other), and the stylized
+     table populated with seven illustrative Tier 1 companies matching the CellSite Solutions
+     signal profile.
    - The **score-anatomy bar** — the signature element — splits every 0–100 score into a steel *Fit*
      segment and a tier-colored *Trigger* segment, with a coral pulse when the trigger is fresh.
 
-2. **Company detail (Erlanger Health)** — click the Erlanger row or the top toggle.
-   - Score ring, "Why now" hero, expanded score anatomy with the arithmetic shown, category bars,
-     signal timeline (dated, sourced, confidence-rated), press cards, recommended play, top contacts
-     (labeled "sample"), and a coverage/caveats panel.
+2. **Company detail (Ridgeline Fiber)** — click the Ridgeline row or the top toggle.
+   - Score ring, "Why now" hero (a BEAD-funded four-state FTTH build), expanded score anatomy with
+     the arithmetic shown, signal timeline (dated, sourced, confidence-rated), press cards,
+     recommended play, top contacts (labeled "sample"), and a coverage/caveats panel.
 
 ## How to use it while building
 
@@ -32,8 +33,11 @@ visual language): **Lists**, **Signals**, **Settings**, **VIEW ALL**, and the **
 
 ## What's illustrative vs real
 
-- The seven Tier 1 companies, their scores, and Erlanger's signals are **real** outputs from the
-  analysis — safe to use as seed/demo data.
+- **Everything in the prototype is illustrative.** The companies (Ridgeline Fiber, Prairie Valley
+  Electric Co-op, Meridian Tower Group, …), their scores, signals, and press snippets are invented
+  sample data that demonstrates the CellSite Solutions signal profile — they are **not** analysis
+  output and must never be presented as real organizations, people, or articles. Replace them with
+  real run results once the engine is live.
 - The **contacts are placeholders** (labeled "sample"). Never present them as real people; Phase 2
   replaces them with Apollo-verified data.
 - Press snippets are **paraphrased**, not quoted — keep them that way (copyright rule in `CLAUDE.md`).

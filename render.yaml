@@ -34,7 +34,7 @@ services:
       - key: BRAVE_API_KEY
         sync: false               # optional; free tier
       - key: SEC_USER_AGENT
-        value: "CTS Mobility Company Assessment (ops@ctsmobility.com)"
+        value: "CellSite Solutions Company Assessment (ops@cellsitesolutions.com)"
       - key: SEED_ADMIN_USER
         sync: false               # set before first seed, then change the password in-app
       - key: SEED_ADMIN_PASSWORD
@@ -62,7 +62,7 @@ services:
       - key: BRAVE_API_KEY
         sync: false
       - key: SEC_USER_AGENT
-        value: "CTS Mobility Company Assessment (ops@ctsmobility.com)"
+        value: "CellSite Solutions Company Assessment (ops@cellsitesolutions.com)"
       - key: WORKER_CONCURRENCY
         value: "4"                # companies processed in parallel per loop tick
       - key: WORKER_POLL_MS

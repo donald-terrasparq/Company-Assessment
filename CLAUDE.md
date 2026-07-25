@@ -1,6 +1,8 @@
 # CLAUDE.md — Operating manual for Claude Code
 
-You are building **Company Assessment**, a prospect signal-intelligence app for CTS Mobility.
+You are building **Company Assessment**, a prospect signal-intelligence app for CellSite Solutions,
+a telecommunications-infrastructure manufacturer of fiber huts, telecom shelters, and DataComm Pro
+modular buildings.
 Read `docs/00-PRD.md` → `docs/01-ARCHITECTURE.md` → `docs/05-BUILD-PLAN.md` before writing code, and
 **open `design/company_assessment_app.html` in your head** (it's the approved UI prototype and the visual
 source of truth — reproduce its look in real React components; do not embed the HTML). See

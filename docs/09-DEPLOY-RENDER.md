@@ -164,14 +164,14 @@ local machine pointed at the Render `DATABASE_URL` (copy it from the `company-as
 
 ## 6. Add your custom domain
 
-1. `company-assessment-web` → **Settings** → **Custom Domains** → **Add Custom Domain** → `app.ctsmobility.com`
+1. `company-assessment-web` → **Settings** → **Custom Domains** → **Add Custom Domain** → `app.cellsitesolutions.com`
    (a subdomain is cleanest for an app; use the apex only if you want the bare domain).
 2. Render shows a DNS target. At your DNS provider create:
    - **Subdomain** (`app.`): a **CNAME** → the `onrender.com` target Render gives you.
-   - **Apex** (`ctsmobility.com`): an **A / ALIAS / ANAME** per Render's instructions.
+   - **Apex** (`cellsitesolutions.com`): an **A / ALIAS / ANAME** per Render's instructions.
 3. Render verifies DNS and issues a **free TLS certificate** automatically — minutes usually, up to a
    few hours for propagation. Wait for the green lock.
-4. Update `AUTH_URL` on `company-assessment-web` to `https://app.ctsmobility.com` and let it redeploy, so login
+4. Update `AUTH_URL` on `company-assessment-web` to `https://app.cellsitesolutions.com` and let it redeploy, so login
    redirects resolve to the real domain.
 
 Until the domain is ready, the `onrender.com` URL works and is shareable.

@@ -111,11 +111,12 @@ CREATE TABLE company_results (
   total_score       INT  NOT NULL CHECK (total_score BETWEEN 0 AND 100),
   tier              TEXT NOT NULL CHECK (tier IN ('tier_1','tier_2','tier_3','defunct')),
 
-  fwa_score         INT NOT NULL DEFAULT 0,
-  starlink_score    INT NOT NULL DEFAULT 0,
-  mobility_score    INT NOT NULL DEFAULT 0,
-  byod_score        INT NOT NULL DEFAULT 0,
-  primary_category  TEXT CHECK (primary_category IN ('FWA','STARLINK','MOBILITY','BYOD')),
+  fiber_score       INT NOT NULL DEFAULT 0,
+  tower_score       INT NOT NULL DEFAULT 0,
+  datacomm_score    INT NOT NULL DEFAULT 0,
+  e911_score        INT NOT NULL DEFAULT 0,
+  other_score       INT NOT NULL DEFAULT 0,
+  primary_category  TEXT CHECK (primary_category IN ('FIBER','TOWER','DATACOMM','E911','OTHER')),
 
   -- fit sub-scores, for the detail screen's anatomy bars
   fit_industry      INT NOT NULL DEFAULT 0,
@@ -145,7 +146,7 @@ CREATE TABLE signals (
   id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_result_id  UUID NOT NULL REFERENCES company_results(id) ON DELETE CASCADE,
   event_type         TEXT NOT NULL,       -- key into the signal taxonomy
-  categories         TEXT[] NOT NULL,     -- which of FWA/STARLINK/MOBILITY/BYOD it feeds
+  categories         TEXT[] NOT NULL,     -- which of FIBER/TOWER/DATACOMM/E911/OTHER it feeds
   title              TEXT NOT NULL,
   summary            TEXT NOT NULL,       -- PARAPHRASED. never > 25 words verbatim.
   event_date         DATE,
@@ -166,7 +167,7 @@ CREATE TABLE contacts (
   company_result_id  UUID NOT NULL REFERENCES company_results(id) ON DELETE CASCADE,
   name               TEXT NOT NULL,
   title              TEXT,
-  role_rationale     TEXT,                -- "owns WAN + telecom; primary FWA buyer"
+  role_rationale     TEXT,                -- "owns OSP engineering; primary shelter buyer"
   linkedin_url       TEXT,
   email              TEXT,                -- Phase 2, Apollo only
   phone              TEXT,                -- Phase 2, Apollo only

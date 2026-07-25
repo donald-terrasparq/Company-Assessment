@@ -69,7 +69,7 @@ lib/scoring/score.ts       → PURE FUNCTION: (signals, weights) => scores
 lib/db/queries/results.ts  → upsert company_result, insert signals, insert contacts
 ```
 
-**Why the LLM doesn't compute the score:** ask a model to multiply 48 × 1.0 × 0.88 and sum it and
+**Why the LLM doesn't compute the score:** ask a model to multiply 46 × 1.0 × 0.95 and sum it and
 you get a number that drifts between runs. Ask it to *identify and classify* a signal — event type,
 date, confidence, source — and it's reliable. Arithmetic is code's job. This also means editing a
 weight in Settings re-scores instantly from stored signals with **zero API cost**.

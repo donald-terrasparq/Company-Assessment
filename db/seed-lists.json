@@ -1,18 +1,19 @@
 {
-  "_note": "Seed fixture for the Lists screen. `pre-intent` is the one real list (79 companies, the source spreadsheet). The others are illustrative placeholders so the Lists dropdown and VIEW ALL have something to render in dev — delete them before production seeding.",
+  "_note": "Seed fixture for the Lists screen. All lists here are illustrative placeholders so the Lists dropdown and VIEW ALL have something to render in dev — replace them with real CellSite Solutions prospect uploads before production seeding. Tier breakdowns are demo numbers, not analysis output.",
   "lists": [
     {
-      "name": "Pre-Intent Leads",
-      "display_name": "Pre-Intent Leads — 2026-07-09",
-      "source_filename": "pre-intent.xlsx",
+      "name": "Fiber Operators — Midwest",
+      "display_name": "Fiber Operators — Midwest — 2026-07-09",
+      "source_filename": "fiber-prospects.xlsx",
       "company_count": 79,
-      "real": true,
+      "real": false,
       "tier_breakdown": { "tier_1": 7, "tier_2": 23, "tier_3": 47, "defunct": 2 },
-      "note": "Original CTS Mobility target list. Tier 1: Erlanger Health, Fertitta Entertainment, Lowes Foods, Ascension Saint Thomas, Mutual of Omaha, ASML, Micro Center."
+      "note": "Demo list of regional/mid-tier fiber operators and rural utility co-ops. The Tier 1 rows in design/company_assessment_app.html (Ridgeline Fiber, etc.) are illustrative examples of this profile."
     },
-    { "name": "Southeast Healthcare",   "display_name": "Southeast Healthcare — 2026-05-14",   "company_count": 42, "real": false },
-    { "name": "Retail Expansion Watch", "display_name": "Retail Expansion Watch — 2026-04-02", "company_count": 61, "real": false },
-    { "name": "Logistics & Fleet",      "display_name": "Logistics & Fleet — 2026-02-20",      "company_count": 35, "real": false },
-    { "name": "Q1 Conference Leads",    "display_name": "Q1 Conference Leads — 2026-01-16",    "company_count": 28, "real": false }
+    { "name": "BEAD Award Winners",      "display_name": "BEAD Award Winners — 2026-05-14",      "company_count": 42, "real": false },
+    { "name": "Tower Cos & Carriers",    "display_name": "Tower Cos & Carriers — 2026-04-20",    "company_count": 33, "real": false },
+    { "name": "Edge & Modular DC Watch", "display_name": "Edge & Modular DC Watch — 2026-04-02", "company_count": 61, "real": false },
+    { "name": "NG911 & Public Safety",   "display_name": "NG911 & Public Safety — 2026-02-20",   "company_count": 35, "real": false },
+    { "name": "Oil & Gas / Defense",     "display_name": "Oil & Gas / Defense — 2026-01-16",     "company_count": 28, "real": false }
   ]
 }

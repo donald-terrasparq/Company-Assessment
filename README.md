@@ -1,17 +1,23 @@
-# Company Assessment — Prospect Signal Intelligence for CTS Mobility
+# Company Assessment — Prospect Signal Intelligence for CellSite Solutions
 
 Company Assessment ingests a list of companies, researches each one against public sources, and scores it on how
-likely it is to need CTS Mobility's four service lines. Results are ranked, tiered, and drillable
+likely it is to need CellSite Solutions' shelter products. Results are ranked, tiered, and drillable
 down to individual signals, sources, and contacts.
 
-**The four opportunity categories** (every company gets a score in each):
+**CellSite Solutions** ([www.cellsitesolutions.com](https://www.cellsitesolutions.com)) is a
+telecommunications-infrastructure manufacturer. It builds prefabricated telecom equipment buildings:
+**remanufactured concrete shelters** (fast, economical, proven) and **DataComm Pro** — a new line of
+reinforced, lightweight, often larger modular buildings.
 
-| Code | Category | What it means |
-|------|----------|---------------|
-| `FWA` | Fixed Wireless Access | New/moving sites, buildouts, temporary connectivity, branch & store openings |
-| `STARLINK` | Starlink failover / backup | Uptime-critical, multi-site, POS-dependent, rural or low-redundancy locations |
-| `MOBILITY` | Device programs | Apple / Samsung / Zebra handhelds, tablets, rugged scanners; hiring surges, frontline & field |
-| `BYOD` | BYOD & remote workforce | Distributed/remote workforces, contractor and agent networks, MDM/managed-device demand |
+**The five product categories** (every company gets a score in each):
+
+| Code | Category | What it means — and when it's sold |
+|------|----------|-----------------------------------|
+| `FIBER` | Fiber Huts & Telecom Shelters | Fiber builds, rural utilities/co-ops selling fiber, and mid-tier operators deploying across states/regions (not just one city). Sold when a build is announced or grant-funded (BEAD, ReConnect, state programs) — concrete shelters or DataComm Pro, sized per site |
+| `TOWER` | Wireless Tower Sites | Fiber huts / telecom shelters at the base of wireless towers. Sold when tower companies, carriers, or neutral hosts announce new tower builds, coverage expansion, 5G infill, or colocation upgrades |
+| `DATACOMM` | Modular Data Centers & Edge | Data center and edge operators adopting modular deployments — capacity expansions, new markets, micro/edge rollouts that fit DataComm Pro's larger buildings |
+| `E911` | E911 / Public Safety | Cities & municipalities housing servers/ISP equipment to support E911 — NG911 migrations, PSAP consolidation & hardening, emergency-communications funding |
+| `OTHER` | Other shelter verticals | Oil & gas, defense, utilities, transportation, and other industries deploying telecom shelters / fiber huts at remote sites |
 
 ## Status
 
@@ -21,8 +27,8 @@ Phase 2 (later): Apollo.io enrichment to attach verified email/phone to identifi
 ## See the target UI first
 
 Open **`design/company_assessment_app.html`** in any browser before anything else — it's the interactive
-prototype the app is built to match (two screens: the ranked prospect list and the Erlanger detail
-view). `docs/04-UI-SPEC.md` is the written spec for it and the screens it doesn't yet cover.
+prototype the app is built to match (two screens: the ranked prospect list and the Ridgeline Fiber
+detail view). `docs/04-UI-SPEC.md` is the written spec for it and the screens it doesn't yet cover.
 
 ## Quickstart
 

@@ -13,8 +13,11 @@
     --paper:#F4F6F9; --card:#FFFFFF; --line:#E6E9EF; --line-2:#EEF1F5;
     --t1:#0E8F6E; --t1-soft:#E4F4EE;
     --t2:#C0870F; --t3:#8A94A6;
-    --fwa:#2563C9; --fwa-soft:#E7EEFB;
-    --mob:#7A3FF2; --mob-soft:#EEE8FE;
+    --fiber:#2563C9; --fiber-soft:#E7EEFB;
+    --twr:#0EA5A4; --twr-soft:#E0F5F4;
+    --dc:#7A3FF2; --dc-soft:#EEE8FE;
+    --e911:#D6453D; --e911-soft:#FBE9E8;
+    --oth:#E0682B; --oth-soft:#FCEDE4;
     --spark:#FF6B4A; --spark-soft:#FFE9E3;
     --shadow:0 1px 2px rgba(15,27,45,.04),0 4px 16px rgba(15,27,45,.06);
     --shadow-lg:0 8px 40px rgba(15,27,45,.12);
@@ -162,8 +165,11 @@
   /* service tags */
   .svc{display:flex;gap:5px;flex-wrap:wrap}
   .tag{font-size:10.5px;font-weight:700;border-radius:6px;padding:3px 7px;letter-spacing:.03em}
-  .tag.fwa{background:var(--fwa-soft);color:var(--fwa)}
-  .tag.mob{background:var(--mob-soft);color:var(--mob)}
+  .tag.fiber{background:var(--fiber-soft);color:var(--fiber)}
+  .tag.twr{background:var(--twr-soft);color:var(--twr)}
+  .tag.dc{background:var(--dc-soft);color:var(--dc)}
+  .tag.e911{background:var(--e911-soft);color:var(--e911)}
+  .tag.oth{background:var(--oth-soft);color:var(--oth)}
   .chev{color:var(--muted);display:grid;place-items:center}
   .row:hover .chev{color:var(--ink)}
 
@@ -175,7 +181,7 @@
   .dhead h1{font-family:"Space Grotesk";font-size:26px;font-weight:700;margin:0 0 6px;letter-spacing:-.01em}
   .dmeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--slate);font-size:13px}
   .dmeta .d{width:3px;height:3px;border-radius:50%;background:#c3cbd6}
-  .dmeta a{color:var(--fwa);text-decoration:none}
+  .dmeta a{color:var(--fiber);text-decoration:none}
   .tierbadge{font-family:"Space Grotesk";font-weight:700;font-size:11px;letter-spacing:.06em;color:#fff;background:var(--t1);border-radius:7px;padding:5px 10px}
   .dhead .rt{margin-left:auto;text-align:right}
   .bigscore{font-family:"JetBrains Mono";font-weight:700;font-size:48px;line-height:1;letter-spacing:-.02em}
@@ -218,7 +224,7 @@
   .tlitem{position:relative;padding-bottom:20px}
   .tlitem:last-child{padding-bottom:0}
   .tldot{position:absolute;left:-26px;top:2px;width:14px;height:14px;border-radius:50%;background:#fff;border:2.5px solid var(--t3);display:grid;place-items:center}
-  .tldot.fwa{border-color:var(--fwa)} .tldot.mob{border-color:var(--mob)} .tldot.both{border-color:var(--spark)}
+  .tldot.fiber{border-color:var(--fiber)} .tldot.twr{border-color:var(--twr)} .tldot.dc{border-color:var(--dc)} .tldot.both{border-color:var(--spark)}
   .tlitem .date{font-family:"JetBrains Mono";font-size:11px;color:var(--muted);margin-bottom:3px}
   .tlitem .ev{font-size:13.5px;font-weight:500;color:var(--ink);line-height:1.4}
   .tlitem .src{font-size:11.5px;color:var(--slate);margin-top:5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -226,7 +232,7 @@
   .conf{font-size:10px;font-weight:700;border-radius:5px;padding:2px 6px}
   .conf.hi{background:var(--t1-soft);color:var(--t1)} .conf.md{background:#FBF0DA;color:var(--t2)}
   .svc-mini{font-size:9.5px;font-weight:700;border-radius:5px;padding:2px 6px}
-  .svc-mini.fwa{background:var(--fwa-soft);color:var(--fwa)} .svc-mini.mob{background:var(--mob-soft);color:var(--mob)} .svc-mini.both{background:var(--spark-soft);color:var(--spark)}
+  .svc-mini.fiber{background:var(--fiber-soft);color:var(--fiber)} .svc-mini.twr{background:var(--twr-soft);color:var(--twr)} .svc-mini.dc{background:var(--dc-soft);color:var(--dc)} .svc-mini.both{background:var(--spark-soft);color:var(--spark)}
 
   /* press */
   .press{display:flex;flex-direction:column;gap:12px}
@@ -249,7 +255,7 @@
   .contact .cn{font-family:"Space Grotesk";font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:7px}
   .contact .ct{font-size:12px;color:var(--slate);margin-top:1px}
   .contact .cwhy{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.4}
-  .li{margin-left:auto;width:26px;height:26px;border-radius:7px;background:#EAF1FB;color:var(--fwa);display:grid;place-items:center;flex-shrink:0;cursor:pointer;font-family:"Space Grotesk";font-weight:700;font-size:12px}
+  .li{margin-left:auto;width:26px;height:26px;border-radius:7px;background:#EAF1FB;color:var(--fiber);display:grid;place-items:center;flex-shrink:0;cursor:pointer;font-family:"Space Grotesk";font-weight:700;font-size:12px}
   .sampletag{font-size:10px;font-weight:600;color:var(--t2);background:#FBF0DA;border-radius:6px;padding:2px 7px}
 
   .cov{display:flex;gap:11px;margin-bottom:13px;font-size:12.5px;color:var(--slate);line-height:1.4}
@@ -286,7 +292,7 @@
     <button class="navbtn" title="Signals"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M3 12h4l3-8 4 16 3-8h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <button class="navbtn" title="Settings"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v3M12 19v3M22 12h-3M5 12H2M19 5l-2 2M7 17l-2 2M19 19l-2-2M7 7L5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
     <div class="sp"></div>
-    <div class="avatar">CM</div>
+    <div class="avatar">CS</div>
   </nav>
 
   <div class="main">
@@ -307,7 +313,7 @@
       <!-- view switch -->
       <div class="segwrap">
         <button class="seg on" id="seg-list" onclick="show('list')">Prospect list <span class="n">79</span></button>
-        <button class="seg" id="seg-detail" onclick="show('detail')">Company detail <span class="n">Erlanger</span></button>
+        <button class="seg" id="seg-detail" onclick="show('detail')">Company detail <span class="n">Ridgeline</span></button>
       </div>
 
       <!-- ============ SCREEN 1 : LIST ============ -->
@@ -317,7 +323,7 @@
           <div class="ctx-top">
             <div class="fileicon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9l-7-7z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M13 2v7h7" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></div>
             <div style="flex:1;min-width:0">
-              <h3>pre-intent.xlsx</h3>
+              <h3>fiber-prospects.xlsx</h3>
               <div class="meta"><b>79 / 100</b> companies analyzed · last run 2 min ago · <b>1,240</b> signals scanned</div>
             </div>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
@@ -349,9 +355,11 @@
         <!-- filters -->
         <div class="filters">
           <button class="chip on">Tier 1 <span class="cdot" style="background:var(--t1)"></span></button>
-          <button class="chip">Both service</button>
-          <button class="chip">FWA <span class="cdot" style="background:var(--fwa)"></span></button>
-          <button class="chip">Mobility <span class="cdot" style="background:var(--mob)"></span></button>
+          <button class="chip">Fiber <span class="cdot" style="background:var(--fiber)"></span></button>
+          <button class="chip">Towers <span class="cdot" style="background:var(--twr)"></span></button>
+          <button class="chip">DataComm <span class="cdot" style="background:var(--dc)"></span></button>
+          <button class="chip">E911 <span class="cdot" style="background:var(--e911)"></span></button>
+          <button class="chip">Other <span class="cdot" style="background:var(--oth)"></span></button>
           <button class="chip">Fresh &lt;30d</button>
           <button class="chip">Hide caveats</button>
           <span class="count">7 of 79 shown · sorted by score</span>
@@ -360,30 +368,30 @@
         <!-- table -->
         <div class="tbl">
           <div class="thead">
-            <div>Company</div><div>Industry</div><div>Score · Fit / Trigger</div><div>Why now</div><div>Service</div><div></div>
+            <div>Company</div><div>Industry</div><div>Score · Fit / Trigger</div><div>Why now</div><div>Category</div><div></div>
           </div>
           <div id="rows"></div>
         </div>
       </section>
 
-      <!-- ============ SCREEN 2 : DETAIL (ERLANGER) ============ -->
+      <!-- ============ SCREEN 2 : DETAIL (RIDGELINE FIBER) ============ -->
       <section class="screen" id="screen-detail">
         <a class="back" onclick="show('list')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Back to prospects</a>
 
         <div class="dhead">
-          <div class="mono-badge" style="background:linear-gradient(150deg,#0E8F6E,#12b083)">E</div>
+          <div class="mono-badge" style="background:linear-gradient(150deg,#0E8F6E,#12b083)">R</div>
           <div style="min-width:0">
-            <h1>Erlanger Health</h1>
+            <h1>Ridgeline Fiber</h1>
             <div class="dmeta">
-              <span>Chattanooga, TN</span><span class="d"></span>
-              <span>Academic health system</span><span class="d"></span>
-              <span>~10,000 employees</span><span class="d"></span>
-              <a href="#" onclick="toast('erlanger.org');return false">erlanger.org</a><span class="d"></span>
+              <span>Des Moines, IA</span><span class="d"></span>
+              <span>Regional fiber operator</span><span class="d"></span>
+              <span>~450 employees · 4-state footprint</span><span class="d"></span>
+              <a href="#" onclick="toast('Sample company — illustrative profile');return false">ridgelinefiber.example</a><span class="d"></span>
               <span class="tierbadge">TIER 1</span>
             </div>
           </div>
           <div class="rt">
-            <div class="bigscore">69<small>/100</small></div>
+            <div class="bigscore">71<small>/100</small></div>
             <div class="scoreband">approach now · fresh trigger</div>
           </div>
         </div>
@@ -394,11 +402,11 @@
             <!-- why now -->
             <div class="card whynow">
               <p class="eyebrow"><span>Why now</span><span class="ln"></span></p>
-              <p class="headline">Erlanger has committed <b>~$122M</b> to campus expansion — new and renovated clinical space now moving into buildout.</p>
-              <p>New facilities need in-building coverage and fixed wireless during and after construction, and a growing clinical workforce across campuses drives managed-device demand — the trigger maps to <b style="color:#fff">both</b> FWA and mobility.</p>
+              <p class="headline">Ridgeline has been awarded <b>~$88M</b> in BEAD-backed broadband grants — a four-state FTTH build now entering construction.</p>
+              <p>Funded fiber builds need hardened hut sites at every hub and along middle-mile routes, and shelters are specced during outside-plant engineering — well before splicing crews mobilize. The award maps primarily to <b style="color:#fff">fiber huts</b>, with DataComm Pro an option at larger aggregation sites.</p>
               <div class="wtags">
-                <span class="wtag"><span style="width:6px;height:6px;border-radius:50%;background:var(--fwa);display:inline-block"></span>FWA · facilities</span>
-                <span class="wtag"><span style="width:6px;height:6px;border-radius:50%;background:var(--mob);display:inline-block"></span>Mobility · workforce</span>
+                <span class="wtag"><span style="width:6px;height:6px;border-radius:50%;background:var(--fiber);display:inline-block"></span>Fiber · huts</span>
+                <span class="wtag"><span style="width:6px;height:6px;border-radius:50%;background:var(--dc);display:inline-block"></span>DataComm · aggregation</span>
                 <span class="wtag"><span class="fd" style="width:6px;height:6px;border-radius:50%;background:var(--spark);display:inline-block"></span>Recency ×1.0</span>
               </div>
             </div>
@@ -409,27 +417,27 @@
               <div class="split">
                 <div class="splitcol">
                   <div class="h"><span class="t">Fit</span><span class="n">27<small>/30</small></span></div>
-                  <div class="anatrow"><div class="k">Industry / workforce</div><div class="bar"><i style="width:90%;background:var(--steel)"></i></div><div class="v">9/10</div></div>
-                  <div class="anatrow"><div class="k">Size band</div><div class="bar"><i style="width:88%;background:var(--steel)"></i></div><div class="v">7/8</div></div>
-                  <div class="anatrow"><div class="k">Multi-location</div><div class="bar"><i style="width:86%;background:var(--steel)"></i></div><div class="v">6/7</div></div>
-                  <div class="anatrow"><div class="k">Geography / coverage</div><div class="bar"><i style="width:100%;background:var(--steel)"></i></div><div class="v">5/5</div></div>
+                  <div class="anatrow"><div class="k">Industry / infrastructure</div><div class="bar"><i style="width:90%;background:var(--steel)"></i></div><div class="v">9/10</div></div>
+                  <div class="anatrow"><div class="k">Deployment scale</div><div class="bar"><i style="width:88%;background:var(--steel)"></i></div><div class="v">7/8</div></div>
+                  <div class="anatrow"><div class="k">Regional footprint</div><div class="bar"><i style="width:86%;background:var(--steel)"></i></div><div class="v">6/7</div></div>
+                  <div class="anatrow"><div class="k">Geography / service area</div><div class="bar"><i style="width:100%;background:var(--steel)"></i></div><div class="v">5/5</div></div>
                 </div>
                 <div class="splitcol">
-                  <div class="h"><span class="t">Trigger</span><span class="n">42<small>/70</small></span></div>
-                  <div class="anatrow"><div class="k">Location / facility</div><div class="bar"><i style="width:70%;background:var(--t1)"></i></div><div class="v">primary</div></div>
-                  <div class="anatrow"><div class="k">Workforce / mobility</div><div class="bar"><i style="width:40%;background:var(--t1)"></i></div><div class="v">support</div></div>
+                  <div class="h"><span class="t">Trigger</span><span class="n">44<small>/70</small></span></div>
+                  <div class="anatrow"><div class="k">Fiber build / funding</div><div class="bar"><i style="width:72%;background:var(--t1)"></i></div><div class="v">primary</div></div>
+                  <div class="anatrow"><div class="k">Regional expansion</div><div class="bar"><i style="width:40%;background:var(--t1)"></i></div><div class="v">support</div></div>
                   <div class="trigmath">
-                    facility trigger <b>48</b><span class="op">×</span>recency <b>1.0</b><span class="op">×</span>confidence <b>0.88</b> <span style="color:var(--muted)">≈</span> <b style="color:var(--t1)">42</b>
+                    grant award <b>46</b><span class="op">×</span>recency <b>1.0</b><span class="op">×</span>confidence <b>0.95</b> <span style="color:var(--muted)">≈</span> <b style="color:var(--t1)">44</b>
                   </div>
                 </div>
               </div>
               <div class="track" style="height:11px">
                 <div class="seg-fit" style="width:27%"></div>
-                <div class="seg-trg" style="width:42%;background:var(--t1)"><span class="spark-dot live"></span></div>
+                <div class="seg-trg" style="width:44%;background:var(--t1)"><span class="spark-dot live"></span></div>
               </div>
               <div style="display:flex;gap:18px;margin-top:9px;font-size:11px;color:var(--muted);font-family:'JetBrains Mono'">
                 <span><b style="color:var(--steel)">▮</b> fit 27</span>
-                <span><b style="color:var(--t1)">▮</b> trigger 42</span>
+                <span><b style="color:var(--t1)">▮</b> trigger 44</span>
                 <span style="margin-left:auto"><b style="color:var(--spark)">●</b> live · &lt;30d</span>
               </div>
             </div>
@@ -439,34 +447,34 @@
               <p class="eyebrow"><span>Signal timeline</span><span class="ln"></span><span style="font-family:'JetBrains Mono';color:var(--muted);text-transform:none;letter-spacing:0">5 events</span></p>
               <div class="tl">
                 <div class="tlitem">
-                  <div class="tldot fwa"></div>
+                  <div class="tldot fiber"></div>
                   <div class="date">2026 · MAY</div>
-                  <div class="ev">Board approves ~$122M facility expansion and capital plan</div>
-                  <div class="src"><span class="srcbadge">Local business press</span><span class="conf hi">primary · high</span><span class="svc-mini fwa">FWA</span></div>
+                  <div class="ev">State broadband office announces ~$88M BEAD sub-grant award</div>
+                  <div class="src"><span class="srcbadge">State broadband office</span><span class="conf hi">primary · high</span><span class="svc-mini fiber">FIBER</span></div>
                 </div>
                 <div class="tlitem">
-                  <div class="tldot fwa"></div>
+                  <div class="tldot fiber"></div>
                   <div class="date">2026 · MAR</div>
-                  <div class="ev">New clinical building / campus project advances through permitting</div>
-                  <div class="src"><span class="srcbadge">Permit filing</span><span class="conf md">secondary · med</span><span class="svc-mini fwa">FWA</span></div>
+                  <div class="ev">Four-state FTTH expansion announced — ~210k new passings planned</div>
+                  <div class="src"><span class="srcbadge">Company press release</span><span class="conf hi">primary · high</span><span class="svc-mini fiber">FIBER</span></div>
                 </div>
                 <div class="tlitem">
-                  <div class="tldot mob"></div>
+                  <div class="tldot fiber"></div>
                   <div class="date">2026 · FEB</div>
-                  <div class="ev">Sustained clinical & support hiring across campuses (job postings up)</div>
-                  <div class="src"><span class="srcbadge">Job boards</span><span class="conf md">signal · med</span><span class="svc-mini mob">MOB</span></div>
+                  <div class="ev">Middle-mile route permits filed across two counties</div>
+                  <div class="src"><span class="srcbadge">Permit filing</span><span class="conf md">secondary · med</span><span class="svc-mini fiber">FIBER</span></div>
                 </div>
                 <div class="tlitem">
                   <div class="tldot both"></div>
                   <div class="date">2025 · NOV</div>
-                  <div class="ev">New executive appointment in operations leadership</div>
-                  <div class="src"><span class="srcbadge">Press release</span><span class="conf hi">primary · high</span><span class="svc-mini both">BOTH</span></div>
+                  <div class="ev">New VP of Network &amp; Outside Plant appointed</div>
+                  <div class="src"><span class="srcbadge">Press release</span><span class="conf hi">primary · high</span><span class="svc-mini both">ALL</span></div>
                 </div>
                 <div class="tlitem">
-                  <div class="tldot fwa"></div>
+                  <div class="tldot dc"></div>
                   <div class="date">2025 · SEP</div>
-                  <div class="ev">Regional service expansion — new outpatient site opened</div>
-                  <div class="src"><span class="srcbadge">Local news</span><span class="conf hi">primary · high</span><span class="svc-mini fwa">FWA</span></div>
+                  <div class="ev">Growth investment closed to accelerate regional builds; larger aggregation sites planned</div>
+                  <div class="src"><span class="srcbadge">Fiber trade press</span><span class="conf md">secondary · med</span><span class="svc-mini dc">DCOM</span></div>
                 </div>
               </div>
             </div>
@@ -475,28 +483,28 @@
             <div class="card">
               <p class="eyebrow"><span>Press &amp; sources</span><span class="ln"></span></p>
               <div class="press">
-                <div class="parti" onclick="toast('Opens source article')">
-                  <div class="pthumb" style="background:#1c3d5a">CT</div>
+                <div class="parti" onclick="toast('Opens source article — sample data')">
+                  <div class="pthumb" style="background:#1c3d5a">SB</div>
                   <div style="min-width:0">
-                    <p class="ph">Erlanger moves ahead with ~$122M expansion to grow capacity</p>
-                    <p class="psnip">The health system's board signed off on a multi-year capital plan to add and modernize clinical space across its Chattanooga campuses.</p>
-                    <div class="pmeta"><span>Chattanooga Times Free Press</span><span>2026 · May</span></div>
+                    <p class="ph">State broadband office names Ridgeline among BEAD sub-grant awardees</p>
+                    <p class="psnip">The award list allocates roughly $88M toward last-mile fiber in underserved counties, with buildout deadlines tied to the federal program.</p>
+                    <div class="pmeta"><span>State broadband office</span><span>2026 · May</span></div>
                   </div>
                 </div>
-                <div class="parti" onclick="toast('Opens source article')">
-                  <div class="pthumb" style="background:#0E8F6E">BJ</div>
+                <div class="parti" onclick="toast('Opens source article — sample data')">
+                  <div class="pthumb" style="background:#0E8F6E">FT</div>
                   <div style="min-width:0">
-                    <p class="ph">Building plans signal a growth phase for the region's largest employer</p>
-                    <p class="psnip">Local officials framed the investment as a driver of construction and clinical hiring over the next several years.</p>
-                    <div class="pmeta"><span>Chattanooga Business Journal</span><span>2026 · May</span></div>
+                    <p class="ph">Regional operator maps a four-state FTTH expansion</p>
+                    <p class="psnip">Trade coverage of the ~210k-passing plan, with construction phased over three years and middle-mile segments linking new hub sites.</p>
+                    <div class="pmeta"><span>Fiber trade press</span><span>2026 · Mar</span></div>
                   </div>
                 </div>
-                <div class="parti" onclick="toast('Opens source article')">
-                  <div class="pthumb" style="background:#7A3FF2">HC</div>
+                <div class="parti" onclick="toast('Opens source article — sample data')">
+                  <div class="pthumb" style="background:#7A3FF2">BJ</div>
                   <div style="min-width:0">
-                    <p class="ph">Tennessee academic system invests in facilities and workforce</p>
-                    <p class="psnip">Trade coverage of capacity expansion and staffing growth at the UT-affiliated system serving the tri-state area.</p>
-                    <div class="pmeta"><span>Healthcare trade</span><span>2026 · Apr</span></div>
+                    <p class="ph">Growth capital positions Ridgeline for its largest build season yet</p>
+                    <p class="psnip">Local business coverage of the investment and hiring that precede the expansion, including plans for larger aggregation facilities.</p>
+                    <div class="pmeta"><span>Local business journal</span><span>2025 · Sep</span></div>
                   </div>
                 </div>
               </div>
@@ -509,10 +517,10 @@
             <div class="card play">
               <p class="eyebrow"><span>Recommended play</span><span class="ln"></span></p>
               <ul>
-                <li><span class="num">1</span><span><b>Lead with FWA for the buildout.</b> Temporary connectivity during construction, plus permanent in-building coverage and wireless backup for new clinical space.</span></li>
-                <li><span class="num">2</span><span><b>Layer mobility for clinical growth.</b> Managed phones/tablets for the expanding care workforce across campuses.</span></li>
-                <li><span class="num">3</span><span><b>Enter through Facilities + IT.</b> Real-estate/construction owns the buildout; IT infrastructure owns the network.</span></li>
-                <li><span class="num">4</span><span><b>Move while the plan is live.</b> Pre-wiring decisions are being made now — best window before general contractors lock connectivity.</span></li>
+                <li><span class="num">1</span><span><b>Lead with fiber huts for the funded routes.</b> Remanufactured concrete shelters hit BEAD build deadlines on cost and lead time.</span></li>
+                <li><span class="num">2</span><span><b>Position DataComm Pro for aggregation sites.</b> The larger reinforced buildings fit the hub and regen locations on the middle-mile segments.</span></li>
+                <li><span class="num">3</span><span><b>Enter through OSP engineering + network planning.</b> Hut specs are written there, before construction packages go out.</span></li>
+                <li><span class="num">4</span><span><b>Move while sites are being engineered.</b> BEAD deadlines force quick spec decisions — best window is before site packages are locked.</span></li>
               </ul>
             </div>
 
@@ -523,8 +531,8 @@
                 <div class="cavatar" style="background:#1c3d5a">JM</div>
                 <div style="flex:1;min-width:0">
                   <div class="cn">J. Marsh</div>
-                  <div class="ct">Chief Information Officer</div>
-                  <div class="cwhy">Owns IT & connectivity strategy — decision maker for network and carrier.</div>
+                  <div class="ct">VP, Network &amp; Outside Plant</div>
+                  <div class="cwhy">Owns OSP engineering and hut specifications — primary shelter buyer.</div>
                 </div>
                 <div class="li" onclick="toast('Opens LinkedIn')">in</div>
               </div>
@@ -532,8 +540,8 @@
                 <div class="cavatar" style="background:#2563C9">AD</div>
                 <div style="flex:1;min-width:0">
                   <div class="cn">A. Delgado</div>
-                  <div class="ct">VP, IT Infrastructure &amp; Networking</div>
-                  <div class="cwhy">Owns WAN, wireless and telecom — primary FWA technical buyer.</div>
+                  <div class="ct">Director, OSP Engineering</div>
+                  <div class="cwhy">Writes the site and shelter specs that go into construction packages.</div>
                 </div>
                 <div class="li" onclick="toast('Opens LinkedIn')">in</div>
               </div>
@@ -541,8 +549,8 @@
                 <div class="cavatar" style="background:#0E8F6E">RP</div>
                 <div style="flex:1;min-width:0">
                   <div class="cn">R. Pruitt</div>
-                  <div class="ct">Director, Facilities &amp; Real Estate</div>
-                  <div class="cwhy">Runs new-building buildout — earliest connectivity requirements sit here.</div>
+                  <div class="ct">Construction Program Manager</div>
+                  <div class="cwhy">Runs the BEAD build program — schedule pressure sits here.</div>
                 </div>
                 <div class="li" onclick="toast('Opens LinkedIn')">in</div>
               </div>
@@ -550,8 +558,8 @@
                 <div class="cavatar" style="background:#7A3FF2">SK</div>
                 <div style="flex:1;min-width:0">
                   <div class="cn">S. Kane</div>
-                  <div class="ct">Manager, Telecom &amp; Unified Comms</div>
-                  <div class="cwhy">Owns carrier and mobility contracts — mobility renewal point.</div>
+                  <div class="ct">Procurement Manager</div>
+                  <div class="cwhy">Issues the purchase orders — confirm Build America/Buy America requirements.</div>
                 </div>
                 <div class="li" onclick="toast('Opens LinkedIn')">in</div>
               </div>
@@ -563,15 +571,15 @@
               <p class="eyebrow"><span>Coverage &amp; caveats</span><span class="ln"></span></p>
               <div class="cov good">
                 <div class="covicon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-                <div><b>Clean regional target.</b> Decisions are made locally in Chattanooga — no national-procurement caveat like Ascension.</div>
+                <div><b>Funded build.</b> BEAD dollars are committed with federal buildout deadlines — the spend is not discretionary.</div>
               </div>
               <div class="cov good">
                 <div class="covicon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M3 12h4l3-8 4 16 3-8h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-                <div><b>Strong Verizon coverage</b> across the TN / GA / NC Southeast footprint.</div>
+                <div><b>Regional multi-state footprint.</b> Repeatable hut volume across four states — the exact mid-tier profile CellSite Solutions targets.</div>
               </div>
               <div class="cov warn">
                 <div class="covicon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 3l9 16H3l9-16z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></div>
-                <div><b>Public system.</b> Some purchases may route through procurement / RFP — confirm the buying path early.</div>
+                <div><b>Grant compliance.</b> BEAD-funded builds carry Build America/Buy America and reporting requirements — have compliance documentation ready early.</div>
               </div>
             </div>
           </div>
@@ -584,46 +592,49 @@
 <div class="toast" id="toast"><span class="fd"></span><span id="toast-msg"></span></div>
 
 <script>
-  // ---- Tier 1 data (from the scoring analysis) ----
+  // ---- Tier 1 data (illustrative sample companies for the CellSite Solutions profile) ----
   const companies = [
-    {id:"erlanger", nm:"Erlanger Health", loc:"Chattanooga, TN · ~10k employees", ind:"Healthcare",
-      badge:"E", col:"linear-gradient(150deg,#0E8F6E,#12b083)", score:69, fit:27, trg:42, live:true,
-      why:"~$122M campus expansion moving into buildout", ticon:"facility", rec:"May 2026 · forward",
-      svc:["fwa","mob"], caveat:null, lead:true},
-    {id:"fertitta", nm:"Fertitta Entertainment", loc:"Houston, TX · enterprise", ind:"Gaming & Hospitality",
-      badge:"F", col:"linear-gradient(150deg,#7a1f2b,#a83345)", score:69, fit:25, trg:44, live:true,
-      why:"$17.6B Caesars acquisition closing", ticon:"ma", rec:"Q1 2026 · forward",
-      svc:["fwa","mob"], caveat:"enterprise / national procurement"},
-    {id:"lowes", nm:"Lowes Foods", loc:"Winston-Salem, NC · 100+ stores", ind:"Grocery Retail",
-      badge:"L", col:"linear-gradient(150deg,#12683a,#1c8f52)", score:68, fit:26, trg:42, live:true,
-      why:"Multiple new grocery stores opening", ticon:"store", rec:"2025–26 · rolling",
-      svc:["fwa","mob"], caveat:null},
-    {id:"ascension", nm:"Ascension Saint Thomas", loc:"Nashville, TN · large system", ind:"Healthcare",
-      badge:"A", col:"linear-gradient(150deg,#1c3d5a,#2a5680)", score:67, fit:26, trg:41, live:true,
-      why:"$537M Middle-TN expansion + HQ move", ticon:"facility", rec:"2025–26 · forward",
-      svc:["fwa","mob"], caveat:"Ascension national procurement"},
-    {id:"mutual", nm:"Mutual of Omaha", loc:"Omaha, NE · Fortune 500", ind:"Insurance",
-      badge:"M", col:"linear-gradient(150deg,#0b3d2e,#12684d)", score:66, fit:26, trg:40, live:true,
-      why:"New 44-story HQ tower opens Fall 2026", ticon:"hq", rec:"Fall 2026 · forward",
-      svc:["fwa","mob"], caveat:"enterprise / national procurement"},
-    {id:"asml", nm:"ASML", loc:"Veldhoven, NL · 18 US offices", ind:"Semiconductor",
-      badge:"A", col:"linear-gradient(150deg,#14427a,#1f66b8)", score:66, fit:27, trg:39, live:true,
-      why:"New Phoenix training center; Wilton CT +1,000 jobs", ticon:"facility", rec:"Nov 2025 · forward",
-      svc:["fwa","mob"], caveat:"foreign HQ / enterprise procurement"},
-    {id:"microcenter", nm:"Micro Center", loc:"Hilliard, OH · 31 stores", ind:"Electronics Retail",
-      badge:"M", col:"linear-gradient(150deg,#b0361f,#e05a34)", score:66, fit:26, trg:40, live:true,
-      why:"New large-format stores: Phoenix, Austin 2026", ticon:"store", rec:"2026 · forward",
-      svc:["fwa","mob"], caveat:null}
+    {id:"ridgeline", nm:"Ridgeline Fiber", loc:"Des Moines, IA · 4-state footprint", ind:"Fiber Broadband",
+      badge:"R", col:"linear-gradient(150deg,#0E8F6E,#12b083)", score:71, fit:27, trg:44, live:true,
+      why:"~$88M BEAD-funded four-state FTTH build entering construction", ticon:"hut", rec:"May 2026 · forward",
+      svc:["fiber","dc"], caveat:null, lead:true},
+    {id:"prairie", nm:"Prairie Valley Electric Co-op", loc:"Aberdeen, SD · 12-county territory", ind:"Rural Utility",
+      badge:"P", col:"linear-gradient(150deg,#12683a,#1c8f52)", score:68, fit:25, trg:43, live:true,
+      why:"Co-op fiber ISP expanding into 12 new counties", ticon:"bolt", rec:"Q2 2026 · forward",
+      svc:["fiber"], caveat:null},
+    {id:"summit", nm:"Summit Edge Infrastructure", loc:"Denver, CO · 20 markets", ind:"Data Centers & Edge",
+      badge:"S", col:"linear-gradient(150deg,#4a2d8f,#7A3FF2)", score:68, fit:24, trg:44, live:true,
+      why:"20-market micro data center rollout — modular deployment stated", ticon:"dc", rec:"2026 · rolling",
+      svc:["dc"], caveat:null},
+    {id:"meridian", nm:"Meridian Tower Group", loc:"Salt Lake City, UT · Mountain West", ind:"Wireless Towers",
+      badge:"M", col:"linear-gradient(150deg,#0b6d6c,#0EA5A4)", score:67, fit:25, trg:42, live:true,
+      why:"120 new macro towers announced — shelters at every base", ticon:"tower", rec:"2026 · forward",
+      svc:["twr","fiber"], caveat:null},
+    {id:"tricounty", nm:"Tri-County 911 Authority", loc:"Dayton, OH · 3-county PSAP", ind:"Public Safety",
+      badge:"T", col:"linear-gradient(150deg,#8f2f2a,#D6453D)", score:67, fit:24, trg:43, live:true,
+      why:"NG911 migration + PSAP consolidation funded", ticon:"shield", rec:"Q1 2026 · forward",
+      svc:["e911"], caveat:"public procurement / RFP"},
+    {id:"heartland", nm:"Heartland DataWorks", loc:"Kansas City, MO · 2 campuses", ind:"Data Centers & Edge",
+      badge:"H", col:"linear-gradient(150deg,#1c3d5a,#2a5680)", score:66, fit:25, trg:41, live:true,
+      why:"Modular capacity expansion at two campuses", ticon:"dc", rec:"2026 · forward",
+      svc:["dc"], caveat:null},
+    {id:"bayou", nm:"Bayou Basin Midstream", loc:"Houston, TX · gulf coast", ind:"Oil & Gas",
+      badge:"B", col:"linear-gradient(150deg,#b0361f,#e05a34)", score:66, fit:26, trg:40, live:true,
+      why:"SCADA/comms buildout along a 300-mile pipeline corridor", ticon:"pipe", rec:"2026 · forward",
+      svc:["oth"], caveat:null}
   ];
 
   const ticons = {
-    facility:'<path d="M4 21V8l8-5 8 5v13M9 21v-6h6v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
-    store:'<path d="M3 9l1.5-5h15L21 9M4 9v11h16V9M4 9h16M9 20v-6h6v6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>',
-    ma:'<path d="M7 8V5l-4 4 4 4v-3h7M17 16v3l4-4-4-4v3h-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
-    hq:'<path d="M6 21V4h12v17M9 8h1M14 8h1M9 12h1M14 12h1M9 16h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>'
+    hut:'<path d="M4 21V8l8-5 8 5v13M9 21v-6h6v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+    bolt:'<path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>',
+    dc:'<rect x="4" y="4" width="16" height="7" rx="2" stroke="currentColor" stroke-width="1.7"/><rect x="4" y="13" width="16" height="7" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 7.5h.01M8 16.5h.01" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>',
+    tower:'<path d="M12 21V9M9 21h6M12 9a2.5 2.5 0 100-5 2.5 2.5 0 000 5M7.5 3.5a6.5 6.5 0 000 7M16.5 3.5a6.5 6.5 0 010 7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>',
+    shield:'<path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>',
+    pipe:'<path d="M12 3s6 6.5 6 11a6 6 0 11-12 0c0-4.5 6-11 6-11z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>'
   };
 
-  function svcTag(s){return `<span class="tag ${s}">${s==="fwa"?"FWA":"MOB"}</span>`;}
+  const svcLabels = {fiber:"FIBER", twr:"TOWER", dc:"DCOM", e911:"E911", oth:"OTHER"};
+  function svcTag(s){return `<span class="tag ${s}">${svcLabels[s]||s.toUpperCase()}</span>`;}
 
   function renderRows(){
     const el = document.getElementById("rows");
@@ -666,14 +677,14 @@
     document.getElementById('seg-list').classList.toggle('on', v==='list');
     document.getElementById('seg-detail').classList.toggle('on', v==='detail');
     document.getElementById('crumb').innerHTML = v==='detail'
-      ? '<a onclick="show(\'list\')">Prospects</a><span class="sub">/</span><span>Erlanger Health</span>'
+      ? '<a onclick="show(\'list\')">Prospects</a><span class="sub">/</span><span>Ridgeline Fiber</span>'
       : '<span>Prospects</span>';
     window.scrollTo({top:0,behavior:'smooth'});
   }
 
   function openCompany(id){
-    if(id==='erlanger'){ show('detail'); }
-    else { toast('Prototype — full profile is wired for Erlanger Health'); }
+    if(id==='ridgeline'){ show('detail'); }
+    else { toast('Prototype — full profile is wired for Ridgeline Fiber'); }
   }
 
   let toastT;

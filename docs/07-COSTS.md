@@ -4,7 +4,7 @@
 
 Lists are capped at **100 companies**, so this is the worst case for a single run.
 
-- 100 companies × 8 searches = **800 searches**
+- 100 companies × 9 searches = **900 searches**
 - Per company: ~15k input tokens (search snippets are bulky) + ~1.5k output tokens
 
 ## Anthropic web search path
@@ -13,7 +13,7 @@ Web search on the Claude API is **$10 per 1,000 searches**, and the retrieved co
 standard input tokens on top of that.
 
 ```
-searches:  800 / 1000 × $10                        = $8.00
+searches:  900 / 1000 × $10                        = $9.00
 input:     100 × 15,000  = 1.50M tokens
 output:    100 ×  1,500  = 0.15M tokens
 ```

@@ -16,7 +16,7 @@ category, normalized to 0–100:
 
 ```
 category_score(C) = min(100, fit_score + Σ_{s : C ∈ s.categories} s.points_awarded)
-primary_category  = argmax over the four
+primary_category  = argmax over the five
 ```
 
 **The guardrail:** fit alone can never reach Tier 1. A company with a perfect 30 fit and no signals
@@ -29,14 +29,28 @@ tier_3  → total < 38, or stale-only signals
 defunct → company acquired/dissolved/closed (caveat `defunct` set) → total forced to 0
 ```
 
+## The five product categories
+
+CellSite Solutions manufactures prefabricated telecom equipment buildings: **remanufactured concrete
+shelters** (fast, economical, proven) and the new **DataComm Pro** line — reinforced, lightweight,
+often larger modular buildings. Every prospect is scored against the five ways those products sell:
+
+| Code | Category | What it is — and WHEN IT'S SOLD |
+|------|----------|--------------------------------|
+| `FIBER` | Fiber Huts & Telecom Shelters | Hardened buildings that house OLTs, splice points, and hub electronics on fiber routes. **Sold when** a fiber build is announced or funded (BEAD/ReConnect/state grants), when a rural utility or electric co-op launches or expands a fiber ISP, or when a mid-tier operator pushes deployments across states/regions — not just one city. Huts are specced during outside-plant engineering, before construction crews mobilize. Either remanufactured concrete shelters or DataComm Pro fits, sized per site. |
+| `TOWER` | Wireless Tower Sites | A fiber hut / telecom shelter often sits at the base of a wireless tower housing radios, backhaul, and power equipment. **Sold when** tower companies, carriers, or neutral hosts announce new tower builds, coverage-expansion programs, 5G infill, or colocation/upgrade projects that add ground equipment. |
+| `DATACOMM` | Modular Data Centers & Edge | Data center and edge operators increasingly deploy modular buildings instead of stick-built shells. **Sold when** a data center or edge provider announces capacity expansion, new markets, micro/edge rollouts, or an explicitly modular deployment strategy — where DataComm Pro's larger reinforced buildings fit. |
+| `E911` | E911 / Public Safety | Cities, counties, and municipalities need secure buildings to house the servers and ISP equipment behind E911/NG911 service. **Sold when** a jurisdiction announces an NG911 migration, a PSAP consolidation or hardening project, or wins public-safety/emergency-communications funding. |
+| `OTHER` | Other shelter verticals | Oil & gas, defense, utilities, transportation, and other industries deploy the same telecom shelters/fiber huts at remote sites. **Sold when** a pipeline SCADA/comms buildout, a defense or base-infrastructure project, a grid-modernization program, or another remote-communications deployment is announced. |
+
 ## FIT — 30 points, "would they ever buy?"
 
 | Component | Max | Plain English |
 |---|---|---|
-| `industry` | 10 | Does this industry inherently need connectivity and devices? Healthcare, retail, logistics, hospitality, field services score high. Pure software/finance-office scores low. |
-| `size` | 8 | Bigger = more sites, more devices. Bands: <100 (1), 100–500 (3), 500–2k (5), 2k–10k (7), 10k+ (8). |
-| `multi_location` | 7 | Number of physical locations. 1 site (1), 2–10 (3), 11–50 (5), 50+ (7). Single-HQ companies are structurally weak targets for FWA. |
-| `geography` | 5 | Are their sites inside strong Verizon coverage? US Southeast/Midwest/Texas score 5. Foreign-only or overseas-growth score 0–1. |
+| `industry` | 10 | Does this organization deploy outside-plant telecom or network infrastructure? Fiber broadband operators, rural electric/telephone co-ops, tower companies & wireless carriers, data center & edge operators, municipalities/public-safety agencies, oil & gas, utilities, and defense score high. Pure software/office companies score low. |
+| `size` | 8 | Scale of the deployment program — route miles, homes passed, site count, megawatts, service-territory size. Bigger programs mean more buildings. |
+| `multi_location` | 7 | Geographic breadth of deployments. Mid-tier operators building across **states/regions** score highest (7) — repeatable hut volume. Multi-county (5), multi-city (3), a single city/metro only (1). |
+| `geography` | 5 | Are the builds in the US and inside CellSite Solutions' serviceable delivery footprint? US regional builds score 5. Foreign-only or overseas builds score 0–1. |
 
 ## TRIGGER — 70 points, "would they buy *now*?"
 
@@ -46,10 +60,10 @@ defunct → company acquired/dissolved/closed (caveat `defunct` set) → total f
 
 | Window | × | Why |
 |---|---|---|
-| Announced future event (`is_forward`) | **1.0** | The best possible signal. Nothing is bought yet. |
+| Announced future event (`is_forward`) | **1.0** | The best possible signal. Shelters are specced before ground breaks. |
 | Last 30 days | 1.0 | Decisions in flight. |
 | 1–3 months | 0.8 | Still open, vendors circling. |
-| 4–5 months | 0.6 | Likely specced, maybe not signed. |
+| 4–5 months | 0.6 | Likely specced, maybe not ordered. |
 | 6–12 months | 0.3 | Mostly closed. |
 | > 12 months | 0.1 | Historical color, not a trigger. |
 
@@ -57,67 +71,73 @@ defunct → company acquired/dissolved/closed (caveat `defunct` set) → total f
 
 | Source class | × | Examples |
 |---|---|---|
-| `primary` | 1.0 | Company press release, SEC 8-K/10-K, city permit filing, official gov econ-dev announcement |
-| `secondary` | 0.85 | Local business journal, established trade press, major wire |
+| `primary` | 1.0 | Company press release, state broadband office award list, NTIA/USDA announcement, SEC 8-K/10-K, permit filing, official government procurement notice |
+| `secondary` | 0.85 | Broadband/fiber trade press, local business journal, established industry press, major wire |
 | `weak` | 0.6 | Aggregators, blogs, job-board inference, unattributed |
 
 ### Signal taxonomy
 
-Each signal type carries base points and feeds one or more of the four categories.
+Each signal type carries base points and feeds one or more of the five categories.
 
-#### Location & facility → mostly FWA + STARLINK
-
-| Signal | Base | Feeds | Plain English |
-|---|---|---|---|
-| `new_facility_announced` | 48 | FWA, STARLINK | A new building, plant, campus, or HQ is announced or under construction. The single strongest signal we have: connectivity gets specced before the drywall goes up. |
-| `new_store_or_branch` | 44 | FWA, STARLINK, MOBILITY | New retail store, bank branch, clinic, or restaurant. Repeatable — a chain opening 10 stores is 10 installs. |
-| `hq_relocation` | 40 | FWA, MOBILITY, BYOD | Headquarters move. Everything gets re-wired and re-provisioned at once. |
-| `construction_permit_filed` | 34 | FWA | A permit filing before any press. Earliest possible signal; low confidence unless the applicant is confirmed. |
-| `temporary_site_need` | 30 | FWA, STARLINK | Pop-ups, disaster response, construction trailers, seasonal sites. FWA's home turf — no fiber, no time. |
-| `facility_expansion` | 28 | FWA | Expanding or renovating an existing site rather than building new. |
-
-#### Continuity & resilience → STARLINK
+#### Fiber builds & grant funding → FIBER
 
 | Signal | Base | Feeds | Plain English |
 |---|---|---|---|
-| `outage_or_downtime_event` | 42 | STARLINK, FWA | They publicly suffered an outage. Nothing sells failover like having just lost a day of revenue. |
-| `rural_or_low_redundancy_sites` | 32 | STARLINK | Sites where terrestrial redundancy is poor or a second fiber path doesn't exist. |
-| `pos_or_uptime_critical` | 30 | STARLINK, FWA | Revenue stops when the link stops: retail POS, pharmacy, clinical systems, drive-thru. |
-| `regulatory_uptime_requirement` | 26 | STARLINK | Healthcare, financial, or public-safety uptime/continuity obligations. |
-| `disaster_recovery_initiative` | 24 | STARLINK | A published BC/DR or resiliency program. |
+| `fiber_build_announced` | 48 | FIBER | A new FTTH/FTTP or fiber network build is announced or entering construction. The single strongest signal we have: every route needs huts, and they're specced early. |
+| `grant_award_received` | 46 | FIBER | BEAD, ReConnect, state broadband office, or middle-mile grant awarded (or matched). Funded builds have federal deadlines — the money must be spent. |
+| `rural_utility_fiber_launch` | 42 | FIBER | A rural electric co-op or utility launches or expands a fiber ISP over its service territory. Repeatable — a co-op passing 12 counties is dozens of hut sites. |
+| `regional_expansion_announced` | 40 | FIBER | A mid-tier operator announces deployments across states/regions — not just one city. The exact profile CellSite Solutions targets. |
+| `middle_mile_or_backbone` | 36 | FIBER | Middle-mile, long-haul, or backbone route builds — regen and ILA sites need shelters the whole way. |
+| `construction_permit_filed` | 30 | FIBER | OSP/route permits filed before any press. Earliest possible signal; low confidence unless the applicant is confirmed. |
 
-#### Workforce & devices → MOBILITY
-
-| Signal | Base | Feeds | Plain English |
-|---|---|---|---|
-| `hiring_surge` | 38 | MOBILITY, BYOD | A large, specific, dated hiring commitment (e.g. "+1,000 jobs"). Every frontline hire is a device. |
-| `frontline_or_rugged_workforce` | 36 | MOBILITY | Warehouse, logistics, field service, inventory, clinical. This is where **Zebra** rugged scanners live — not in an office. |
-| `fleet_or_field_service` | 32 | MOBILITY, FWA | Trucks, vans, technicians in vehicles. In-vehicle routers + handhelds. |
-| `device_refresh_or_rfp` | 44 | MOBILITY | An actual device RFP, refresh cycle, or carrier contract expiry. Rare and gold. |
-| `new_exec_it_or_ops` | 22 | MOBILITY, FWA, BYOD | New CIO/CTO/VP-IT. New leaders re-open closed vendor decisions in their first year. |
-
-#### Distributed work → BYOD
+#### Wireless towers → TOWER
 
 | Signal | Base | Feeds | Plain English |
 |---|---|---|---|
-| `remote_or_hybrid_workforce` | 30 | BYOD | A large distributed workforce with personal devices touching company systems. |
-| `contractor_or_agent_network` | 28 | BYOD | Independent agents, franchisees, 1099 contractors. Classic BYOD: they own the phone, you manage the container. |
-| `mdm_or_security_initiative` | 34 | BYOD, MOBILITY | A stated mobile-security, MDM, or zero-trust project. They've already admitted the problem. |
-| `byod_policy_published` | 24 | BYOD | A published BYOD/stipend policy — confirmation the model is in use. |
+| `tower_build_announced` | 44 | TOWER | New macro towers or tower programs announced — a shelter often sits at the base of every one, housing radios, backhaul, and power. |
+| `carrier_network_expansion` | 38 | TOWER, FIBER | A carrier or neutral host announces coverage expansion, 5G infill, or a rural coverage program — new sites need ground equipment buildings. |
+| `colocation_or_site_upgrade` | 32 | TOWER | Tower upgrades or colocation additions that put more equipment at the base of existing towers. |
 
-#### Corporate events → BOTH / all
+#### Data centers & edge → DATACOMM
 
 | Signal | Base | Feeds | Plain English |
 |---|---|---|---|
-| `merger_or_acquisition` | 40 | FWA, MOBILITY, BYOD | Integration means re-connecting sites and re-provisioning devices. Big, slow, lucrative. |
-| `funding_round` | 30 | FWA, MOBILITY | Capital raised is capital that gets spent on growth — sites and headcount. |
-| `expansion_announcement` | 34 | FWA, MOBILITY | Generic "we're entering market X" without a named building yet. |
+| `data_center_expansion` | 44 | DATACOMM | New data center campus, capacity expansion, or new market entry. Modular buildings compress the schedule. |
+| `edge_deployment_announced` | 42 | DATACOMM | An edge-computing or micro-data-center rollout — many small hardened sites, the DataComm Pro sweet spot. |
+| `modular_strategy_stated` | 38 | DATACOMM | The operator publicly commits to modular/prefab deployment. They've already bought the concept; now they pick a vendor. |
+| `site_or_power_secured` | 30 | DATACOMM | Land purchased or power capacity secured — a build is coming even if not yet announced. |
+
+#### E911 & public safety → E911
+
+| Signal | Base | Feeds | Plain English |
+|---|---|---|---|
+| `public_safety_rfp` | 46 | E911 | An actual RFP or procurement notice for shelters, equipment buildings, or E911/NG911 infrastructure. Rare and gold. |
+| `ng911_upgrade` | 44 | E911 | A city/county/state announces NG911 migration or an E911 system upgrade — new servers and ISP equipment need a secure building. |
+| `psap_consolidation` | 38 | E911 | PSAP consolidation, relocation, or hardening project — dispatch infrastructure gets rebuilt. |
+| `public_safety_funding` | 34 | E911 | 911-fee allocations, state grants, or federal funds awarded for emergency communications. |
+
+#### Other shelter verticals → OTHER
+
+| Signal | Base | Feeds | Plain English |
+|---|---|---|---|
+| `oil_gas_infrastructure` | 38 | OTHER | Pipeline, well-pad, or midstream comms/SCADA buildouts — remote sites that need hardened equipment buildings. |
+| `defense_or_gov_project` | 38 | OTHER | Base infrastructure, defense communications, or a defense-contractor program requiring shelters. |
+| `utility_grid_modernization` | 34 | OTHER, FIBER | Substation comms, grid-modernization, or AMI programs that place network equipment in the field. |
+| `remote_site_deployment` | 30 | OTHER | Rail, mining, transportation, or other remote communications sites being built out. |
+
+#### Corporate events → all categories
+
+| Signal | Base | Feeds | Plain English |
+|---|---|---|---|
+| `merger_or_acquisition` | 36 | FIBER, TOWER, DATACOMM | Operator consolidation means network integration and fresh expansion capital — and re-opened vendor decisions. |
+| `funding_or_investment` | 34 | FIBER, TOWER, DATACOMM | PE growth investment, debt raise, or capital committed to builds. Capital raised is capital that gets spent on infrastructure. |
+| `new_exec_network_ops` | 22 | FIBER, TOWER, DATACOMM, E911 | New CTO/VP-Network/VP-OSP/Director of Engineering. New leaders re-open closed vendor decisions in their first year. |
 
 ### Negative signals — these *subtract*
 
 | Signal | Points | Effect |
 |---|---|---|
-| `closure_or_contraction` | −25 | Closing sites, shrinking. |
+| `build_halted_or_scaled_back` | −25 | A build paused, descoped, or a grant returned. |
 | `bankruptcy_or_distress` | −35 | Chapter 11, debt restructuring, going-concern doubt. |
 | `acquired_or_defunct` | n/a | Sets caveat `defunct`; total forced to 0, tier `defunct`. |
 
@@ -127,13 +147,13 @@ These don't subtract points; they tell a rep what they're walking into. Two of t
 
 | Caveat | Caps tier? | Meaning |
 |---|---|---|
-| `enterprise_procurement` | → max Tier 2 | Fortune-500-scale; a national carrier contract probably already exists and buying runs through corporate procurement. |
+| `enterprise_procurement` | → max Tier 2 | National carrier / hyperscaler scale; incumbent national shelter contracts probably exist and buying runs through corporate procurement. |
 | `foreign_hq` | no | Decisions may be made overseas. |
-| `overseas_growth` | → max Tier 2 | The growth is real but outside Verizon's footprint. |
-| `holding_company` | → max Tier 2 | PE firm / league office / parent. The portfolio companies are the actual leads. |
-| `franchise_model` | no | Franchisees buy their own connectivity — sell to the franchisee, not the brand. |
-| `single_site` | no | One location; FWA upside is limited to failover. |
-| `public_procurement` | no | RFP process; longer cycle, confirm the buying path. |
+| `overseas_growth` | → max Tier 2 | The build activity is real but outside the US delivery footprint. |
+| `holding_company` | → max Tier 2 | PE firm / parent. The operating companies are the actual leads. |
+| `local_only` | no | Builds confined to a single city/metro; hut volume is limited compared to a regional program. |
+| `self_perform` | no | The organization builds or precasts its own shelters in-house — confirm before pitching. |
+| `public_procurement` | no | Municipal/RFP process; longer cycle, confirm the buying path. Expected and normal for E911. |
 | `defunct` | → `defunct` | Company no longer exists independently. |
 
 ## The weights object
@@ -151,15 +171,17 @@ Stored as `signal_profiles.weights` (jsonb). This is what the **Signals** tab ed
   "confidence": { "primary": 1.0, "secondary": 0.85, "weak": 0.6 },
   "tiers": { "tier_1_min": 63, "tier_2_min": 38 },
   "signals": {
-    "new_facility_announced": { "base": 48, "categories": ["FWA","STARLINK"], "enabled": true },
-    "hiring_surge":           { "base": 38, "categories": ["MOBILITY","BYOD"], "enabled": true }
+    "fiber_build_announced": { "base": 48, "categories": ["FIBER"], "enabled": true },
+    "grant_award_received":  { "base": 46, "categories": ["FIBER"], "enabled": true },
+    "tower_build_announced": { "base": 44, "categories": ["TOWER"], "enabled": true },
+    "data_center_expansion": { "base": 44, "categories": ["DATACOMM"], "enabled": true }
     // … one entry per taxonomy row above
   },
-  "category_boost": { "FWA": 1.0, "STARLINK": 1.0, "MOBILITY": 1.0, "BYOD": 1.0 }
+  "category_boost": { "FIBER": 1.0, "TOWER": 1.0, "DATACOMM": 1.0, "E911": 1.0, "OTHER": 1.0 }
 }
 ```
 
-`category_boost` lets a rep who's pushing Starlink this quarter weight it up without touching the
+`category_boost` lets a rep who's pushing DataComm Pro this quarter weight it up without touching the
 underlying evidence. It multiplies only the category score, never `total_score`.
 
 ## Reproducibility

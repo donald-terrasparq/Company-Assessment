@@ -34,8 +34,8 @@ is 0. You cannot get a Tier 1 out of this database without a URL someone can cli
 Store URL + publication + date + your own words. The detail screen renders the paraphrase and links
 out.
 
-**Category scores are stored, not computed on read.** Four integer columns beat a jsonb blob for
-`ORDER BY fwa_score DESC` and for the filter chips.
+**Category scores are stored, not computed on read.** Five integer columns beat a jsonb blob for
+`ORDER BY fiber_score DESC` and for the filter chips.
 
 **`caveats` is jsonb array of enum strings.** Small, queryable with `@>`, and lets us add caveat types
 without a migration.
@@ -51,7 +51,7 @@ removed. `https://WWW.Example.com/about` → `example.com`.
 This does the deduping in **View All** (`all_prospects` view). It also catches the case from the
 source data where the same company appears in two lists under slightly different names.
 
-Guard: a bad URL in the source file (typos are common — `mcirocenter.com`) shouldn't crash the parse.
+Guard: a bad URL in the source file (typos are common — `ridgelinefibre.com` for `ridgelinefiber.com`) shouldn't crash the parse.
 Store the raw string in `website`, set `domain` to `NULL` if it doesn't parse, and fall back to
 name-based dedupe. Surface these on the Lists screen as "3 rows had unparseable URLs."
 

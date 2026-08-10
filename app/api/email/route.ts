@@ -8,16 +8,43 @@ import { getActiveCompanyProfile } from "@/lib/db/queries/company-profiles";
 import { getSettings } from "@/lib/db/queries/settings";
 import { logUsage, monthToDateCostUsd } from "@/lib/db/queries/usage";
 import { saveDraftedEmail } from "@/lib/db/queries/emails";
+import { getManualContact } from "@/lib/db/queries/manual-contacts";
+import { manualDisplayName } from "@/lib/contacts/merge";
 
-const BodySchema = z.object({
-  result_id: z.string().uuid(),
-  play_index: z.number().int().min(0),
-  contact_id: z.string().uuid().nullable(),
-  style_key: z.string(),
-  // outreach sequence: which email this is (1-based) out of how many (1-4)
-  sequence_position: z.number().int().min(1).max(4).default(1),
-  sequence_length: z.number().int().min(1).max(4).default(1),
-});
+const CUSTOM_PLAY_MAX_CHARS = 500; // matches the modal's textarea maxLength
+
+/** Manual contacts reach the modal as `manual_<uuid>` (see mergeContacts). */
+const MANUAL_ID_PREFIX = "manual_";
+const uuid = z.string().uuid();
+const contactIdSchema = z
+  .string()
+  .refine(
+    (v) =>
+      uuid.safeParse(v).success ||
+      (v.startsWith(MANUAL_ID_PREFIX) && uuid.safeParse(v.slice(MANUAL_ID_PREFIX.length)).success),
+    "Invalid contact id.",
+  );
+
+const BodySchema = z
+  .object({
+    result_id: z.string().uuid(),
+    // one or several recommended-play steps woven into a single email; the
+    // legacy single play_index is still accepted
+    play_indexes: z.array(z.number().int().min(0)).max(10).optional(),
+    play_index: z.number().int().min(0).optional(),
+    // "Other": the rep's own typed angle — the only free text allowed through,
+    // length-capped and fenced inside the prompt
+    custom_play: z.string().trim().min(1).max(CUSTOM_PLAY_MAX_CHARS).nullish(),
+    contact_id: contactIdSchema.nullable(),
+    style_key: z.string(),
+    // outreach sequence: which email this is (1-based) out of how many (1-4)
+    sequence_position: z.number().int().min(1).max(4).default(1),
+    sequence_length: z.number().int().min(1).max(4).default(1),
+  })
+  .refine(
+    (b) => (b.play_indexes?.length ?? 0) > 0 || b.play_index != null || b.custom_play != null,
+    { message: "Select at least one pitch (or write your own)." },
+  );
 
 /**
  * POST /api/email — draft one outreach email for the Draft Email modal.
@@ -36,8 +63,9 @@ export async function POST(request: Request): Promise<Response> {
   if (!parsed.success) {
     return Response.json({ error: "Invalid request body." }, { status: 400 });
   }
-  const { result_id, play_index, contact_id, style_key, sequence_position, sequence_length } =
-    parsed.data;
+  const { result_id, contact_id, style_key, sequence_position, sequence_length } = parsed.data;
+  const playIndexes = parsed.data.play_indexes ?? (parsed.data.play_index != null ? [parsed.data.play_index] : []);
+  const customPlay = parsed.data.custom_play ?? null;
   if (sequence_position > sequence_length) {
     return Response.json({ error: "sequence_position exceeds sequence_length." }, { status: 422 });
   }
@@ -51,13 +79,21 @@ export async function POST(request: Request): Promise<Response> {
   const { result, company, signals, contacts } = detail;
 
   const playSteps = normalizePlaySteps(result.recommendedPlay ?? "");
-  const play = playSteps[play_index];
-  if (!play) {
+  const uniqueIndexes = [...new Set(playIndexes)];
+  const plays = uniqueIndexes.map((i) => playSteps[i]);
+  if (plays.some((p) => p == null)) {
     return Response.json({ error: "No such recommended-play step." }, { status: 422 });
   }
 
   let contact: { name: string; title: string | null } | null = null;
-  if (contact_id) {
+  if (contact_id?.startsWith(MANUAL_ID_PREFIX)) {
+    // 0015: a manually entered contact — durable row keyed on the company
+    const row = await getManualContact(contact_id.slice(MANUAL_ID_PREFIX.length));
+    if (!row || row.companyId !== company.id) {
+      return Response.json({ error: "Contact not found." }, { status: 422 });
+    }
+    contact = { name: manualDisplayName(row), title: row.title };
+  } else if (contact_id) {
     const row = contacts.find((c) => c.id === contact_id);
     if (!row) return Response.json({ error: "Contact not found." }, { status: 422 });
     contact = { name: row.name, title: row.title };
@@ -87,7 +123,8 @@ export async function POST(request: Request): Promise<Response> {
       industry: result.industry,
       hq: result.hq,
       whyNow: result.whyNow,
-      play,
+      plays,
+      customPlay,
       contact,
       styleKey: style_key,
       signals: topSignals,
@@ -111,7 +148,7 @@ export async function POST(request: Request): Promise<Response> {
     await saveDraftedEmail({
       companyId: company.id,
       contactName: contact?.name ?? null,
-      playText: play,
+      playText: [...plays, ...(customPlay ? [`Custom: ${customPlay}`] : [])].join("\n"),
       styleKey: style_key,
       sequencePosition: sequence_position,
       sequenceLength: sequence_length,

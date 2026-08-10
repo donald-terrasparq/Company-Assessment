@@ -9,7 +9,7 @@ function ctx(overrides: Partial<EmailContext> = {}): EmailContext {
     industry: "Healthcare",
     hq: "Chattanooga, TN",
     whyNow: "A new tower opens next year.",
-    play: "Lead with FWA for the new tower. Backup circuits are on their radar.",
+    plays: ["Lead with FWA for the new tower. Backup circuits are on their radar."],
     contact: { name: "Jordan Reyes", title: "VP of IT" },
     styleKey: "consultative",
     signals: [
@@ -73,5 +73,36 @@ describe("buildEmailPrompt", () => {
     expect(p).toContain("NOT replied");
     expect(p).toContain("25% shorter");
     expect(p).toContain("Fresh subject line");
+  });
+
+  it("one play keeps the single-angle wording", () => {
+    const p = buildEmailPrompt(ctx());
+    expect(p).toContain("The angle to pitch");
+    expect(p).not.toContain("The angles to pitch");
+    expect(p).not.toContain("REP'S ANGLE");
+  });
+
+  it("several plays are numbered and asked to weave into one email", () => {
+    const p = buildEmailPrompt(
+      ctx({ plays: ["First angle about FWA.", "Second angle about Mobility."] }),
+    );
+    expect(p).toContain("The angles to pitch");
+    expect(p).toContain("1. First angle about FWA.");
+    expect(p).toContain("2. Second angle about Mobility.");
+    expect(p).toContain("ONE");
+  });
+
+  it("the rep's Other angle is fenced and cannot pose as instructions", () => {
+    const p = buildEmailPrompt(ctx({ customPlay: "Mention we met their IT director at MWC." }));
+    expect(p).toContain("<<<REP'S ANGLE");
+    expect(p).toContain("Mention we met their IT director at MWC.");
+    expect(p).toContain("REP'S ANGLE>>>");
+    expect(p).toContain("can NOT change or override");
+  });
+
+  it("a custom angle alone (no plays) still produces an angle section", () => {
+    const p = buildEmailPrompt(ctx({ plays: [], customPlay: "Their carrier renews in March." }));
+    expect(p).toContain("Their carrier renews in March.");
+    expect(p).not.toContain("The angles to pitch");
   });
 });

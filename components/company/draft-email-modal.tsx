@@ -1,14 +1,16 @@
 "use client";
 
 /**
- * Draft Email modal — four selections: (1) recommended-play step, (2) contact,
- * (3) tone & length, (4) sequence size (1–4 emails). With 2+ emails, each
- * follow-up gets its own play selector (contact + tone stay the same), and
+ * Draft Email modal — four selections: (1) one or MORE recommended-play steps
+ * per email (checkboxes — several plays are woven into a single narrative),
+ * plus an "Other" option where the rep types their own angle; (2) contact;
+ * (3) tone & length; (4) sequence size (1–4 emails). With 2+ emails, each
+ * follow-up gets its own pitch selection (contact + tone stay the same), and
  * every generated email renders in its own box labeled with its sequence
- * number and play, with per-email Copy and Regenerate.
+ * number and pitches, with per-email Copy and Regenerate.
  */
 import { useCallback, useState } from "react";
-import { Check, Copy, Loader2, Mail, RefreshCw, X } from "lucide-react";
+import { Check, Copy, Loader2, Mail, PenLine, RefreshCw, X } from "lucide-react";
 import { EMAIL_STYLES, DEFAULT_STYLE_KEY } from "@/lib/email-styles";
 import { cn } from "@/lib/utils";
 
@@ -21,10 +23,17 @@ export interface EmailContactOption {
 }
 
 const NO_CONTACT = "__none__";
+const CUSTOM_PLAY_MAX = 500; // matches the API route's zod cap
+
+/** Which pitches one email in the sequence carries. */
+interface PitchSelection {
+  plays: number[];
+  other: boolean;
+}
 
 interface Draft {
   position: number; // 1-based sequence number
-  playIndex: number;
+  selection: PitchSelection;
   subject: string;
   body: string;
 }
@@ -35,11 +44,23 @@ function fieldLabel(text: string) {
   );
 }
 
-/** Short label for a play step: "Play 2 — Offer a Starlink failover pilot." */
+/** "Play 2 — Offer a Starlink failover pilot." */
 function playLabel(playSteps: string[], index: number): string {
   const step = playSteps[index] ?? "";
   const lead = step.split(". ")[0];
   return `Play ${index + 1} — ${lead.length > 60 ? `${lead.slice(0, 57)}…` : lead}${lead.endsWith(".") ? "" : "."}`;
+}
+
+/** Summary for a draft box header: "Play 1 + Play 3 + Other". */
+function selectionSummary(playSteps: string[], sel: PitchSelection): string {
+  const parts = sel.plays.map((i) => (sel.plays.length === 1 && !sel.other ? playLabel(playSteps, i) : `Play ${i + 1}`));
+  if (sel.other) parts.push("Other");
+  return parts.join(" + ") || "—";
+}
+
+/** Default pitch for email at `position`, cycling through the steps. */
+function defaultSelection(position: number, stepCount: number): PitchSelection {
+  return { plays: stepCount > 0 ? [(position - 1) % stepCount] : [], other: stepCount === 0 };
 }
 
 export function DraftEmailModal({
@@ -52,34 +73,70 @@ export function DraftEmailModal({
   contacts: EmailContactOption[];
 }) {
   const [open, setOpen] = useState(false);
-  const [playIndex, setPlayIndex] = useState(0); // email 1's play
+  // pitch selection per sequence position (index 0 = email 1)
+  const [selections, setSelections] = useState<PitchSelection[]>([defaultSelection(1, playSteps.length)]);
+  const [customText, setCustomText] = useState("");
   const [contactId, setContactId] = useState<string>(contacts[0]?.id ?? NO_CONTACT);
   const [styleKey, setStyleKey] = useState(DEFAULT_STYLE_KEY);
   const [seqLen, setSeqLen] = useState(1);
-  // plays for follow-up emails 2..4; defaults cycle through the steps
-  const [followUpPlays, setFollowUpPlays] = useState<number[]>([]);
   const [busy, setBusy] = useState<"all" | number | null>(null); // number = regenerating that position
   const [error, setError] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [copied, setCopied] = useState<string | null>(null);
 
-  const playForPosition = useCallback(
-    (position: number): number => {
-      if (position === 1) return playIndex;
-      return followUpPlays[position - 2] ?? (playIndex + position - 1) % playSteps.length;
-    },
-    [playIndex, followUpPlays, playSteps.length],
+  const selectionFor = useCallback(
+    (position: number): PitchSelection =>
+      selections[position - 1] ?? defaultSelection(position, playSteps.length),
+    [selections, playSteps.length],
   );
+
+  const setSeqLenAndResize = useCallback(
+    (n: number) => {
+      setSeqLen(n);
+      setSelections((prev) =>
+        Array.from({ length: n }, (_, i) => prev[i] ?? defaultSelection(i + 1, playSteps.length)),
+      );
+    },
+    [playSteps.length],
+  );
+
+  const togglePlay = useCallback((position: number, index: number) => {
+    setSelections((prev) => {
+      const next = prev.map((s) => ({ plays: [...s.plays], other: s.other }));
+      const sel = next[position - 1];
+      if (!sel) return prev;
+      sel.plays = sel.plays.includes(index)
+        ? sel.plays.filter((i) => i !== index)
+        : [...sel.plays, index].sort((a, b) => a - b);
+      return next;
+    });
+  }, []);
+
+  const toggleOther = useCallback((position: number) => {
+    setSelections((prev) => {
+      const next = prev.map((s) => ({ plays: [...s.plays], other: s.other }));
+      const sel = next[position - 1];
+      if (sel) sel.other = !sel.other;
+      return next;
+    });
+  }, []);
+
+  const anyOther = selections.slice(0, seqLen).some((s) => s.other);
+  const selectionsValid = Array.from({ length: seqLen }, (_, i) => selectionFor(i + 1)).every(
+    (s) => s.plays.length > 0 || (s.other && customText.trim().length > 0),
+  );
+  const otherNeedsText = anyOther && customText.trim().length === 0;
 
   const requestDraft = useCallback(
     async (position: number, length: number): Promise<Draft> => {
-      const pIdx = playForPosition(position);
+      const sel = selectionFor(position);
       const res = await fetch("/api/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           result_id: resultId,
-          play_index: pIdx,
+          play_indexes: sel.plays,
+          custom_play: sel.other && customText.trim() ? customText.trim() : null,
           contact_id: contactId === NO_CONTACT ? null : contactId,
           style_key: styleKey,
           sequence_position: position,
@@ -90,9 +147,9 @@ export function DraftEmailModal({
       if (!res.ok || !json.subject || !json.body) {
         throw new Error(json.error ?? `Email ${position} failed — try again.`);
       }
-      return { position, playIndex: pIdx, subject: json.subject, body: json.body };
+      return { position, selection: sel, subject: json.subject, body: json.body };
     },
-    [resultId, contactId, styleKey, playForPosition],
+    [resultId, contactId, styleKey, customText, selectionFor],
   );
 
   const generateAll = useCallback(async () => {
@@ -134,7 +191,9 @@ export function DraftEmailModal({
     setTimeout(() => setCopied(null), 1600);
   }, []);
 
-  if (playSteps.length === 0) return null;
+  if (playSteps.length === 0 && contacts.length === 0) return null;
+
+  const email1 = selectionFor(1);
 
   return (
     <>
@@ -152,7 +211,7 @@ export function DraftEmailModal({
           <div className="flex max-h-[92vh] w-full max-w-2xl flex-col rounded-card border border-line bg-card shadow-lg">
             <div className="flex items-center gap-3 border-b border-line-2 px-6 py-4">
               <h2 className="font-disp text-[17px] font-semibold text-ink">Draft email message</h2>
-              <span className="mono text-[11px] text-muted">play · contact · style · sequence</span>
+              <span className="mono text-[11px] text-muted">pitches · contact · style · sequence</span>
               <span className="flex-1" />
               <button
                 type="button"
@@ -165,38 +224,90 @@ export function DraftEmailModal({
             </div>
 
             <div className="flex-1 overflow-y-auto px-6 py-5">
-              {/* 1 · play (email 1) */}
-              {fieldLabel(seqLen > 1 ? "1 · Play for email 1" : "1 · Recommended play to pitch")}
-              <div className="mb-5 flex flex-col gap-2">
-                {playSteps.map((step, i) => (
-                  <label
-                    key={i}
-                    className={cn(
-                      "flex cursor-pointer gap-2.5 rounded-[10px] border px-3 py-2.5 text-[12.5px] leading-[1.45]",
-                      playIndex === i
-                        ? "border-steel bg-[#F4F7FB] text-ink"
-                        : "border-line-2 text-slate hover:border-line",
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name="play"
-                      className="sr-only"
-                      checked={playIndex === i}
-                      onChange={() => setPlayIndex(i)}
-                    />
-                    <span
+              {/* 1 · pitches (email 1) — one or several, woven into one email */}
+              {fieldLabel(seqLen > 1 ? "1 · Pitches for email 1" : "1 · Pitches — select one or more")}
+              <p className="-mt-1 mb-1.5 text-[10.5px] text-muted">
+                Several selections are woven into one email — the first carries the lead.
+              </p>
+              <div className="mb-2 flex flex-col gap-2">
+                {playSteps.map((step, i) => {
+                  const on = email1.plays.includes(i);
+                  return (
+                    <label
+                      key={i}
                       className={cn(
-                        "mono grid h-[20px] w-[20px] flex-shrink-0 place-items-center rounded-[6px] text-[10.5px] font-bold",
-                        playIndex === i ? "bg-ink text-white" : "bg-line-2 text-muted",
+                        "flex cursor-pointer gap-2.5 rounded-[10px] border px-3 py-2.5 text-[12.5px] leading-[1.45]",
+                        on ? "border-steel bg-[#F4F7FB] text-ink" : "border-line-2 text-slate hover:border-line",
                       )}
                     >
-                      {i + 1}
-                    </span>
-                    <span>{step}</span>
-                  </label>
-                ))}
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={on}
+                        onChange={() => togglePlay(1, i)}
+                      />
+                      <span
+                        className={cn(
+                          "mono grid h-[20px] w-[20px] flex-shrink-0 place-items-center rounded-[6px] text-[10.5px] font-bold",
+                          on ? "bg-ink text-white" : "bg-line-2 text-muted",
+                        )}
+                      >
+                        {on ? <Check size={12} aria-hidden /> : i + 1}
+                      </span>
+                      <span>{step}</span>
+                    </label>
+                  );
+                })}
+
+                {/* Other — the rep's own angle */}
+                <label
+                  className={cn(
+                    "flex cursor-pointer gap-2.5 rounded-[10px] border px-3 py-2.5 text-[12.5px] leading-[1.45]",
+                    email1.other ? "border-steel bg-[#F4F7FB] text-ink" : "border-line-2 text-slate hover:border-line",
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    className="sr-only"
+                    checked={email1.other}
+                    onChange={() => toggleOther(1)}
+                  />
+                  <span
+                    className={cn(
+                      "grid h-[20px] w-[20px] flex-shrink-0 place-items-center rounded-[6px]",
+                      email1.other ? "bg-ink text-white" : "bg-line-2 text-muted",
+                    )}
+                  >
+                    <PenLine size={12} aria-hidden />
+                  </span>
+                  <span>
+                    <b className="font-semibold">Other</b> — write your own angle
+                  </span>
+                </label>
               </div>
+
+              {anyOther && (
+                <div className="mb-3 pl-[30px]">
+                  <textarea
+                    value={customText}
+                    onChange={(e) => setCustomText(e.target.value)}
+                    maxLength={CUSTOM_PLAY_MAX}
+                    rows={3}
+                    placeholder="Your angle — e.g. “Mention we met their IT director at the trade show and their carrier contract renews in March.”"
+                    className="w-full resize-y rounded-[10px] border border-line bg-card px-3 py-2.5 text-[12.5px] leading-[1.5] text-ink outline-none placeholder:text-muted focus:border-steel"
+                  />
+                  <div className="mt-1 flex items-center gap-2 text-[10.5px] text-muted">
+                    <span>
+                      Used by every email in the sequence that has <b>Other</b> selected. The email
+                      still follows the no-fabrication rules.
+                    </span>
+                    <span className="mono ml-auto">
+                      {customText.length}/{CUSTOM_PLAY_MAX}
+                    </span>
+                  </div>
+                </div>
+              )}
+              <div className="mb-5" />
 
               {/* 2 · contact */}
               {fieldLabel("2 · Contact")}
@@ -258,7 +369,7 @@ export function DraftEmailModal({
                   <button
                     key={n}
                     type="button"
-                    onClick={() => setSeqLen(n)}
+                    onClick={() => setSeqLenAndResize(n)}
                     className={cn(
                       "rounded-[10px] border px-3.5 py-2 text-[12.5px] font-semibold transition-colors",
                       seqLen === n
@@ -272,41 +383,65 @@ export function DraftEmailModal({
                 <span className="text-[11px] text-muted">
                   {seqLen === 1
                     ? "single outreach email"
-                    : "a follow-up cadence — same contact & tone, a different play per email"}
+                    : "a follow-up cadence — same contact & tone, different pitches per email"}
                 </span>
               </div>
 
-              {/* follow-up play selectors for emails 2..N */}
+              {/* pitch selection chips for emails 2..N */}
               {seqLen > 1 && (
                 <div className="mb-5 flex flex-col gap-2">
                   {Array.from({ length: seqLen - 1 }, (_, i) => {
                     const position = i + 2;
-                    const current = playForPosition(position);
+                    const sel = selectionFor(position);
                     return (
-                      <div key={position} className="flex items-center gap-2.5">
+                      <div key={position} className="flex flex-wrap items-center gap-1.5">
                         <span className="mono w-[64px] flex-shrink-0 text-[11px] font-bold text-muted">
                           Email {position}
                         </span>
-                        <select
-                          value={current}
-                          onChange={(e) => {
-                            const next = [...followUpPlays];
-                            next[i] = Number(e.target.value);
-                            setFollowUpPlays(next);
-                          }}
-                          className="w-full rounded-[10px] border border-line bg-card px-3 py-2 text-[12.5px] text-ink outline-none focus:border-steel"
-                          aria-label={`Play for email ${position}`}
+                        {playSteps.map((step, idx) => {
+                          const on = sel.plays.includes(idx);
+                          return (
+                            <button
+                              key={idx}
+                              type="button"
+                              title={playLabel(playSteps, idx)}
+                              onClick={() => togglePlay(position, idx)}
+                              className={cn(
+                                "rounded-[8px] border px-2.5 py-1 text-[11px] font-bold transition-colors",
+                                on
+                                  ? "border-ink bg-ink text-white"
+                                  : "border-line bg-card text-slate hover:border-[#cdd4de]",
+                              )}
+                            >
+                              P{idx + 1}
+                            </button>
+                          );
+                        })}
+                        <button
+                          type="button"
+                          title="Include your own angle in this email"
+                          onClick={() => toggleOther(position)}
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-[8px] border px-2.5 py-1 text-[11px] font-bold transition-colors",
+                            sel.other
+                              ? "border-ink bg-ink text-white"
+                              : "border-line bg-card text-slate hover:border-[#cdd4de]",
+                          )}
                         >
-                          {playSteps.map((_, idx) => (
-                            <option key={idx} value={idx}>
-                              {playLabel(playSteps, idx)}
-                            </option>
-                          ))}
-                        </select>
+                          <PenLine size={10} aria-hidden />
+                          Other
+                        </button>
                       </div>
                     );
                   })}
                 </div>
+              )}
+
+              {otherNeedsText && (
+                <p className="mb-4 rounded-[10px] border border-line-2 bg-[#FBFCFD] px-3 py-2.5 text-[12px] text-slate">
+                  <b className="font-semibold text-ink">Other</b> is selected — type your angle in
+                  the box under the pitch list to enable Generate.
+                </p>
               )}
 
               {error && (
@@ -324,9 +459,12 @@ export function DraftEmailModal({
                     </span>
                     <span
                       className="min-w-0 flex-1 truncate text-[11px] font-semibold text-slate"
-                      title={playSteps[d.playIndex]}
+                      title={[
+                        ...d.selection.plays.map((i) => playSteps[i]),
+                        ...(d.selection.other ? [`Other: ${customText}`] : []),
+                      ].join("\n")}
                     >
-                      {playLabel(playSteps, d.playIndex)}
+                      {selectionSummary(playSteps, d.selection)}
                     </span>
                     <button
                       type="button"
@@ -389,7 +527,8 @@ export function DraftEmailModal({
               <button
                 type="button"
                 onClick={generateAll}
-                disabled={busy !== null}
+                disabled={busy !== null || !selectionsValid}
+                title={!selectionsValid ? "Every email needs at least one pitch (or a written Other angle)" : undefined}
                 className="flex items-center gap-2 rounded-[10px] bg-ink px-4 py-2.5 font-disp text-[12.5px] font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 {busy === "all" && <Loader2 size={14} className="animate-spin" aria-hidden />}

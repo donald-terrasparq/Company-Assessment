@@ -29,7 +29,8 @@ design tokens (colors, fonts, spacing, the anatomy-bar treatment), and reproduce
 React components — **not** embed this HTML. The tokens are also listed in `docs/04-UI-SPEC.md`.
 
 Screens the prototype does **not** yet include (build them from `docs/04-UI-SPEC.md`, in the same
-visual language): **Lists**, **Signals**, **Settings**, **VIEW ALL**, and the **upload modal**.
+visual language): **Lists**, **Signals**, **Leads**, **Settings**, **VIEW ALL**, and the
+**upload modal**.
 
 ## What's illustrative vs real
 

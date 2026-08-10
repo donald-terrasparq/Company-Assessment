@@ -33,7 +33,11 @@ plus a tier-colored `Trigger` segment on a 0–100 track, with a coral pulse dot
 fresh (<30d or forward-looking). It appears on the table rows and, expanded with sub-bars, on the
 detail screen. Do not replace it with a plain progress bar.
 
-Left rail (74px, ink): brand → **Prospects** · **Lists** · **Signals** · **Settings** → avatar.
+Left rail (74px, ink): brand → **Prospects** · **Lists** · **Signals** · **Leads** · **Settings** → avatar.
+
+**Role-based visibility (for now):** `member` sees only **Prospects · Lists · Signals**; `admin`
+sees every tab (adds **Leads** and **Settings**). Enforce it in route middleware (403/redirect),
+not just by hiding nav buttons.
 
 ---
 
@@ -142,9 +146,10 @@ Tabbed.
 
 **Account** — username, email, change password. Session list, sign out everywhere.
 
-**Users** *(admin only)* — table of users, role, active toggle, `Invite user` (generates a one-time
-code). `allow_open_registration` toggle, off by default, with the warning: *"Anyone with the URL
-could create an account and spend API credits."*
+**Users** *(admin only)* — table of users: username, email, role, active toggle, **Last login**
+(`users.last_login_at`, relative time + exact date on hover; "Never" if null), `Invite user`
+(generates a one-time code). `allow_open_registration` toggle, off by default, with the warning:
+*"Anyone with the URL could create an account and spend API credits."*
 
 **Analysis** —
 - Model: `claude-sonnet-5` (Balanced, default) / `claude-opus-4-8` (High accuracy, ~3× cost).
@@ -166,6 +171,45 @@ provider, "halt runs at cap" toggle (on), email alert at 80%.
 
 **Data & retention** — retention days, export all data, delete a list permanently, delete contact
 records on request.
+
+---
+
+## 6. Leads — `/leads` *(admin only, for now)*
+
+Inbound interest from three sources, all preserved forever with their timestamps. Layout mirrors
+Prospects: a source switcher on top, a filter row, a table, and a slide-over detail panel.
+
+**Source tabs:** **Contact Us** · **eBooks** · **RB2B**. Each shows a count badge of `new` leads.
+
+**Status filter chips** (within a source): `Active` (new + qualified, default) · `Individual` ·
+`Marketing request` · `Low potential` · `All`. Triage never deletes — bucketed leads live under
+their chip.
+
+**Table columns (common):** Received (relative + exact on hover, `received_at`) · Name / email ·
+Company (name + domain, monogram) · Source detail · Status · Company link · triage menu.
+
+**Source detail column varies:**
+- *Contact Us*: first ~90 chars of the visitor's `message` (full text in the detail panel —
+  preserved verbatim, never truncated in storage).
+- *eBooks*: which ebook (`ebook_slug` rendered as a small tag, e.g. `Fiber Hut Buyer's Guide`).
+- *RB2B*: visit summary — "3 visits · last 2h ago · /datacomm-pro, /contact" from `lead_events`.
+
+**Company link — the point of the tab.** When a lead has a `company_name` (RB2B) and/or a `domain`
+(form field or work-email domain, normalized like `companies.domain`):
+- If the company already has a result in any list → show **View company →** linking to
+  `/company/[resultId]` — the same enriched detail view a Prospect gets (signals, scores, contacts).
+- Else → show **Analyze company**: enqueues a single-company run appended to the reserved
+  **"Inbound Leads"** list (auto-created; rolls over at the 100-cap; obeys budget). While running,
+  show the usual progress treatment; on completion the button becomes **View company →**.
+- Personal-email leads with no company info show a muted "no company identified".
+
+**Detail panel** (row click): every stored field, the verbatim message, the full event timeline
+(each RB2B visit / form submission / email with its own timestamp), the raw payload (collapsed
+`<details>`), the matched company card, and the triage buttons: `Qualified` · `Individual` ·
+`Marketing request` · `Low potential` (+ `Back to new`). Show who triaged and when.
+
+**Ingestion status strip** (top right): mailbox last-checked time and RB2B last-event time, with an
+amber warning if the mailbox poll is failing — silent ingestion failure is how leads get lost.
 
 ---
 

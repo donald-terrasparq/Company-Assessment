@@ -64,7 +64,7 @@ claude
 | `docs/02-DATA-MODEL.md` | Schema, entities, storage |
 | `docs/03-SIGNAL-MODEL.md` | Scoring math, signal taxonomy, default weights |
 | `design/company_assessment_app.html` | **The approved UI prototype — open in a browser. Visual source of truth.** |
-| `docs/04-UI-SPEC.md` | Every screen: Prospects, Lists, Signals, Settings, Detail, View All |
+| `docs/04-UI-SPEC.md` | Every screen: Prospects, Lists, Signals, Leads, Settings, Detail, View All |
 | `docs/05-BUILD-PLAN.md` | Phased tickets with acceptance criteria |
 | `docs/06-PROMPTS.md` | The research + scoring prompts sent to the Claude API |
 | `docs/07-COSTS.md` | What a run actually costs, and how to cap it |

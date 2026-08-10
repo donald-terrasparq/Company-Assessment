@@ -14,6 +14,9 @@ users ──uploads──> lists ──has many──> companies
                                                         └── contacts  (Phase 2: + email/phone)
 signal_profiles ──used by──> runs
 api_usage ──rolls up to──> runs.cost_usd
+
+inbound_emails ──parsed into──> leads ──has many──> lead_events   (visits, submissions)
+                                  └──matched to──> companies / company_results
 ```
 
 ## Key decisions
@@ -60,6 +63,28 @@ name-based dedupe. Surface these on the Lists screen as "3 rows had unparseable 
 `all_prospects` unions the latest complete run of every non-deleted list, dedupes on
 `COALESCE(domain, lower(name))`, and keeps the highest-scoring row per company. Ranked by
 `total_score DESC`. The `list_name` column tells the user which list a given row came from.
+
+## Leads
+
+Three tables, three rules.
+
+**`leads` is the person/company that showed interest; `lead_events` is each time they did.** An
+RB2B visitor who comes back five times is one `leads` row and five `site_visit` events, each with
+its own `occurred_at`. This is what "all RB2B are preserved, with their time" means structurally —
+dedupe the person, never the history.
+
+**`inbound_emails` keeps the raw mail.** Contact-us and ebook submissions arrive as email forwarded
+from the website. The original body is stored before any parsing, deduped on `Message-ID`, so a
+broken parser can be fixed and re-run without losing a lead. `leads.message` carries the visitor's
+contact-us notes verbatim; `leads.raw_payload` carries the full original record for every source.
+
+**Triage is a status, not a delete.** `new → qualified | individual | marketing_request |
+low_potential`, with `triaged_by`/`triaged_at` for audit. Every bucket stays queryable in its tab.
+
+`leads.domain` is normalized exactly like `companies.domain`, which is what makes the company link
+work: `matched_company_id`/`matched_result_id` point a lead at the same enriched company detail
+view a Prospect row opens. `users.last_login_at` is stamped by the auth callback on every
+successful sign-in and rendered in Settings → Users.
 
 ## Retention
 

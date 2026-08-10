@@ -39,6 +39,8 @@ services:
         sync: false               # set before first seed, then change the password in-app
       - key: SEED_ADMIN_PASSWORD
         sync: false
+      - key: RB2B_WEBHOOK_SECRET
+        sync: false               # shared secret for POST /api/leads/rb2b
 
   # --- Background worker: drains the jobs queue ---
   - type: worker
@@ -67,6 +69,15 @@ services:
         value: "4"                # companies processed in parallel per loop tick
       - key: WORKER_POLL_MS
         value: "5000"             # idle sleep between empty queue checks
+      # Leads mailbox (CONTACT US / eBook emails forwarded from the website), polled by the worker
+      - key: LEADS_IMAP_HOST
+        sync: false
+      - key: LEADS_IMAP_PORT
+        value: "993"
+      - key: LEADS_IMAP_USER
+        sync: false
+      - key: LEADS_IMAP_PASSWORD
+        sync: false
 
 databases:
   - name: company-assessment-db

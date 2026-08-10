@@ -26,8 +26,12 @@ and almost nothing at 12 months.
 
 | Role | Can |
 |------|-----|
-| `admin` | Everything, plus manage users, edit signal weights, set budget caps, view spend |
-| `member` | Upload lists, run analyses, view all lists and results, export CSV |
+| `admin` | Everything — sees **all tabs** (Prospects, Lists, Signals, Leads, Settings); manages users, edits signal weights, sets budget caps, views spend, triages leads |
+| `member` | Sees **only the Prospects, Lists, and Signals tabs** (for now). Upload lists, run analyses, view all lists and results, export CSV |
+
+Tab visibility is enforced server-side (route middleware returns 403/redirect), not just hidden in
+the nav. The Users table in Settings shows each user's **date of last login**
+(`users.last_login_at`, stamped on every successful sign-in).
 
 Auth is username/password. **Self-registration is off by default** — an admin creates accounts or
 issues an invite code. (Open registration on a tool that spends API credits per click is a way to get
@@ -65,14 +69,43 @@ a surprise bill. `settings.allow_open_registration` exists but ships `false`.)
 - **View All** — union of the latest run of every list, deduped by website, ranked by `total_score`.
 - **Company detail** — score anatomy, signal timeline, press, recommended play, contacts, caveats.
 - **Signals** — the signal library with plain-English descriptions and editable weights.
-- **Settings** — account, users, model, search provider, budget, retention, Apollo (Phase 2).
+- **Leads** *(admin)* — inbound contact-us / ebook / RB2B leads with triage and company links.
+- **Settings** — account, users (incl. last login), model, search provider, budget, retention,
+  Apollo (Phase 2).
+
+### Leads (inbound) — admin-only tab
+
+Inbound interest arrives from three sources, and all of it is **preserved with its timestamp** —
+triage re-buckets a lead, it never deletes one:
+
+1. **eBook lead forms** — several different ebook download forms on the website. Each submission
+   records which ebook (`ebook_slug`).
+2. **CONTACT US page** — same pipeline, plus the visitor's **notes/message content is preserved
+   verbatim** as a field (`leads.message`).
+3. **RB2B** — website visitor-identification data (person/company identified from site visits).
+   Every visit is kept as its own timestamped event.
+
+Contact-us and ebook submissions **arrive in a mailbox** as email forwarded from the current
+website; the system ingests that mailbox and parses each mail into a lead (raw email kept for
+audit/re-parse). RB2B arrives via its webhook/export.
+
+**Company enrichment:** when a lead carries a company name (RB2B) and/or a domain (form field or a
+work-email domain), the tool resolves it to a company and links the lead to the **enriched detailed
+company view** — the same drill-down a Prospect row gets. If the company has never been analyzed, an
+admin can trigger a single-company analysis from the lead row (it lands in a reserved "Inbound
+Leads" list, subject to the same 100-cap and budget rules).
+
+**Triage:** each source has its own view, and within it a lead is either active (`new`/`qualified`)
+or bucketed as **individual** (not a business), **marketing request** (vendor pitch via the
+contact form), or **low potential** (a business, but weak fit for CellSite Solutions). Bucketed
+leads stay stored and visible under their bucket.
 
 ### Export
 - CSV of the current view. Server-generated, respects filters.
 
 ## Non-goals (Phase 1)
-- No CRM sync. No email sending. No paid data sources. No mobile app. No multi-tenant orgs
-  (one org, many users). No real-time collaboration.
+- No CRM sync. No *outbound* email sending (the Leads mailbox is inbound-only). No paid data
+  sources. No mobile app. No multi-tenant orgs (one org, many users). No real-time collaboration.
 
 ## Phase 2
 - Apollo.io: for each identified contact, call Apollo's people-match endpoint with

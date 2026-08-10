@@ -12,6 +12,7 @@ CREATE TABLE users (
   password_hash  TEXT NOT NULL,
   role           TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('admin','member')),
   is_active      BOOLEAN NOT NULL DEFAULT TRUE,
+  last_login_at  TIMESTAMPTZ,                   -- stamped on every successful login; shown in Settings → Users
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -178,6 +179,63 @@ CREATE TABLE contacts (
   created_at         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX contacts_result_idx ON contacts(company_result_id);
+
+-- ─────────────────────────── leads (inbound) ───────────────────────────
+-- Three sources: CONTACT US form + eBook forms (both arrive as forwarded email from the
+-- website) and RB2B visitor-identification data. Every lead is preserved with its time;
+-- triage moves it between views but never deletes it.
+
+CREATE TABLE leads (
+  id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  source             TEXT NOT NULL CHECK (source IN ('contact_us','ebook','rb2b')),
+  status             TEXT NOT NULL DEFAULT 'new'
+                     CHECK (status IN ('new','qualified','individual','marketing_request','low_potential')),
+  received_at        TIMESTAMPTZ NOT NULL,      -- form submission / email arrival / first identified visit
+  name               TEXT,
+  email              TEXT,
+  phone              TEXT,
+  title              TEXT,
+  company_name       TEXT,                      -- from the form, or from RB2B identification
+  website            TEXT,
+  domain             TEXT,                      -- normalized like companies.domain (also inferred from work email)
+  message            TEXT,                      -- CONTACT US notes/content — preserved verbatim
+  ebook_slug         TEXT,                      -- which ebook lead form this came from
+  raw_payload        JSONB NOT NULL DEFAULT '{}'::jsonb,  -- the full original form/email/RB2B record
+  matched_company_id UUID REFERENCES companies(id)       ON DELETE SET NULL,
+  matched_result_id  UUID REFERENCES company_results(id) ON DELETE SET NULL,
+  triaged_by         UUID REFERENCES users(id) ON DELETE SET NULL,
+  triaged_at         TIMESTAMPTZ,
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX leads_source_status_idx ON leads(source, status);
+CREATE INDEX leads_domain_idx   ON leads(domain);
+CREATE INDEX leads_received_idx ON leads(received_at DESC);
+
+-- every RB2B visit and repeat form submission, preserved with its own timestamp
+CREATE TABLE lead_events (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lead_id      UUID NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+  event_type   TEXT NOT NULL CHECK (event_type IN ('form_submission','email_received','site_visit')),
+  occurred_at  TIMESTAMPTZ NOT NULL,
+  data         JSONB NOT NULL DEFAULT '{}'::jsonb,   -- pages viewed, referrer, duration, email ref, …
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX lead_events_lead_idx ON lead_events(lead_id, occurred_at DESC);
+
+-- raw forwarded emails (CONTACT US + eBook submissions arrive by email from the website)
+CREATE TABLE inbound_emails (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  message_id    TEXT UNIQUE,                   -- Message-ID header; dedupes re-forwarded mail
+  from_address  TEXT,
+  subject       TEXT,
+  body_text     TEXT,                          -- original body, kept for audit / re-parse
+  received_at   TIMESTAMPTZ NOT NULL,
+  parse_status  TEXT NOT NULL DEFAULT 'pending'
+                CHECK (parse_status IN ('pending','parsed','failed','ignored')),
+  lead_id       UUID REFERENCES leads(id) ON DELETE SET NULL,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX inbound_emails_status_idx ON inbound_emails(parse_status, received_at DESC);
 
 -- ─────────────────────────── spend tracking ───────────────────────────
 

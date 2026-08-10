@@ -107,11 +107,43 @@ Provider is chosen in **Settings → Data sources** and stored in `settings.sear
 Phase 2 adds `apollo` as an *enrichment* provider (not a search provider) behind
 `lib/enrichment/apollo.ts`.
 
+## Inbound lead ingestion (the Leads tab)
+
+Three pipes into the `leads` table, all preserved raw before parsing:
+
+```
+CONTACT US / eBook forms ──(website forwards email)──▶ leads@ mailbox
+   worker tick: poll mailbox (IMAP) ─▶ store inbound_emails row (dedupe on Message-ID)
+                                     ─▶ parse per form template ─▶ upsert lead + lead_event
+                                        (contact-us: message text preserved verbatim;
+                                         ebook: ebook_slug from the form/subject)
+
+RB2B ──▶ POST /api/leads/rb2b  (webhook, shared-secret header)
+   upsert lead keyed on (source, email|company+domain) ─▶ append a `site_visit` lead_event
+   per identified visit — repeat visitors accumulate events, not duplicate leads
+
+Company matching (both paths):
+   domain := normalize(form domain | work-email domain | RB2B domain)
+   match against companies.domain / all_prospects ─▶ set matched_company_id / matched_result_id
+   no match? admin can trigger a single-company analysis: the company is appended to the
+   reserved "Inbound Leads" list (auto-created, rolls over at the 100-cap) and one job is
+   enqueued — same worker, same budget checks, same scoring as any Prospect.
+```
+
+Mailbox polling lives in the worker loop (a slow tick, e.g. every 2–5 min — it's I/O-light), so no
+new process is needed and the web tier never blocks on IMAP. Parse failures set
+`inbound_emails.parse_status = 'failed'` and surface in the Leads ingestion status strip — a lead
+silently dropped in parsing is a lead lost. Raw email bodies and RB2B payloads are always stored
+(`inbound_emails.body_text`, `leads.raw_payload`) so parsing can be fixed and re-run.
+
 ## Security
 
-- `ANTHROPIC_API_KEY`, `BRAVE_API_KEY`, `APOLLO_API_KEY`, `DATABASE_URL`, `AUTH_SECRET` — all set as
+- `ANTHROPIC_API_KEY`, `BRAVE_API_KEY`, `APOLLO_API_KEY`, `DATABASE_URL`, `AUTH_SECRET`,
+  `LEADS_IMAP_PASSWORD`, `RB2B_WEBHOOK_SECRET` — all set as
   Render service env vars (`sync: false` in `render.yaml`), all server-only. **No `NEXT_PUBLIC_`
   prefix on any of them.** The worker reads the same key from its own env; it never crosses the wire.
+- `POST /api/leads/rb2b` requires the shared-secret header; reject and log anything without it.
+  Treat webhook payloads as untrusted input (Zod-parse before SQL, same as LLM output).
 - The worker is an internal process with no public endpoint, so there's no cron URL to protect. (If
   you ever move to the Vercel driver, its cron route checks `Authorization: Bearer $CRON_SECRET`.)
 - Passwords: bcrypt, cost 12. Sessions: JWT strategy, 7-day expiry, httpOnly cookie.

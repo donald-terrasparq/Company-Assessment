@@ -26,13 +26,18 @@ acceptance criteria pass. Tell the user when a phase is done and wait for a look
 
 ## Phase 1 — Auth & settings  *(~1 session)*
 
-- **1.1** Auth.js credentials provider, bcrypt (cost 12), JWT sessions, `/login`.
-- **1.2** Middleware: everything except `/login` requires a session. `/settings/users` requires `admin`.
+- **1.1** Auth.js credentials provider, bcrypt (cost 12), JWT sessions, `/login`. On every
+  successful sign-in, stamp `users.last_login_at`.
+- **1.2** Middleware: everything except `/login` requires a session. Role-gate the nav and routes:
+  `member` gets **Prospects / Lists / Signals only**; `admin` additionally gets **Leads** and
+  **Settings**. Enforce server-side (403/redirect), not just hidden buttons.
 - **1.3** Seed: one admin from `SEED_ADMIN_USER` / `SEED_ADMIN_PASSWORD`; default signal profile from
   the JSON in `docs/03-SIGNAL-MODEL.md`; settings row id=1.
-- **1.4** Settings → Account + Users tabs. Invite codes (one-time, 7-day expiry).
+- **1.4** Settings → Account + Users tabs. Users table shows **Last login** (`last_login_at`,
+  "Never" if null). Invite codes (one-time, 7-day expiry).
 
-✅ Can log in, create a user, change a password. Logged-out users hit `/login`. Non-admins get 403 on `/settings/users`.
+✅ Can log in, create a user, change a password. Logged-out users hit `/login`. A member requesting
+`/leads` or `/settings/users` gets 403. Last login updates on sign-in and renders in the Users table.
 
 ---
 
@@ -154,6 +159,40 @@ preview, and saving + applying updates the Prospects table without a single API 
 > **Do not build a LinkedIn scraper for this.** Automated collection from LinkedIn violates their
 > terms. Apollo is the licensed path. Contacts found by public search stay `verified = false` until
 > Apollo confirms them.
+
+---
+
+## Phase 8 — Leads  *(~2 sessions)*
+
+- **8.1** Schema is already in `db/schema.sql`: `leads`, `lead_events`, `inbound_emails`. Queries in
+  `lib/db/queries/leads.ts`.
+- **8.2** Mailbox ingestion: `lib/leads/mailbox.ts` polled from a slow worker tick (2–5 min).
+  Store every mail in `inbound_emails` first (dedupe on `Message-ID`), then parse per template:
+  contact-us (name, email, phone, company, **message verbatim**) and each ebook form
+  (`ebook_slug`). Unrecognized mail → `parse_status = 'failed'`, surfaced in the UI, never dropped.
+- **8.3** RB2B: `POST /api/leads/rb2b` webhook (shared-secret header). Upsert the person
+  (`source='rb2b'`), append one `site_visit` event per identified visit with pages/referrer in
+  `data`. Repeat visitors accumulate events, not duplicate rows.
+- **8.4** Company matching: `lib/leads/match.ts` — normalize domain (form field, work-email domain,
+  or RB2B company domain; reuse `lib/normalize/domain.ts`), match against `companies` /
+  `all_prospects`, set `matched_company_id` / `matched_result_id`.
+- **8.5** "Analyze company" from a lead: append the company to the reserved **"Inbound Leads"**
+  list (auto-create; roll over at the 100-cap), enqueue one job through the normal queue with the
+  normal budget check, link the result back to the lead when it completes.
+- **8.6** Leads UI per `docs/04-UI-SPEC.md` §6: source tabs (Contact Us / eBooks / RB2B), status
+  chips (Active / Individual / Marketing request / Low potential / All), detail panel with the
+  event timeline and verbatim message, triage actions with audit (`triaged_by`/`triaged_at`),
+  ingestion status strip.
+
+✅ A forwarded contact-us email becomes a lead with its message intact; a known RB2B visitor's
+third visit adds an event, not a row; a lead with a matched company deep-links to the enriched
+company detail; "Analyze company" produces that view for an unknown domain; triaging to
+`marketing_request` moves the lead to that chip without deleting anything; a `member` cannot see
+or fetch `/leads`.
+
+**Tests:** `mailbox-parse.test.ts` — contact-us and ebook fixtures parse; garbage mail →
+`failed`, not dropped. `lead-match.test.ts` — work-email domain matches an existing company;
+gmail.com does not. `rb2b-upsert.test.ts` — same visitor twice → 1 lead, 2 events.
 
 ---
 

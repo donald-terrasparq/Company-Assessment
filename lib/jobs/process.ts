@@ -299,6 +299,11 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
           revenueUsd: extraction.annual_revenue_usd ?? apolloOrg?.revenueUsd ?? null,
           employees: extraction.employee_estimate ?? apolloOrg?.employees ?? null,
           prefs: parseContactPrefs(settings.contactDefaults),
+          // 0015: per-company hints the user saved on the Top Contacts card
+          hints: {
+            names: company.contactNameHints ?? [],
+            titles: company.contactTitleHints ?? [],
+          },
         });
         const added = await addApolloContacts(resultId, candidates);
         await setResultContactFilters(resultId, appliedPrefs);

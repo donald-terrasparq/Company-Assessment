@@ -104,7 +104,7 @@ export default async function UsersSettingsPage() {
         <p className="mb-3.5 flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[.1em] text-muted">
           <span>Invites</span>
           <span className="h-px flex-1 bg-line-2" />
-          <span className="mono normal-case tracking-normal">one-time · 7-day expiry</span>
+          <span className="mono normal-case tracking-normal">one-time · 30-day expiry</span>
         </p>
 
         <form action={createInviteAction} className="mb-4 flex flex-wrap items-end gap-3">

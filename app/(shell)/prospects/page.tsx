@@ -8,6 +8,7 @@ import {
 } from "@/lib/db/queries/prospects";
 import { MANUAL_LIST_NAME } from "@/lib/db/queries/manual";
 import { latestRunForList, listListsWithLatestRun } from "@/lib/db/queries/lists";
+import { auth } from "@/auth";
 import { ListSelector, ProspectsView } from "@/components/prospects/prospects-view";
 import { RefreshWhileRunning } from "@/components/prospects/refresh-while-running";
 
@@ -16,10 +17,10 @@ export default async function ProspectsPage({
 }: {
   searchParams: Promise<{ list?: string; lists?: string; q?: string; session?: string }>;
 }) {
-  const [{ list: listParamRaw, lists: listsParamRaw, q, session }, lists] = await Promise.all([
-    searchParams,
-    listListsWithLatestRun(),
-  ]);
+  const [{ list: listParamRaw, lists: listsParamRaw, q, session }, lists, authSession] =
+    await Promise.all([searchParams, listListsWithLatestRun(), auth()]);
+  // 0015: drives the per-user new-dot / viewed tick on each row
+  const viewerId = authSession?.user?.id ?? null;
 
   if (lists.length === 0) {
     return (
@@ -60,11 +61,11 @@ export default async function ProspectsPage({
   let activeRunId: string | null = null;
   let runStatus: string | null = null;
   if (isSelected) {
-    rows = await prospectsForLists(selectedIds);
+    rows = await prospectsForLists(selectedIds, viewerId);
   } else if (isAll) {
-    rows = await allProspects();
+    rows = await allProspects(viewerId);
   } else if (isManual) {
-    rows = await prospectsForManualList(selectedList!.id);
+    rows = await prospectsForManualList(selectedList!.id, viewerId);
     const latest = await latestRunForList(selectedList!.id);
     if (latest) {
       runStatus = latest.status;
@@ -73,7 +74,7 @@ export default async function ProspectsPage({
       }
     }
   } else {
-    rows = await prospectsForList(selectedList!.id);
+    rows = await prospectsForList(selectedList!.id, viewerId);
     const latest = await latestRunForList(selectedList!.id);
     if (latest) {
       runStatus = latest.status;

@@ -6,6 +6,7 @@
 import {
   bigint,
   pgTable,
+  primaryKey,
   uuid,
   text,
   boolean,
@@ -15,6 +16,7 @@ import {
   jsonb,
   date,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -92,6 +94,9 @@ export const companies = pgTable("companies", {
   domain: text("domain"),
   domainSource: text("domain_source", { enum: ["upload", "lookup"] }),
   rawRow: jsonb("raw_row").notNull().default({}),
+  // 0015: per-company hints that steer the Apollo contact search
+  contactNameHints: text("contact_name_hints").array().notNull().default(sql`'{}'`),
+  contactTitleHints: text("contact_title_hints").array().notNull().default(sql`'{}'`),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -226,6 +231,45 @@ export const companyProfiles = pgTable("company_profiles", {
   aiContext: jsonb("ai_context").notNull().default({}),
   isActive: boolean("is_active").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// 0015: shared notes thread per company; survives re-analysis
+export const companyNotes = pgTable("company_notes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id").notNull(),
+  body: text("body").notNull(),
+  createdBy: uuid("created_by"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// 0015: which companies each user has opened the detail page for
+export const companyViews = pgTable(
+  "company_views",
+  {
+    userId: uuid("user_id").notNull(),
+    companyId: uuid("company_id").notNull(),
+    firstViewedAt: timestamp("first_viewed_at", { withTimezone: true }).notNull().defaultNow(),
+    lastViewedAt: timestamp("last_viewed_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.companyId] })],
+);
+
+// 0015: user-entered contacts and corrections to auto-found ones.
+// overridesName marks a correction: its non-empty fields win over the
+// auto-found contact with that (case-insensitive) name at render time.
+export const manualContacts = pgTable("manual_contacts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id").notNull(),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name"),
+  title: text("title"),
+  email: text("email"),
+  phone: text("phone"),
+  overridesName: text("overrides_name"),
+  createdBy: uuid("created_by"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const draftedEmails = pgTable("drafted_emails", {

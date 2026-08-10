@@ -15,7 +15,8 @@ describe("invite codes", () => {
     expect(a.length).toBeGreaterThanOrEqual(20);
   });
 
-  it("expires exactly 7 days out", () => {
+  it("expires exactly 30 days out", () => {
+    expect(INVITE_TTL_DAYS).toBe(30);
     const from = new Date("2026-07-16T12:00:00Z");
     const exp = inviteExpiresAt(from);
     expect(exp.getTime() - from.getTime()).toBe(INVITE_TTL_DAYS * 86_400_000);

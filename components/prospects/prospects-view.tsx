@@ -8,7 +8,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, ChevronDown, ChevronRight, Download } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, ChevronRight, Download, StickyNote } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { applyFilters, type ProspectFilters } from "@/lib/export/csv";
 import type { ProspectRow } from "@/lib/db/queries/prospects";
@@ -297,11 +297,37 @@ export function ProspectsView({
                         locationCount={r.locationCount}
                       />
                       <div className="min-w-0">
-                        <div className="truncate font-disp text-[14px] font-semibold text-ink">
-                          {r.companyName}
+                        <div className="flex items-center gap-1.5">
+                          {!r.viewed && (
+                            <span
+                              title="You haven't opened this company yet"
+                              className="h-[7px] w-[7px] flex-none rounded-full bg-fwa"
+                            />
+                          )}
+                          <span className="truncate font-disp text-[14px] font-semibold text-ink">
+                            {r.companyName}
+                          </span>
+                          {r.noteCount > 0 && (
+                            <span
+                              title={`${r.noteCount} note${r.noteCount === 1 ? "" : "s"} on this company`}
+                              className="inline-flex flex-none items-center gap-0.5 rounded-[5px] bg-note-soft px-1 py-0.5 text-[10px] font-bold text-note"
+                            >
+                              <StickyNote size={10} aria-hidden />
+                              {r.noteCount}
+                            </span>
+                          )}
                         </div>
-                        <div className="truncate text-[11.5px] text-muted" title={infoRaw}>
-                          {info}
+                        <div className="flex items-center gap-1 truncate text-[11.5px] text-muted" title={infoRaw}>
+                          {r.viewed && (
+                            <span
+                              title="You've viewed this company"
+                              className="inline-flex flex-none items-center gap-0.5"
+                            >
+                              <Check size={10} aria-hidden />
+                              viewed ·
+                            </span>
+                          )}
+                          <span className="truncate">{info}</span>
                         </div>
                         {showEntryDate && r.enteredAt && (
                           <div className="mono mt-0.5 text-[10.5px] text-muted">

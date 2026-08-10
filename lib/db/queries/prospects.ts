@@ -33,6 +33,10 @@ export interface ProspectRow {
   whyNow: string | null;
   recencyLabel: string | null;
   caveats: string[];
+  /** 0015: number of user notes on this company (amber glyph in the list). */
+  noteCount: number;
+  /** 0015: whether the CURRENT user has opened this company's detail page. */
+  viewed: boolean;
   /** Manual Entry list only: when this company was typed in. */
   enteredAt?: string | null;
 }
@@ -65,12 +69,29 @@ function mapRow(r: Record<string, unknown>): ProspectRow {
     whyNow: (r.why_now as string) ?? null,
     recencyLabel: (r.recency_label as string) ?? null,
     caveats: (r.caveats as string[]) ?? [],
+    noteCount: r.note_count == null ? 0 : Number(r.note_count),
+    viewed: r.viewed === true,
     enteredAt: r.entered_at ? String(r.entered_at).slice(0, 10) : null,
   };
 }
 
+/** Per-row annotation columns (0015): note count + viewed-by-this-user flag. */
+function annotationSelects(viewerId: string | null) {
+  const viewed = viewerId
+    ? sql`EXISTS (SELECT 1 FROM company_views cv
+                  WHERE cv.company_id = cr.company_id AND cv.user_id = ${viewerId})`
+    : sql`FALSE`;
+  return sql`
+    (SELECT count(*)::int FROM company_notes cn
+      WHERE cn.company_id = cr.company_id) AS note_count,
+    ${viewed} AS viewed`;
+}
+
 /** Results of the latest run of one list (any status — rows stream in mid-run). */
-export async function prospectsForList(listId: string): Promise<ProspectRow[]> {
+export async function prospectsForList(
+  listId: string,
+  viewerId: string | null = null,
+): Promise<ProspectRow[]> {
   const result = await db.execute(sql`
     SELECT cr.id AS result_id, cr.company_id, c.name AS company_name, c.website,
            c.domain, c.domain_source, l.id AS list_id, l.display_name AS list_name,
@@ -78,7 +99,8 @@ export async function prospectsForList(listId: string): Promise<ProspectRow[]> {
            cr.annual_revenue_usd, cr.location_count, cr.fit_score, cr.trigger_score,
            cr.total_score, cr.tier, cr.fwa_score, cr.starlink_score,
            cr.mobility_score, cr.byod_score, cr.primary_category, cr.why_now,
-           cr.recency_label, cr.caveats
+           cr.recency_label, cr.caveats,
+           ${annotationSelects(viewerId)}
     FROM company_results cr
     JOIN (SELECT id FROM runs WHERE list_id = ${listId} AND deleted_at IS NULL
           ORDER BY created_at DESC LIMIT 1) latest
@@ -96,7 +118,10 @@ export async function prospectsForList(listId: string): Promise<ProspectRow[]> {
  * the company was entered. Companies still being analyzed for the first time
  * have no result yet and appear once their run streams a row in.
  */
-export async function prospectsForManualList(listId: string): Promise<ProspectRow[]> {
+export async function prospectsForManualList(
+  listId: string,
+  viewerId: string | null = null,
+): Promise<ProspectRow[]> {
   const result = await db.execute(sql`
     SELECT DISTINCT ON (cr.company_id)
            cr.id AS result_id, cr.company_id, c.name AS company_name, c.website,
@@ -105,7 +130,8 @@ export async function prospectsForManualList(listId: string): Promise<ProspectRo
            cr.annual_revenue_usd, cr.location_count, cr.fit_score, cr.trigger_score,
            cr.total_score, cr.tier, cr.fwa_score, cr.starlink_score,
            cr.mobility_score, cr.byod_score, cr.primary_category, cr.why_now,
-           cr.recency_label, cr.caveats, c.created_at AS entered_at
+           cr.recency_label, cr.caveats, c.created_at AS entered_at,
+           ${annotationSelects(viewerId)}
     FROM company_results cr
     JOIN runs r ON r.id = cr.run_id AND r.list_id = ${listId} AND r.deleted_at IS NULL
     JOIN companies c ON c.id = cr.company_id
@@ -118,10 +144,13 @@ export async function prospectsForManualList(listId: string): Promise<ProspectRo
 }
 
 /** Manual Entry shows every typed-in company; other lists their latest run. */
-async function rowsForListRecord(list: { id: string; name: string }): Promise<ProspectRow[]> {
+async function rowsForListRecord(
+  list: { id: string; name: string },
+  viewerId: string | null,
+): Promise<ProspectRow[]> {
   return list.name === MANUAL_LIST_NAME
-    ? prospectsForManualList(list.id)
-    : prospectsForList(list.id);
+    ? prospectsForManualList(list.id, viewerId)
+    : prospectsForList(list.id, viewerId);
 }
 
 /**
@@ -130,23 +159,30 @@ async function rowsForListRecord(list: { id: string; name: string }): Promise<Pr
  * DB view, whose column list froze at creation) so Manual Entry contributes
  * ALL its entries, not just its newest single-company run.
  */
-export async function prospectsForLists(listIds: string[]): Promise<ProspectRow[]> {
+export async function prospectsForLists(
+  listIds: string[],
+  viewerId: string | null = null,
+): Promise<ProspectRow[]> {
   if (listIds.length === 0) return [];
   const listRows = await db
     .select({ id: lists.id, name: lists.name })
     .from(lists)
     .where(and(inArray(lists.id, listIds), isNull(lists.deletedAt)));
-  const all = (await Promise.all(listRows.map(rowsForListRecord))).flat();
+  const all = (
+    await Promise.all(listRows.map((l) => rowsForListRecord(l, viewerId)))
+  ).flat();
   return dedupeBestByCompany(all);
 }
 
 /** VIEW ALL — every list's prospects, deduped by domain, best score wins. */
-export async function allProspects(): Promise<ProspectRow[]> {
+export async function allProspects(viewerId: string | null = null): Promise<ProspectRow[]> {
   const listRows = await db
     .select({ id: lists.id, name: lists.name })
     .from(lists)
     .where(isNull(lists.deletedAt));
-  const all = (await Promise.all(listRows.map(rowsForListRecord))).flat();
+  const all = (
+    await Promise.all(listRows.map((l) => rowsForListRecord(l, viewerId)))
+  ).flat();
   return dedupeBestByCompany(all);
 }
 

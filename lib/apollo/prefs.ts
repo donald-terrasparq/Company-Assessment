@@ -69,6 +69,31 @@ export function parseContactPrefs(raw: unknown): ContactPrefs {
   };
 }
 
+/**
+ * 0015: durable per-company search hints (companies.contact_name_hints /
+ * contact_title_hints). Unlike the filter prefs, hints are never dropped by
+ * auto-relaxation — they're what the user explicitly asked to find.
+ */
+export interface ContactSearchHints {
+  names: string[];
+  titles: string[];
+}
+
+export const MAX_HINTS = 5;
+
+export function parseContactHints(raw: unknown): ContactSearchHints {
+  const obj = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const strings = (v: unknown, maxLen: number): string[] =>
+    Array.isArray(v)
+      ? v
+          .filter((x): x is string => typeof x === "string")
+          .map((x) => x.trim())
+          .filter((x) => x.length > 0 && x.length <= maxLen)
+          .slice(0, MAX_HINTS)
+      : [];
+  return { names: strings(obj.names, 80), titles: strings(obj.titles, 60) };
+}
+
 export interface SearchFilters {
   seniorities: string[];
   titles: string[];

@@ -19,12 +19,16 @@ import {
   Mail,
   Megaphone,
   MonitorCog,
+  Pencil,
   Phone,
   RefreshCw,
   Search,
   ShoppingCart,
   SlidersHorizontal,
+  Trash2,
+  UserPlus,
   Wrench,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { DEPARTMENT_META, departmentForTitle, type Department } from "@/lib/contacts/department";
@@ -46,6 +50,8 @@ export interface ContactRow {
   source: string;
   verified: boolean;
   phoneRequested: boolean;
+  /** 0015: manual_contacts row backing this contact (manual row or correction). */
+  manualId: string | null;
 }
 
 const DEPARTMENT_ICONS: Record<Department, LucideIcon> = {
@@ -76,17 +82,22 @@ function DepartmentIcon({ title }: { title: string | null }) {
 
 export function ContactsCard({
   resultId,
+  companyId,
   contacts,
   apolloReady,
   defaults,
+  hints,
 }: {
   resultId: string;
+  companyId: string; // manual contacts are keyed on the company (0015)
   contacts: ContactRow[];
   apolloReady: boolean; // apollo_enabled setting + APOLLO env key present
   defaults: ContactPrefs; // admin defaults from Settings → Contacts
+  hints: { names: string[]; titles: string[] }; // 0015: saved per company
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null); // "find" | `email:${id}` | `phone:${id}`
+  const [contactModal, setContactModal] = useState<null | { mode: "add" } | { mode: "edit"; c: ContactRow }>(null);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -94,12 +105,17 @@ export function ContactsCard({
   const [seniorities, setSeniorities] = useState<string[]>(defaults.seniorities);
   const [departments, setDepartments] = useState<string[]>(defaults.departments);
   const [titles, setTitles] = useState(defaults.titles.join(", "));
+  // 0015: per-company search hints — persisted server-side on every search
+  const [hintNames, setHintNames] = useState(hints.names.join(", "));
+  const [hintTitles, setHintTitles] = useState(hints.titles.join(", "));
   // what the displayed contacts were last searched with — UPDATE lights up
   // only when the panel differs from this
   const [applied, setApplied] = useState({
     seniorities: [...defaults.seniorities],
     departments: [...defaults.departments],
     titles: defaults.titles.join(", "),
+    hintNames: hints.names.join(", "),
+    hintTitles: hints.titles.join(", "),
   });
 
   const sameSet = (a: string[], b: string[]) =>
@@ -107,7 +123,9 @@ export function ContactsCard({
   const filtersDirty =
     !sameSet(seniorities, applied.seniorities) ||
     !sameSet(departments, applied.departments) ||
-    titles.trim() !== applied.titles.trim();
+    titles.trim() !== applied.titles.trim() ||
+    hintNames.trim() !== applied.hintNames.trim() ||
+    hintTitles.trim() !== applied.hintTitles.trim();
 
   const toggle = (list: string[], set: (v: string[]) => void, value: string) =>
     set(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
@@ -132,6 +150,10 @@ export function ContactsCard({
             departments,
             titles: titles.split(",").map((t) => t.trim()).filter(Boolean),
           },
+          hints: {
+            names: hintNames.split(",").map((t) => t.trim()).filter(Boolean).slice(0, 5),
+            titles: hintTitles.split(",").map((t) => t.trim()).filter(Boolean).slice(0, 5),
+          },
         }),
       });
       const json = await res.json();
@@ -153,6 +175,8 @@ export function ContactsCard({
           seniorities: [...next.seniorities],
           departments: [...next.departments],
           titles: next.titles,
+          hintNames,
+          hintTitles,
         });
       }
       setNotice({
@@ -213,36 +237,51 @@ export function ContactsCard({
         <span className="h-px flex-1 bg-line-2" />
       </p>
 
-      {apolloReady && (
-        <div className="mb-3">
+      <div className="mb-3">
           <div className="flex gap-2">
+            {apolloReady && (
+              <button
+                type="button"
+                onClick={() => findContacts(false)}
+                disabled={busy !== null}
+                className="flex flex-1 items-center justify-center gap-2 rounded-[10px] border border-line bg-[#FBFCFD] px-3 py-2 text-[12.5px] font-semibold text-ink transition-colors hover:border-[#cdd4de] disabled:opacity-50"
+              >
+                {busy === "find" ? (
+                  <Loader2 size={14} className="animate-spin" aria-hidden />
+                ) : (
+                  <Search size={14} aria-hidden />
+                )}
+                {busy === "find" ? "Searching…" : "Find contacts"}
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => findContacts(false)}
-              disabled={busy !== null}
-              className="flex flex-1 items-center justify-center gap-2 rounded-[10px] border border-line bg-[#FBFCFD] px-3 py-2 text-[12.5px] font-semibold text-ink transition-colors hover:border-[#cdd4de] disabled:opacity-50"
-            >
-              {busy === "find" ? (
-                <Loader2 size={14} className="animate-spin" aria-hidden />
-              ) : (
-                <Search size={14} aria-hidden />
-              )}
-              {busy === "find" ? "Searching…" : "Find contacts"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setFiltersOpen(!filtersOpen)}
-              title="Title / Seniority / Department filters"
+              onClick={() => setContactModal({ mode: "add" })}
+              title="Type in a contact yourself — kept even when the company is re-analyzed"
               className={cn(
-                "flex items-center gap-1.5 rounded-[10px] border px-3 py-2 text-[12px] font-semibold transition-colors",
-                filtersOpen
-                  ? "border-ink bg-ink text-white"
-                  : "border-line bg-card text-slate hover:border-[#cdd4de]",
+                "flex items-center justify-center gap-2 rounded-[10px] border border-line bg-card px-3 py-2 text-[12.5px] font-semibold text-ink transition-colors hover:border-[#cdd4de]",
+                !apolloReady && "flex-1",
               )}
             >
-              <SlidersHorizontal size={13} aria-hidden />
-              <ChevronDown size={12} className={cn("transition-transform", filtersOpen && "rotate-180")} aria-hidden />
+              <UserPlus size={14} aria-hidden />
+              Add contact
             </button>
+            {apolloReady && (
+              <button
+                type="button"
+                onClick={() => setFiltersOpen(!filtersOpen)}
+                title="Title / Seniority / Department filters"
+                className={cn(
+                  "flex items-center gap-1.5 rounded-[10px] border px-3 py-2 text-[12px] font-semibold transition-colors",
+                  filtersOpen
+                    ? "border-ink bg-ink text-white"
+                    : "border-line bg-card text-slate hover:border-[#cdd4de]",
+                )}
+              >
+                <SlidersHorizontal size={13} aria-hidden />
+                <ChevronDown size={12} className={cn("transition-transform", filtersOpen && "rotate-180")} aria-hidden />
+              </button>
+            )}
           </div>
 
           {filtersOpen && (
@@ -296,6 +335,27 @@ export function ContactsCard({
                 placeholder="VP, Manager, Senior Manager"
                 className="w-full rounded-[8px] border border-line bg-card px-2.5 py-1.5 text-[12px] text-ink outline-none focus:border-steel"
               />
+              <p className="mb-1.5 mt-3 text-[10.5px] font-bold uppercase tracking-[.08em] text-muted">
+                Search hints · this company
+              </p>
+              <input
+                value={hintNames}
+                onChange={(e) => setHintNames(e.target.value)}
+                placeholder="Looking for someone by name? e.g. Jane Doe, Sam Lee"
+                className="mb-1.5 w-full rounded-[8px] border border-line bg-card px-2.5 py-1.5 text-[12px] text-ink outline-none focus:border-steel"
+                aria-label="Preferred contact names for this company"
+              />
+              <input
+                value={hintTitles}
+                onChange={(e) => setHintTitles(e.target.value)}
+                placeholder="…or by title? e.g. CIO, Head of Infrastructure"
+                className="w-full rounded-[8px] border border-line bg-card px-2.5 py-1.5 text-[12px] text-ink outline-none focus:border-steel"
+                aria-label="Preferred contact titles for this company"
+              />
+              <p className="mt-1.5 text-[10.5px] leading-[1.4] text-muted">
+                Hints are saved for this company, ride along on every search (auto-broadening
+                never drops them), and steer the automatic contact pull on re-analysis.
+              </p>
               <button
                 type="button"
                 onClick={() => findContacts(false)}
@@ -325,8 +385,7 @@ export function ContactsCard({
               </p>
             </div>
           )}
-        </div>
-      )}
+      </div>
 
       {notice && (
         <p
@@ -364,6 +423,22 @@ export function ContactsCard({
                         unverified
                       </span>
                     )}
+                    {c.source === "manual" && (
+                      <span
+                        title="Entered by hand — kept even when the company is re-analyzed"
+                        className="rounded-md bg-fwa-soft px-1.5 py-0.5 text-[10px] font-semibold text-fwa"
+                      >
+                        manual
+                      </span>
+                    )}
+                    {c.manualId && c.source !== "manual" && (
+                      <span
+                        title="A found contact with your corrections applied — they survive re-analysis"
+                        className="rounded-md bg-line-2 px-1.5 py-0.5 text-[10px] font-semibold text-slate"
+                      >
+                        edited
+                      </span>
+                    )}
                   </div>
                   {c.title && <div className="mt-0.5 text-[12px] text-slate">{c.title}</div>}
                   {c.roleRationale && (
@@ -392,8 +467,8 @@ export function ContactsCard({
                     </div>
                   )}
 
-                  {/* one-press Apollo pulls — always visible per contact */}
-                  {apolloReady && (!c.email || (!c.phone && !c.phoneRequested) || (c.phoneRequested && !c.phone)) && (
+                  {/* one-press Apollo pulls — for found contacts (manual rows have no Apollo id) */}
+                  {apolloReady && c.source !== "manual" && (!c.email || (!c.phone && !c.phoneRequested) || (c.phoneRequested && !c.phone)) && (
                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
                       {!c.email && (
                         <button
@@ -441,16 +516,30 @@ export function ContactsCard({
                     </div>
                   )}
                 </div>
-                {c.linkedinUrl && (
-                  <a
-                    href={c.linkedinUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="grid h-[26px] w-[26px] flex-shrink-0 place-items-center rounded-[7px] bg-[#EAF1FB] font-disp text-[12px] font-bold text-fwa"
+                <span className="flex flex-shrink-0 flex-col items-end gap-1.5">
+                  {c.linkedinUrl && (
+                    <a
+                      href={c.linkedinUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="grid h-[26px] w-[26px] place-items-center rounded-[7px] bg-[#EAF1FB] font-disp text-[12px] font-bold text-fwa"
+                    >
+                      in
+                    </a>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setContactModal({ mode: "edit", c })}
+                    title={
+                      c.source === "manual"
+                        ? "Edit this contact"
+                        : "Correct name, title, email, or phone — your fix survives re-analysis"
+                    }
+                    className="grid h-[26px] w-[26px] place-items-center rounded-[7px] border border-line bg-card text-muted transition-colors hover:border-[#cdd4de] hover:text-ink"
                   >
-                    in
-                  </a>
-                )}
+                    <Pencil size={12} aria-hidden />
+                  </button>
+                </span>
               </div>
             </div>
           );
@@ -479,6 +568,210 @@ export function ContactsCard({
           ? "Contacts are pulled automatically on every run. Email and phone are fetched per contact you press — credits are never spent in bulk."
           : "Contacts found via public search — verify names and roles before outreach. Enable Apollo in Settings → Data sources to reveal emails and phone numbers."}
       </p>
+
+      {contactModal && (
+        <ContactFormModal
+          companyId={companyId}
+          state={contactModal}
+          onClose={() => setContactModal(null)}
+          onSaved={(text) => {
+            setContactModal(null);
+            setNotice({ ok: true, text });
+            router.refresh();
+          }}
+        />
+      )}
     </section>
+  );
+}
+
+/** First token = first name, the rest = last name — for prefilling edits. */
+function splitName(name: string): { first: string; last: string } {
+  const [first = "", ...rest] = name.trim().split(/\s+/);
+  return { first, last: rest.join(" ") };
+}
+
+/**
+ * Add / edit modal for manual contacts (0015). Editing an auto-found contact
+ * saves a correction row keyed on the company, so the fix survives re-analysis;
+ * deleting a correction reverts the contact to its researched data.
+ */
+function ContactFormModal({
+  companyId,
+  state,
+  onClose,
+  onSaved,
+}: {
+  companyId: string;
+  state: { mode: "add" } | { mode: "edit"; c: ContactRow };
+  onClose: () => void;
+  onSaved: (notice: string) => void;
+}) {
+  const editing = state.mode === "edit" ? state.c : null;
+  const prefill = editing ? splitName(editing.name) : { first: "", last: "" };
+  const [firstName, setFirstName] = useState(prefill.first);
+  const [lastName, setLastName] = useState(prefill.last);
+  const [title, setTitle] = useState(editing?.title ?? "");
+  const [email, setEmail] = useState(editing?.email ?? "");
+  const [phone, setPhone] = useState(editing?.phone ?? "");
+  const [saving, setSaving] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const isManualRow = editing?.source === "manual";
+  const fields = {
+    first_name: firstName.trim(),
+    last_name: lastName.trim(),
+    title: title.trim(),
+    email: email.trim(),
+    phone: phone.trim(),
+  };
+
+  async function save() {
+    setSaving(true);
+    setErr(null);
+    try {
+      const editExisting = editing?.manualId != null;
+      const res = await fetch("/api/contacts", {
+        method: editExisting ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          editExisting
+            ? { id: editing!.manualId, ...fields }
+            : {
+                company_id: companyId,
+                ...fields,
+                // editing an untouched auto-found contact ⇒ save as a correction
+                overrides_name: editing ? editing.name : null,
+              },
+        ),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Saving failed.");
+      onSaved(
+        state.mode === "add"
+          ? "Contact added — it will stay on this company through re-analysis."
+          : "Contact updated — your correction survives re-analysis.",
+      );
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Saving failed.");
+      setSaving(false);
+    }
+  }
+
+  async function remove() {
+    if (!editing?.manualId) return;
+    setRemoving(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/contacts", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editing.manualId }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Removing failed.");
+      onSaved(
+        isManualRow
+          ? "Contact deleted."
+          : "Correction removed — the contact shows its researched data again.",
+      );
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Removing failed.");
+      setRemoving(false);
+    }
+  }
+
+  const inputCls =
+    "w-full rounded-[10px] border border-line bg-card px-3 py-2 text-[13px] text-ink outline-none placeholder:text-muted focus:border-steel";
+  const labelCls = "mb-1 block text-[10.5px] font-bold uppercase tracking-[.08em] text-muted";
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-ink/40 p-4">
+      <div className="flex max-h-[92vh] w-full max-w-md flex-col rounded-card border border-line bg-card shadow-lg">
+        <div className="flex items-center gap-3 border-b border-line-2 px-5 py-4">
+          <h2 className="font-disp text-[16px] font-semibold text-ink">
+            {state.mode === "add" ? "Add contact" : `Edit ${editing!.name}`}
+          </h2>
+          <span className="flex-1" />
+          <button type="button" onClick={onClose} title="Close" className="text-muted hover:text-ink">
+            <X size={17} aria-hidden />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          <div className="mb-3 grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls} htmlFor="mc-first">First name *</label>
+              <input id="mc-first" value={firstName} onChange={(e) => setFirstName(e.target.value)} maxLength={120} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls} htmlFor="mc-last">Last name</label>
+              <input id="mc-last" value={lastName} onChange={(e) => setLastName(e.target.value)} maxLength={120} className={inputCls} />
+            </div>
+          </div>
+          <div className="mb-3">
+            <label className={labelCls} htmlFor="mc-title">Title</label>
+            <input id="mc-title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} placeholder="VP of IT" className={inputCls} />
+          </div>
+          <div className="mb-3">
+            <label className={labelCls} htmlFor="mc-email">Email</label>
+            <input id="mc-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={200} placeholder="name@company.com" className={inputCls} />
+          </div>
+          <div className="mb-1">
+            <label className={labelCls} htmlFor="mc-phone">Phone</label>
+            <input id="mc-phone" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={120} placeholder="+1 …" className={inputCls} />
+          </div>
+
+          {editing && !isManualRow && (
+            <p className="mt-3 rounded-[10px] border border-line-2 bg-[#FBFCFD] px-3 py-2 text-[11px] leading-[1.45] text-slate">
+              Your changes are saved as a correction on top of the researched contact and
+              re-applied automatically after every re-analysis.
+            </p>
+          )}
+          {err && (
+            <p className="mt-3 rounded-[10px] border border-[#F3D9D9] bg-[#FDF3F3] px-3 py-2 text-[12px] text-[#B4453E]">
+              {err}
+            </p>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 border-t border-line-2 px-5 py-4">
+          {editing?.manualId && (
+            <button
+              type="button"
+              onClick={remove}
+              disabled={saving || removing}
+              className="inline-flex items-center gap-1.5 rounded-[10px] border border-line bg-card px-3 py-2 text-[12px] font-semibold text-spark transition-colors hover:border-[#e8b5ae] disabled:opacity-50"
+            >
+              {removing ? (
+                <Loader2 size={13} className="animate-spin" aria-hidden />
+              ) : (
+                <Trash2 size={13} aria-hidden />
+              )}
+              {isManualRow ? "Delete" : "Revert to found data"}
+            </button>
+          )}
+          <span className="flex-1" />
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving || removing}
+            className="rounded-[10px] border border-line bg-card px-3.5 py-2 text-[12.5px] font-medium text-slate transition-colors hover:border-[#cdd4de] hover:text-ink disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={save}
+            disabled={saving || removing || firstName.trim().length === 0}
+            className="inline-flex items-center gap-2 rounded-[10px] bg-ink px-4 py-2 text-[12.5px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+          >
+            {saving && <Loader2 size={13} className="animate-spin" aria-hidden />}
+            {state.mode === "add" ? "Add contact" : "Save changes"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

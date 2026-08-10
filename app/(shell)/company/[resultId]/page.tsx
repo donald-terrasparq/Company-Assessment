@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Check, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Check, AlertTriangle, StickyNote } from "lucide-react";
+import { auth } from "@/auth";
 import { getResultDetail } from "@/lib/db/queries/prospects";
+import { listNotesForCompany } from "@/lib/db/queries/notes";
+import { recordCompanyView } from "@/lib/db/queries/views";
+import { listManualContactsForCompany } from "@/lib/db/queries/manual-contacts";
+import { mergeContacts } from "@/lib/contacts/merge";
+import { NotesCard, NOTES_ANCHOR_ID } from "@/components/company/notes-card";
 import { normalizePlaySteps } from "@/lib/anthropic/extract";
 import { CAVEAT_COPY } from "@/lib/scoring/caveats";
 import { monogramFor } from "@/components/prospects/monogram";
@@ -92,10 +98,38 @@ export default async function CompanyDetailPage({
   params: Promise<{ resultId: string }>;
 }) {
   const { resultId } = await params;
-  const [detail, settings] = await Promise.all([getResultDetail(resultId), getSettings()]);
+  const [detail, settings, session] = await Promise.all([
+    getResultDetail(resultId),
+    getSettings(),
+    auth(),
+  ]);
   if (!detail) notFound();
-  const draftedEmails = await listDraftedEmailsForCompany(detail.company.id);
+  const [draftedEmails, notes, manualContacts] = await Promise.all([
+    listDraftedEmailsForCompany(detail.company.id),
+    listNotesForCompany(detail.company.id),
+    listManualContactsForCompany(detail.company.id),
+  ]);
   const { result, company, list, signals, contacts } = detail;
+  const userId = session?.user?.id ?? null;
+  // 0015: mark this company as viewed by the current user (drives the list's new-dot)
+  if (userId) await recordCompanyView(userId, company.id).catch(() => {});
+
+  // 0015: overlay durable manual contacts/corrections on the per-run contacts
+  const mergedContacts = mergeContacts(
+    contacts.map((c) => ({
+      id: c.id,
+      name: c.name,
+      title: c.title,
+      roleRationale: c.roleRationale,
+      linkedinUrl: c.linkedinUrl,
+      email: c.email,
+      phone: c.phone,
+      source: c.source,
+      verified: c.verified,
+      phoneRequested: c.phoneRequestedAt != null,
+    })),
+    manualContacts,
+  );
   const apolloReady = !!settings?.apolloEnabled && isApolloConfigured();
 
   const tier = TIER_LABEL[result.tier] ?? TIER_LABEL.tier_3;
@@ -243,6 +277,23 @@ export default async function CompanyDetailPage({
                 HIGH-ACCURACY
               </span>
             )}
+            <a
+              href={`#${NOTES_ANCHOR_ID}`}
+              title={
+                notes.length > 0
+                  ? `${notes.length} note${notes.length === 1 ? "" : "s"} — jump to the notes section`
+                  : "No notes yet — jump down to add one"
+              }
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-[7px] px-2 py-1 font-disp text-[10.5px] font-bold tracking-[.04em] transition-colors",
+                notes.length > 0
+                  ? "bg-note-soft text-note hover:opacity-80"
+                  : "border border-line text-muted hover:border-[#cdd4de] hover:text-slate",
+              )}
+            >
+              <StickyNote size={11} aria-hidden />
+              {notes.length > 0 ? `NOTES · ${notes.length}` : "ADD NOTE"}
+            </a>
           </div>
           <div className="mt-1 text-[11.5px] text-muted">from {list.displayName}</div>
         </div>
@@ -497,7 +548,7 @@ export default async function CompanyDetailPage({
           <DraftEmailModal
             resultId={result.id}
             playSteps={playSteps}
-            contacts={contacts.map((c) => ({
+            contacts={mergedContacts.map((c) => ({
               id: c.id,
               name: c.name,
               title: c.title,
@@ -551,22 +602,16 @@ export default async function CompanyDetailPage({
           {/* contacts — Apollo search + per-contact email/phone reveal */}
           <ContactsCard
             resultId={result.id}
+            companyId={company.id}
             apolloReady={apolloReady}
             defaults={parseContactPrefs(
               (result.contactFilters as unknown) ?? settings?.contactDefaults,
             )}
-            contacts={contacts.map((c) => ({
-              id: c.id,
-              name: c.name,
-              title: c.title,
-              roleRationale: c.roleRationale,
-              linkedinUrl: c.linkedinUrl,
-              email: c.email,
-              phone: c.phone,
-              source: c.source,
-              verified: c.verified,
-              phoneRequested: c.phoneRequestedAt != null,
-            }))}
+            hints={{
+              names: company.contactNameHints ?? [],
+              titles: company.contactTitleHints ?? [],
+            }}
+            contacts={mergedContacts}
           />
 
           {/* coverage & caveats — good + warn rows */}
@@ -620,6 +665,21 @@ export default async function CompanyDetailPage({
           </section>
         </div>
       </div>
+
+      {/* notes — shared thread, survives re-analysis; header chip anchors here */}
+      <NotesCard
+        companyId={company.id}
+        resultId={result.id}
+        isAdmin={session?.user?.role === "admin"}
+        notes={notes.map((n) => ({
+          id: n.id,
+          body: n.body,
+          authorName: n.authorName,
+          mine: n.createdBy != null && n.createdBy === userId,
+          createdAt: n.createdAt.toISOString(),
+          edited: n.updatedAt.getTime() > n.createdAt.getTime(),
+        }))}
+      />
 
       {/* danger zone — delete this company from its list, confirm-gated */}
       <DeleteCompanyButton

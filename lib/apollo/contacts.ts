@@ -9,7 +9,12 @@
  * number when it arrives.
  */
 import { apolloPost } from "./client";
-import { buildSearchFilters, DEFAULT_CONTACT_PREFS, type ContactPrefs } from "./prefs";
+import {
+  buildSearchFilters,
+  DEFAULT_CONTACT_PREFS,
+  type ContactPrefs,
+  type ContactSearchHints,
+} from "./prefs";
 import { MIN_CONTACT_TARGET, relaxationLadder } from "./relax";
 import { companyBand, isAllowedContact, rankContacts } from "./targeting";
 
@@ -52,6 +57,8 @@ export async function searchBestContacts(input: {
   revenueUsd: number | null;
   employees: number | null;
   prefs?: ContactPrefs;
+  /** 0015: per-company hints — title hints join the search on every attempt. */
+  hints?: ContactSearchHints;
   /** paging window over the ranked matches — "load more" advances this */
   offset?: number;
   limit?: number;
@@ -66,7 +73,9 @@ export async function searchBestContacts(input: {
     page: 1,
     per_page: 100, // one big page; we rank and window locally
   };
-  if (filters.titles.length > 0) body.person_titles = filters.titles;
+  // hint titles always ride along, ahead of the filter titles
+  const personTitles = [...new Set([...(input.hints?.titles ?? []), ...filters.titles])];
+  if (personTitles.length > 0) body.person_titles = personTitles;
   if (filters.apolloDepartments.length > 0) {
     body.person_department_or_subdepartments = filters.apolloDepartments;
   }
@@ -99,6 +108,53 @@ export async function searchBestContacts(input: {
   };
 }
 
+/**
+ * 0015: dedicated lookup for name hints — people the user asked for by name.
+ * Searched without seniority/title/department filters (the name is specific
+ * enough); the revenue-band gate still applies.
+ */
+export async function searchByNameHints(input: {
+  domain: string;
+  names: string[];
+  revenueUsd: number | null;
+  employees: number | null;
+}): Promise<ApolloCandidate[]> {
+  const out: ApolloCandidate[] = [];
+  for (const name of input.names.slice(0, 5)) {
+    try {
+      const data = await apolloPost<SearchResponse>("/mixed_people/api_search", {
+        q_organization_domains_list: [input.domain],
+        q_keywords: name,
+        page: 1,
+        per_page: 10,
+      });
+      const hits = [...(data.people ?? []), ...(data.contacts ?? [])]
+        .map((p) => {
+          const joined = [p.first_name, p.last_name].filter(Boolean).join(" ");
+          let fullName = joined || p.name || "";
+          if (p.name && p.name.split(/\s+/).length > fullName.split(/\s+/).length) fullName = p.name;
+          return {
+            apolloPersonId: p.person_id ?? p.id,
+            name: fullName,
+            title: p.title ?? null,
+            linkedinUrl: p.linkedin_url ?? null,
+          };
+        })
+        .filter((p) => p.apolloPersonId && p.name)
+        .filter((p) => isAllowedContact(p.title, input.revenueUsd, input.employees));
+      out.push(...hits.slice(0, 2)); // best couple of matches per hinted name
+    } catch {
+      // a failed hint lookup never fails the whole search
+    }
+  }
+  const seen = new Set<string>();
+  return out.filter((c) => {
+    if (seen.has(c.apolloPersonId)) return false;
+    seen.add(c.apolloPersonId);
+    return true;
+  });
+}
+
 export interface RelaxedSearchResult extends ContactSearchResult {
   appliedPrefs: ContactPrefs;
   relaxed: boolean;
@@ -116,8 +172,33 @@ export async function searchBestContactsRelaxed(input: {
   revenueUsd: number | null;
   employees: number | null;
   prefs?: ContactPrefs;
+  /** 0015: per-company hints. Title hints join every ladder step; name hints
+   *  run one dedicated lookup whose hits are pinned to the top. */
+  hints?: ContactSearchHints;
   limit?: number;
 }): Promise<RelaxedSearchResult> {
+  // name hints are searched ONCE, outside the ladder, and never relaxed away
+  const nameHits =
+    input.hints && input.hints.names.length > 0
+      ? await searchByNameHints({
+          domain: input.domain,
+          names: input.hints.names,
+          revenueUsd: input.revenueUsd,
+          employees: input.employees,
+        })
+      : [];
+  const withNameHits = (res: RelaxedSearchResult): RelaxedSearchResult => {
+    if (nameHits.length === 0) return res;
+    const hitIds = new Set(nameHits.map((c) => c.apolloPersonId));
+    const rest = res.candidates.filter((c) => !hitIds.has(c.apolloPersonId));
+    const newHits = nameHits.length - (res.candidates.length - rest.length);
+    return {
+      ...res,
+      candidates: [...nameHits, ...rest],
+      totalMatching: res.totalMatching + newHits,
+    };
+  };
+
   const ladder = relaxationLadder(input.prefs ?? DEFAULT_CONTACT_PREFS);
   let best: RelaxedSearchResult | null = null;
   for (let i = 0; i < ladder.length; i++) {
@@ -129,10 +210,10 @@ export async function searchBestContactsRelaxed(input: {
       relaxed: i > 0,
       relaxNote: i > 0 ? step.note : null,
     };
-    if (res.totalMatching >= MIN_CONTACT_TARGET) return wrapped;
+    if (res.totalMatching >= MIN_CONTACT_TARGET) return withNameHits(wrapped);
     if (!best || res.totalMatching > best.totalMatching) best = wrapped;
   }
-  return best!; // ladder always has ≥1 step
+  return withNameHits(best!); // ladder always has ≥1 step
 }
 
 interface MatchResponse {

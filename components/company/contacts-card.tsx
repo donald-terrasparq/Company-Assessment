@@ -565,8 +565,8 @@ export function ContactsCard({
 
       <p className="mt-3 text-[10.5px] leading-[1.4] text-muted">
         {apolloReady
-          ? "Contacts are pulled automatically on every run. Email and phone are fetched per contact you press — credits are never spent in bulk."
-          : "Contacts found via public search — verify names and roles before outreach. Enable Apollo in Settings → Data sources to reveal emails and phone numbers."}
+          ? "Apollo enrichment runs automatically on every analysis: company details (size, revenue, locations) and top contacts — including their LinkedIn profiles — are pulled in with no action needed. Email and phone are fetched per contact you press — credits are never spent in bulk."
+          : "Contacts found via public search — verify names and roles before outreach. Enable Apollo in Settings → Data sources to pull LinkedIn profiles, emails, and phone numbers automatically."}
       </p>
 
       {contactModal && (

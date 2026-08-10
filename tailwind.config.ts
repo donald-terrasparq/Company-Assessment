@@ -28,6 +28,7 @@ const config: Config = {
         mobility: { DEFAULT: "var(--mob)", soft: "var(--mob-soft)" },
         byod: { DEFAULT: "var(--byod)", soft: "var(--byod-soft)" },
         spark: { DEFAULT: "var(--spark)", soft: "var(--spark-soft)" },
+        note: { DEFAULT: "var(--note)", soft: "var(--note-soft)" },
       },
       fontFamily: {
         disp: ["var(--font-display)", "system-ui", "sans-serif"],

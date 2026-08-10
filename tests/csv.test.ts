@@ -30,6 +30,8 @@ function row(over: Partial<ProspectRow>): ProspectRow {
     whyNow: 'Opening 3 stores, said "go"',
     recencyLabel: "<30d",
     caveats: [],
+    noteCount: 0,
+    viewed: false,
     ...over,
   };
 }

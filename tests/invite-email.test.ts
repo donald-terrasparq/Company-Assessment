@@ -20,7 +20,7 @@ describe("buildInviteEmail", () => {
       expect(body).toContain("Hi Jane,");
       expect(body).toContain("by Donald T");
       expect(body).toContain("https://app.example.com/register?code=abc123");
-      expect(body).toContain("7 days");
+      expect(body).toContain("30 days");
     }
   });
 

@@ -4,7 +4,7 @@
  */
 import { randomBytes } from "node:crypto";
 
-export const INVITE_TTL_DAYS = 7;
+export const INVITE_TTL_DAYS = 30;
 
 /** URL-safe one-time code, ~128 bits of entropy. */
 export function generateInviteCode(): string {

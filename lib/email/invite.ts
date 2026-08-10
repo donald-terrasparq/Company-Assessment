@@ -12,6 +12,8 @@
  *   gmail can be validated without owning a domain.
  */
 
+import { INVITE_TTL_DAYS } from "@/lib/auth/invite";
+
 export type EmailProvider = "resend" | "brevo";
 
 export const EMAIL_PROVIDERS: EmailProvider[] = ["resend", "brevo"];
@@ -99,7 +101,7 @@ export function buildInviteEmail(input: InviteEmailInput): {
   const text = `${greeting}
 
 You've been invited${by} to ${input.companyName}'s Company Assessment — the prospect
-signal-intelligence tool. Create your account with this one-time link (valid 7 days):
+signal-intelligence tool. Create your account with this one-time link (valid ${INVITE_TTL_DAYS} days):
 
 ${input.inviteUrl}
 
@@ -110,7 +112,7 @@ If you weren't expecting this, you can ignore this email.`;
   <p style="font-size:14px;line-height:1.55;margin:0 0 18px">
     You've been invited${by} to <b>${input.companyName}</b>'s Company Assessment —
     the prospect signal-intelligence tool. Create your account with this one-time
-    link (valid for 7 days):
+    link (valid for ${INVITE_TTL_DAYS} days):
   </p>
   <p style="margin:0 0 18px">
     <a href="${input.inviteUrl}"

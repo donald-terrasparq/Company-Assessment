@@ -607,6 +607,10 @@ export default async function CompanyDetailPage({
             defaults={parseContactPrefs(
               (result.contactFilters as unknown) ?? settings?.contactDefaults,
             )}
+            hints={{
+              names: company.contactNameHints ?? [],
+              titles: company.contactTitleHints ?? [],
+            }}
             contacts={mergedContacts}
           />
 

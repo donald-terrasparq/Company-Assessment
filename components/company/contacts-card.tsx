@@ -86,12 +86,14 @@ export function ContactsCard({
   contacts,
   apolloReady,
   defaults,
+  hints,
 }: {
   resultId: string;
   companyId: string; // manual contacts are keyed on the company (0015)
   contacts: ContactRow[];
   apolloReady: boolean; // apollo_enabled setting + APOLLO env key present
   defaults: ContactPrefs; // admin defaults from Settings → Contacts
+  hints: { names: string[]; titles: string[] }; // 0015: saved per company
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null); // "find" | `email:${id}` | `phone:${id}`
@@ -103,12 +105,17 @@ export function ContactsCard({
   const [seniorities, setSeniorities] = useState<string[]>(defaults.seniorities);
   const [departments, setDepartments] = useState<string[]>(defaults.departments);
   const [titles, setTitles] = useState(defaults.titles.join(", "));
+  // 0015: per-company search hints — persisted server-side on every search
+  const [hintNames, setHintNames] = useState(hints.names.join(", "));
+  const [hintTitles, setHintTitles] = useState(hints.titles.join(", "));
   // what the displayed contacts were last searched with — UPDATE lights up
   // only when the panel differs from this
   const [applied, setApplied] = useState({
     seniorities: [...defaults.seniorities],
     departments: [...defaults.departments],
     titles: defaults.titles.join(", "),
+    hintNames: hints.names.join(", "),
+    hintTitles: hints.titles.join(", "),
   });
 
   const sameSet = (a: string[], b: string[]) =>
@@ -116,7 +123,9 @@ export function ContactsCard({
   const filtersDirty =
     !sameSet(seniorities, applied.seniorities) ||
     !sameSet(departments, applied.departments) ||
-    titles.trim() !== applied.titles.trim();
+    titles.trim() !== applied.titles.trim() ||
+    hintNames.trim() !== applied.hintNames.trim() ||
+    hintTitles.trim() !== applied.hintTitles.trim();
 
   const toggle = (list: string[], set: (v: string[]) => void, value: string) =>
     set(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
@@ -141,6 +150,10 @@ export function ContactsCard({
             departments,
             titles: titles.split(",").map((t) => t.trim()).filter(Boolean),
           },
+          hints: {
+            names: hintNames.split(",").map((t) => t.trim()).filter(Boolean).slice(0, 5),
+            titles: hintTitles.split(",").map((t) => t.trim()).filter(Boolean).slice(0, 5),
+          },
         }),
       });
       const json = await res.json();
@@ -162,6 +175,8 @@ export function ContactsCard({
           seniorities: [...next.seniorities],
           departments: [...next.departments],
           titles: next.titles,
+          hintNames,
+          hintTitles,
         });
       }
       setNotice({
@@ -320,6 +335,27 @@ export function ContactsCard({
                 placeholder="VP, Manager, Senior Manager"
                 className="w-full rounded-[8px] border border-line bg-card px-2.5 py-1.5 text-[12px] text-ink outline-none focus:border-steel"
               />
+              <p className="mb-1.5 mt-3 text-[10.5px] font-bold uppercase tracking-[.08em] text-muted">
+                Search hints · this company
+              </p>
+              <input
+                value={hintNames}
+                onChange={(e) => setHintNames(e.target.value)}
+                placeholder="Looking for someone by name? e.g. Jane Doe, Sam Lee"
+                className="mb-1.5 w-full rounded-[8px] border border-line bg-card px-2.5 py-1.5 text-[12px] text-ink outline-none focus:border-steel"
+                aria-label="Preferred contact names for this company"
+              />
+              <input
+                value={hintTitles}
+                onChange={(e) => setHintTitles(e.target.value)}
+                placeholder="…or by title? e.g. CIO, Head of Infrastructure"
+                className="w-full rounded-[8px] border border-line bg-card px-2.5 py-1.5 text-[12px] text-ink outline-none focus:border-steel"
+                aria-label="Preferred contact titles for this company"
+              />
+              <p className="mt-1.5 text-[10.5px] leading-[1.4] text-muted">
+                Hints are saved for this company, ride along on every search (auto-broadening
+                never drops them), and steer the automatic contact pull on re-analysis.
+              </p>
               <button
                 type="button"
                 onClick={() => findContacts(false)}

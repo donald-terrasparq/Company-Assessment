@@ -2,7 +2,8 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { apolloErrorMessage, isApolloConfigured } from "@/lib/apollo/client";
 import { searchBestContacts, searchBestContactsRelaxed } from "@/lib/apollo/contacts";
-import { parseContactPrefs } from "@/lib/apollo/prefs";
+import { parseContactHints, parseContactPrefs } from "@/lib/apollo/prefs";
+import { setCompanyContactHints } from "@/lib/db/queries/companies";
 import {
   addApolloContacts,
   countApolloContacts,
@@ -22,6 +23,15 @@ const BodySchema = z.object({
       seniorities: z.array(z.string()).max(10).optional(),
       departments: z.array(z.string()).max(10).optional(),
       titles: z.array(z.string().max(60)).max(12).optional(),
+    })
+    .nullable()
+    .optional(),
+  // 0015: per-company search hints ("looking for someone specific") — saved on
+  // the company so they persist across searches and re-analysis
+  hints: z
+    .object({
+      names: z.array(z.string().max(80)).max(5).optional(),
+      titles: z.array(z.string().max(60)).max(5).optional(),
     })
     .nullable()
     .optional(),
@@ -61,6 +71,20 @@ export async function POST(request: Request): Promise<Response> {
     ? parseContactPrefs({ ...defaults, ...parsed.data.overrides })
     : defaults;
 
+  // hints: explicit ones from the panel win (and are persisted on the
+  // company); otherwise use what's stored from earlier searches
+  const storedHints = {
+    names: detail.company.contactNameHints ?? [],
+    titles: detail.company.contactTitleHints ?? [],
+  };
+  const hints = parsed.data.hints ? parseContactHints(parsed.data.hints) : storedHints;
+  if (parsed.data.hints) {
+    await setCompanyContactHints(detail.company.id, {
+      nameHints: hints.names,
+      titleHints: hints.titles,
+    }).catch(() => {}); // persistence is best-effort — never fail the search
+  }
+
   try {
     if (parsed.data.load_more) {
       // append the next window of the ranked matches for the CURRENT filters
@@ -70,6 +94,7 @@ export async function POST(request: Request): Promise<Response> {
         revenueUsd: detail.result.annualRevenueUsd,
         employees: detail.result.employeeEstimate,
         prefs,
+        hints,
         offset,
       });
       const added = await addApolloContacts(detail.result.id, candidates);
@@ -95,6 +120,7 @@ export async function POST(request: Request): Promise<Response> {
       revenueUsd: detail.result.annualRevenueUsd,
       employees: detail.result.employeeEstimate,
       prefs,
+      hints,
     });
     const added = parsed.data.overrides
       ? await replaceApolloContacts(detail.result.id, result.candidates)

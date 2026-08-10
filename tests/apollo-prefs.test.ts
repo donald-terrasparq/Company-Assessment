@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildSearchFilters,
   DEFAULT_CONTACT_PREFS,
+  parseContactHints,
   parseContactPrefs,
 } from "@/lib/apollo/prefs";
 
@@ -62,5 +63,26 @@ describe("buildSearchFilters", () => {
     );
     expect(f.apolloDepartments).toEqual(["information_technology"]);
     expect(f.titles).toEqual(expect.arrayContaining(["VP", "Procurement", "Purchasing", "Sourcing"]));
+  });
+});
+
+describe("parseContactHints (0015 per-company search hints)", () => {
+  it("trims, drops empties, and caps at 5 per field", () => {
+    const h = parseContactHints({
+      names: [" Jane Doe ", "", "A", "B", "C", "D", "E"],
+      titles: ["CIO", "  "],
+    });
+    expect(h.names).toEqual(["Jane Doe", "A", "B", "C", "D"]);
+    expect(h.titles).toEqual(["CIO"]);
+  });
+
+  it("tolerates junk input", () => {
+    expect(parseContactHints(null)).toEqual({ names: [], titles: [] });
+    expect(parseContactHints({ names: "nope", titles: [42] })).toEqual({ names: [], titles: [] });
+  });
+
+  it("drops over-long entries", () => {
+    const h = parseContactHints({ names: ["x".repeat(81)], titles: ["y".repeat(61)] });
+    expect(h).toEqual({ names: [], titles: [] });
   });
 });

@@ -19,7 +19,8 @@ import { isApolloConfigured } from "@/lib/apollo/client";
 import { searchBestContactsRelaxed } from "@/lib/apollo/contacts";
 import { parseContactPrefs } from "@/lib/apollo/prefs";
 import { getActiveCompanyProfile } from "@/lib/db/queries/company-profiles";
-import { enrichOrganization, newsForOrganization, type ApolloOrgData } from "@/lib/apollo/organization";
+import { enrichOrganizationFull, newsForOrganization, type ApolloOrgData } from "@/lib/apollo/organization";
+import { upsertCompanyEnrichment } from "@/lib/db/queries/enrichment";
 import { addApolloContacts, setResultContactFilters } from "@/lib/db/queries/contacts";
 import { gather } from "@/lib/research/gather";
 import { resolveDomain } from "@/lib/research/identify";
@@ -165,9 +166,22 @@ export async function processCompany(job: ClaimedJob): Promise<void> {
     if (settings?.apolloEnabled && isApolloConfigured() && domain) {
       const tApollo = Date.now();
       try {
-        apolloOrg = await enrichOrganization(domain);
+        const full = await enrichOrganizationFull(domain);
+        apolloOrg = full.summary;
         if (apolloOrg.orgId) {
           apolloNews = await newsForOrganization(apolloOrg.orgId, now).catch(() => []);
+        }
+        // 0016: persist the detail snapshot for the Company enrichment card
+        if (full.details) {
+          await upsertCompanyEnrichment(company.id, {
+            ...full.details,
+            news: apolloNews.map((n) => ({
+              title: n.title,
+              url: n.url,
+              date: n.publishedDate ?? null,
+              event: null,
+            })),
+          }).catch(() => {}); // snapshot is best-effort — never fails the run
         }
         await logUsage({
           runId: run.id,

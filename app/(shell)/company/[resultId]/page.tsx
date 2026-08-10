@@ -6,7 +6,9 @@ import { getResultDetail } from "@/lib/db/queries/prospects";
 import { listNotesForCompany } from "@/lib/db/queries/notes";
 import { recordCompanyView } from "@/lib/db/queries/views";
 import { listManualContactsForCompany } from "@/lib/db/queries/manual-contacts";
+import { getCompanyEnrichment } from "@/lib/db/queries/enrichment";
 import { mergeContacts } from "@/lib/contacts/merge";
+import { EnrichmentCard, type EnrichmentNewsItem } from "@/components/company/enrichment-card";
 import { NotesCard } from "@/components/company/notes-card";
 import { NotesJumpChip } from "@/components/company/notes-jump-chip";
 import { normalizePlaySteps } from "@/lib/anthropic/extract";
@@ -105,10 +107,11 @@ export default async function CompanyDetailPage({
     auth(),
   ]);
   if (!detail) notFound();
-  const [draftedEmails, notes, manualContacts] = await Promise.all([
+  const [draftedEmails, notes, manualContacts, enrichment] = await Promise.all([
     listDraftedEmailsForCompany(detail.company.id),
     listNotesForCompany(detail.company.id),
     listManualContactsForCompany(detail.company.id),
+    getCompanyEnrichment(detail.company.id),
   ]);
   const { result, company, list, signals, contacts } = detail;
   const userId = session?.user?.id ?? null;
@@ -525,6 +528,33 @@ export default async function CompanyDetailPage({
               </div>
             </section>
           )}
+
+          {/* company enrichment — Apollo snapshot: LinkedIn page, firmographics,
+              funding, tech, recent news; auto-captured on analysis, re-pullable */}
+          <EnrichmentCard
+            companyId={company.id}
+            apolloReady={apolloReady}
+            data={
+              enrichment
+                ? {
+                    linkedinUrl: enrichment.linkedinUrl,
+                    description: enrichment.description,
+                    industry: enrichment.industry,
+                    foundedYear: enrichment.foundedYear,
+                    employees: enrichment.employees,
+                    annualRevenueUsd: enrichment.annualRevenueUsd,
+                    locationCount: enrichment.locationCount,
+                    publiclyTradedSymbol: enrichment.publiclyTradedSymbol,
+                    totalFunding: enrichment.totalFunding,
+                    latestFundingStage: enrichment.latestFundingStage,
+                    latestFundingDate: enrichment.latestFundingDate,
+                    keywords: enrichment.keywords,
+                    news: (enrichment.news as EnrichmentNewsItem[]) ?? [],
+                    enrichedAt: enrichment.enrichedAt.toISOString(),
+                  }
+                : null
+            }
+          />
         </div>
 
         {/* RIGHT */}

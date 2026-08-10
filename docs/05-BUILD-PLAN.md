@@ -170,7 +170,8 @@ preview, and saving + applying updates the Prospects table without a single API 
   Store every mail in `inbound_emails` first (dedupe on `Message-ID`), then parse per template:
   contact-us (name, email, phone, company, **message verbatim**) and each ebook form
   (`ebook_slug`). Unrecognized mail → `parse_status = 'failed'`, surfaced in the UI, never dropped.
-- **8.3** RB2B: `POST /api/leads/rb2b` webhook (shared-secret header). Upsert the person
+- **8.3** RB2B: `POST /api/leads/rb2b?token=$RB2B_WEBHOOK_SECRET` webhook (token in URL — RB2B
+  sends a fixed payload with no custom headers). Upsert the person
   (`source='rb2b'`), append one `site_visit` event per identified visit with pages/referrer in
   `data`. Repeat visitors accumulate events, not duplicate rows.
 - **8.4** Company matching: `lib/leads/match.ts` — normalize domain (form field, work-email domain,

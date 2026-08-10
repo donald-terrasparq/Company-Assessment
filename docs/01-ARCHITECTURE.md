@@ -118,7 +118,10 @@ CONTACT US / eBook forms ──(website forwards email)──▶ leads@ mailbox
                                         (contact-us: message text preserved verbatim;
                                          ebook: ebook_slug from the form/subject)
 
-RB2B ──▶ POST /api/leads/rb2b  (webhook, shared-secret header)
+RB2B ──▶ POST /api/leads/rb2b?token=$RB2B_WEBHOOK_SECRET
+   (RB2B pushes a fixed payload to a URL you set in its dashboard — no API key on our side,
+    and no custom headers, so the shared secret rides in the URL. Enable RB2B's
+    "send repeat visitor data" option so every visit arrives.)
    upsert lead keyed on (source, email|company+domain) ─▶ append a `site_visit` lead_event
    per identified visit — repeat visitors accumulate events, not duplicate leads
 
@@ -142,8 +145,9 @@ silently dropped in parsing is a lead lost. Raw email bodies and RB2B payloads a
   `LEADS_IMAP_PASSWORD`, `RB2B_WEBHOOK_SECRET` — all set as
   Render service env vars (`sync: false` in `render.yaml`), all server-only. **No `NEXT_PUBLIC_`
   prefix on any of them.** The worker reads the same key from its own env; it never crosses the wire.
-- `POST /api/leads/rb2b` requires the shared-secret header; reject and log anything without it.
-  Treat webhook payloads as untrusted input (Zod-parse before SQL, same as LLM output).
+- `POST /api/leads/rb2b` requires `?token=` to equal `RB2B_WEBHOOK_SECRET` (RB2B webhooks can't
+  send custom headers); reject and log anything without it. Treat webhook payloads as untrusted
+  input (Zod-parse before SQL, same as LLM output).
 - The worker is an internal process with no public endpoint, so there's no cron URL to protect. (If
   you ever move to the Vercel driver, its cron route checks `Authorization: Bearer $CRON_SECRET`.)
 - Passwords: bcrypt, cost 12. Sessions: JWT strategy, 7-day expiry, httpOnly cookie.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mapNews, mapOrganization } from "@/lib/apollo/organization";
+import { mapNews, mapOrganization, mapOrganizationDetails } from "@/lib/apollo/organization";
 
 describe("mapOrganization", () => {
   it("extracts the firmographic numbers and builds prompt facts", () => {
@@ -68,5 +68,37 @@ describe("mapNews", () => {
       url: `https://example.com/${i}`,
     }));
     expect(mapNews({ news_articles: many }).length).toBeLessThanOrEqual(8);
+  });
+});
+
+describe("mapOrganizationDetails (0016 company-enrichment snapshot)", () => {
+  it("maps the persisted detail fields incl. LinkedIn and description", () => {
+    const out = mapOrganizationDetails({
+      organization: {
+        id: "org_1",
+        linkedin_url: "https://www.linkedin.com/company/micro-center",
+        short_description: "Retailer of computers and electronics.",
+        industry: "Retail",
+        founded_year: 1979,
+        estimated_num_employees: 4800,
+        annual_revenue: 2_500_000_000,
+        retail_location_count: 28,
+        publicly_traded_symbol: null,
+        total_funding_printed: "$10M",
+        latest_funding_stage: "Series A",
+        latest_funding_round_date: "2025-03-04T00:00:00Z",
+        technology_names: ["Cisco Meraki"],
+        keywords: ["electronics", "Cisco Meraki"],
+      },
+    });
+    expect(out).not.toBeNull();
+    expect(out!.linkedinUrl).toContain("linkedin.com/company");
+    expect(out!.description).toContain("Retailer");
+    expect(out!.latestFundingDate).toBe("2025-03-04");
+    expect(out!.keywords).toEqual(["Cisco Meraki", "electronics"]); // deduped
+  });
+
+  it("returns null when Apollo has no organization", () => {
+    expect(mapOrganizationDetails({})).toBeNull();
   });
 });

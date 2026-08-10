@@ -22,6 +22,9 @@ interface OrgEnrichResponse {
   organization?: {
     id?: string;
     name?: string;
+    linkedin_url?: string | null;
+    short_description?: string | null;
+    keywords?: string[] | null;
     estimated_num_employees?: number | null;
     annual_revenue?: number | null;
     retail_location_count?: number | null;
@@ -32,6 +35,45 @@ interface OrgEnrichResponse {
     latest_funding_stage?: string | null;
     latest_funding_round_date?: string | null;
     technology_names?: string[] | null;
+  };
+}
+
+/** 0016: the detail snapshot persisted per company (company_enrichment). */
+export interface ApolloOrgDetails {
+  linkedinUrl: string | null;
+  description: string | null;
+  industry: string | null;
+  foundedYear: number | null;
+  employees: number | null;
+  annualRevenueUsd: number | null;
+  locationCount: number | null;
+  publiclyTradedSymbol: string | null;
+  totalFunding: string | null;
+  latestFundingStage: string | null;
+  latestFundingDate: string | null;
+  keywords: string[];
+}
+
+/** Map the org payload to the persisted detail snapshot. Pure. */
+export function mapOrganizationDetails(data: OrgEnrichResponse): ApolloOrgDetails | null {
+  const org = data.organization;
+  if (!org) return null;
+  const keywords = [...(org.technology_names ?? []), ...(org.keywords ?? [])]
+    .filter((k, i, arr) => k && arr.indexOf(k) === i)
+    .slice(0, 12);
+  return {
+    linkedinUrl: org.linkedin_url ?? null,
+    description: org.short_description ?? null,
+    industry: org.industry ?? null,
+    foundedYear: org.founded_year ?? null,
+    employees: org.estimated_num_employees ?? null,
+    annualRevenueUsd: org.annual_revenue ?? null,
+    locationCount: org.retail_location_count ?? null,
+    publiclyTradedSymbol: org.publicly_traded_symbol ?? null,
+    totalFunding: org.total_funding_printed ?? null,
+    latestFundingStage: org.latest_funding_stage ?? null,
+    latestFundingDate: org.latest_funding_round_date?.slice(0, 10) ?? null,
+    keywords,
   };
 }
 
@@ -66,6 +108,14 @@ export function mapOrganization(data: OrgEnrichResponse): ApolloOrgData {
 export async function enrichOrganization(domain: string): Promise<ApolloOrgData> {
   const data = await apolloGet<OrgEnrichResponse>("/organizations/enrich", { domain });
   return mapOrganization(data);
+}
+
+/** One API call, both views: the prompt facts AND the persisted snapshot. */
+export async function enrichOrganizationFull(
+  domain: string,
+): Promise<{ summary: ApolloOrgData; details: ApolloOrgDetails | null }> {
+  const data = await apolloGet<OrgEnrichResponse>("/organizations/enrich", { domain });
+  return { summary: mapOrganization(data), details: mapOrganizationDetails(data) };
 }
 
 interface NewsResponse {

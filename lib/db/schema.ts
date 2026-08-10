@@ -272,6 +272,28 @@ export const manualContacts = pgTable("manual_contacts", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// 0016: Apollo company snapshot — LinkedIn page, firmographics, funding,
+// detected tech, recent news. One row per company, upserted on analysis and
+// via the re-enrich button.
+export const companyEnrichment = pgTable("company_enrichment", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id").notNull().unique(),
+  linkedinUrl: text("linkedin_url"),
+  description: text("description"),
+  industry: text("industry"),
+  foundedYear: integer("founded_year"),
+  employees: integer("employees"),
+  annualRevenueUsd: bigint("annual_revenue_usd", { mode: "number" }),
+  locationCount: integer("location_count"),
+  publiclyTradedSymbol: text("publicly_traded_symbol"),
+  totalFunding: text("total_funding"),
+  latestFundingStage: text("latest_funding_stage"),
+  latestFundingDate: text("latest_funding_date"),
+  keywords: text("keywords").array().notNull().default(sql`'{}'`),
+  news: jsonb("news").notNull().default([]),
+  enrichedAt: timestamp("enriched_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const draftedEmails = pgTable("drafted_emails", {
   id: uuid("id").primaryKey().defaultRandom(),
   companyId: uuid("company_id").notNull(),

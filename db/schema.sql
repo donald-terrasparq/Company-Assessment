@@ -342,3 +342,27 @@ CREATE TABLE manual_contacts (
   updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX manual_contacts_company_idx ON manual_contacts(company_id);
+
+-- ─────────────────────────── company enrichment (0016) ───────────────────────────
+-- Apollo company snapshot: LinkedIn page, description, firmographics, funding,
+-- detected tech, recent news. Upserted at analysis time and via the re-enrich
+-- button on the company detail page.
+
+CREATE TABLE company_enrichment (
+  id                     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id             UUID NOT NULL UNIQUE REFERENCES companies(id) ON DELETE CASCADE,
+  linkedin_url           TEXT,
+  description            TEXT,
+  industry               TEXT,
+  founded_year           INT,
+  employees              INT,
+  annual_revenue_usd     BIGINT,
+  location_count         INT,
+  publicly_traded_symbol TEXT,
+  total_funding          TEXT,            -- Apollo's printed form, e.g. "$12.5M"
+  latest_funding_stage   TEXT,
+  latest_funding_date    TEXT,            -- YYYY-MM-DD
+  keywords               TEXT[] NOT NULL DEFAULT '{}',   -- detected tech / keywords
+  news                   JSONB NOT NULL DEFAULT '[]',    -- [{title,url,date,event}]
+  enriched_at            TIMESTAMPTZ NOT NULL DEFAULT now()
+);
